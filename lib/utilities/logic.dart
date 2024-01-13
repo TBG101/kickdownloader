@@ -22,7 +22,7 @@ class Logic {
     }
   }
 
-  getURL() async {
+  Future<void> getURL() async {
     if (validURL()) {
       String _id = url.text.split('/').last;
       apiURL =
@@ -43,5 +43,12 @@ class Logic {
       foundVideo = false;
       throw Exception('Invalid URL');
     }
+  }
+
+  thumbnailLink() {
+    var x = (videoData!["source"] as String).split("\/");
+    print(
+        "Thimbnail link: https://images.kick.com/video_thumbnails/${x[6]}/${x[12]}/720.webp");
+    return "https://images.kick.com/video_thumbnails/${x[6]}/${x[12]}/720.webp";
   }
 }
