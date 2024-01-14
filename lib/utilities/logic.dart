@@ -1,12 +1,16 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 
 class Logic {
   var url = TextEditingController();
   var apiURL = "";
   var foundVideo = false;
   Map<String, dynamic>? videoData;
+  List<String> resolutions = [];
 
   bool validURL() {
     RegExp validLinkPattern = RegExp(r'^https://kick.com/video/[a-zA-Z0-9-]+$');
@@ -52,5 +56,20 @@ class Logic {
     return "https://images.kick.com/video_thumbnails/${x[6]}/${x[12]}/720.webp";
   }
 
-  getVidQuality() {}
+  getVidQuality() async {
+    final Directory tempDir = await getTemporaryDirectory();
+    var response = await Dio().get(
+      videoData!["source"],
+    );
+    extractResolutionsFromMaster(response.data);
+  }
+
+  void extractResolutionsFromMaster(String inputString) {
+    List<String> lines = inputString.split('\n');
+    for (String line in lines) {
+      if (line.contains("/playlist.m3u8")) {
+        resolutions.add(line.replaceAll("/playlist.m3u8", ""));
+      }
+    }
+  }
 }

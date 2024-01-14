@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class VideoTimeWidget extends StatelessWidget {
-  const VideoTimeWidget(
-      {super.key, required this.text, this.padLeft = 0, required this.enable});
+  const VideoTimeWidget({
+    super.key,
+    required this.text,
+    this.padLeft = 0,
+    required this.enable,
+    this.controller,
+  });
+  final TextEditingController? controller;
   final bool enable;
   final String text;
   final double padLeft;
@@ -14,6 +21,11 @@ class VideoTimeWidget extends StatelessWidget {
         child: Padding(
           padding: EdgeInsets.only(left: padLeft),
           child: TextField(
+            controller: controller,
+            keyboardType: TextInputType.number,
+            inputFormatters: <TextInputFormatter>[
+              FilteringTextInputFormatter.digitsOnly
+            ],
             enabled: enable,
             textAlign: TextAlign.center,
             decoration: InputDecoration(

@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:image_network/image_network.dart';
 import 'package:kickdownloader/myColors.dart';
@@ -23,6 +25,19 @@ class _HomeState extends State<Home> {
   double gradientOpacity = 0.4;
   bool startValue = false;
   bool endValue = false;
+  String? valueSelected;
+  List<DropdownMenuItem<String>> listitemButton() {
+    if (logic.resolutions.isEmpty) return [];
+    List<DropdownMenuItem<String>> e = [];
+    logic.resolutions.forEach((element) {
+      e.add(DropdownMenuItem(
+        value: element,
+        child: Text(element),
+      ));
+    });
+    return e;
+  }
+
   @override
   Widget build(BuildContext context) {
     var size = MediaQuery.of(context).size;
@@ -52,6 +67,7 @@ class _HomeState extends State<Home> {
           body: ListView(
             padding: const EdgeInsets.all(10),
             children: [
+              // STREAM THUMBNAIL
               Container(
                 decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(20),
@@ -86,6 +102,7 @@ class _HomeState extends State<Home> {
                   ),
                 ),
               ),
+              // TEXT FOR STREAM FIELDS
               Padding(
                 padding: const EdgeInsets.only(top: 5),
                 child: StreamFields(field: "Streamer", text: streamer),
@@ -99,6 +116,8 @@ class _HomeState extends State<Home> {
                     decoration: const InputDecoration(
                         hintText: "Stream URL", border: OutlineInputBorder()),
                   )),
+              // GET VOD DATA BUTTON
+
               Padding(
                 padding: const EdgeInsets.only(top: 10),
                 child: SizedBox(
@@ -111,7 +130,10 @@ class _HomeState extends State<Home> {
                       setState(() {
                         logic.foundVideo = false;
                       });
-                      logic.getURL().then((_) {
+                      logic.getURL().then((_) async {
+                        await logic.getVidQuality();
+
+                        print(logic.resolutions);
                         setState(() {
                           streamer =
                               logic.videoData!["livestream"]["channel"]["slug"];
@@ -121,6 +143,7 @@ class _HomeState extends State<Home> {
                                   ["start_time"]
                               .split(" ")[0];
                           link = logic.thumbnailLink();
+                          valueSelected = logic.resolutions[0];
                           print(logic.videoData);
                         });
                       });
@@ -135,6 +158,8 @@ class _HomeState extends State<Home> {
                   ),
                 ),
               ),
+              // QUALITY SELECTOR DROPDOWN
+
               Padding(
                   padding: const EdgeInsets.only(top: 10),
                   child: SizedBox(
@@ -147,8 +172,7 @@ class _HomeState extends State<Home> {
                       child: DropdownButton<String>(
                         elevation: 2,
                         disabledHint: const Text("Video Quality"),
-
-                        value: "1",
+                        value: valueSelected,
                         iconEnabledColor: myColors.white,
                         isExpanded:
                             true, //make true to take width of parent widget
@@ -158,17 +182,18 @@ class _HomeState extends State<Home> {
                             color: Colors.white,
                             fontSize: 18,
                             fontWeight: FontWeight.w500),
-                        items: const [
-                          // DropdownMenuItem(
-                          //     value: "1", child: Text("Video Quality")),
-                          // DropdownMenuItem(value: "2", child: Text("720p")),
-                          // DropdownMenuItem(value: "3", child: Text("480p")),
-                          // DropdownMenuItem(value: "4", child: Text("360p")),
-                        ],
-                        onChanged: (Object? value) {},
+                        items: listitemButton(),
+
+                        onChanged: (Object? value) {
+                          setState(() {
+                            valueSelected = value as String;
+                          });
+                        },
                       ),
                     ),
                   )),
+
+              // START ROW FOR THE TIME SELECTOR
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 child: SizedBox(
@@ -231,6 +256,8 @@ class _HomeState extends State<Home> {
                   ),
                 ),
               ),
+
+              // END ROW FOR THE TIME SELECTOR
               Padding(
                 padding: const EdgeInsets.only(bottom: 10),
                 child: SizedBox(
@@ -291,6 +318,8 @@ class _HomeState extends State<Home> {
                   ),
                 ),
               ),
+              //  DOWNLOAD VOD BUTTON
+
               Padding(
                 padding: const EdgeInsets.only(top: 0, bottom: 10),
                 child: SizedBox(
