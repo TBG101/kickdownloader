@@ -81,5 +81,7 @@ class Logic {
     print(endTime);
     var downloadURL = videoData!["source"]
         .replaceAll(RegExp(r'master\.[^/]*$'), "$slectedQuality/");
+    // IMPLEMENT DOWNLOAD VOD
+    // IMPLEMENT BACKGROUND DOWNLOADER
   }
 }
