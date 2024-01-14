@@ -360,6 +360,7 @@ class _HomeState extends State<Home> {
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(5))),
                     onPressed: () async {
+                      logic.requestPermission();
                       if (logic.foundVideo) {
                         selectedDirectory ??=
                             await FilePicker.platform.getDirectoryPath();
@@ -368,7 +369,7 @@ class _HomeState extends State<Home> {
                             startSecond.text != "" &&
                             endHour.text != "" &&
                             endMinute.text != "" &&
-                            endSecond != "") {
+                            endSecond.text != "") {
                           // turn all time to milliseconds
                           var starttime = (int.parse(startHour.text) * 60 * 60 +
                                   int.parse(startMinute.text) * 60 +

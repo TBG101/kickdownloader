@@ -1,9 +1,12 @@
 import 'dart:convert';
+import 'dart:ffi';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:permission_handler_platform_interface/permission_handler_platform_interface.dart';
 
 class Logic {
   var url = TextEditingController();
@@ -79,9 +82,50 @@ class Logic {
       int? endTime) async {
     print(startTime);
     print(endTime);
+    var milisecondsDownlaoded = 0;
     var downloadURL = videoData!["source"]
         .replaceAll(RegExp(r'master\.[^/]*$'), "$slectedQuality/");
+
+    print(downloadURL + "playlist.m3u8");
+    var response =
+        (await Dio().get(downloadURL + "playlist.m3u8")).data.split("\n");
+
+    for (var i = 0; i < 20; i++) {
+      if (response[i].contains("#EXTINF")) {
+        var line = response[i] as String;
+        line = line.replaceAll("#EXTINF:", "");
+        line = line.replaceAll(",", "");
+        print(line);
+        print(response[i + 1]);
+        Response _response = await Dio().get(
+          downloadURL + response[i + 1],
+          onReceiveProgress: (count, total) {
+            if (total != -1) {
+              print("${(count / total * 100).toStringAsFixed(0)}%");
+            }
+          },
+          //Received data with List<int>
+          options: Options(
+            responseType: ResponseType.bytes,
+            followRedirects: false,
+          ),
+        );
+
+        File file = File("$selectedDirectory/${response[i + 1]}");
+        var raf = file.openSync(mode: FileMode.write);
+        raf.writeFromSync(_response.data);
+        await raf.close();
+        milisecondsDownlaoded =
+            milisecondsDownlaoded + (double.parse(line) * 60).toInt();
+      }
+      print("DONE DOWNLOADING TS ");
+    }
+
     // IMPLEMENT DOWNLOAD VOD
     // IMPLEMENT BACKGROUND DOWNLOADER
+  }
+
+  requestPermission() async {
+    await Permission.manageExternalStorage.request();
   }
 }
