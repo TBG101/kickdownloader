@@ -9,6 +9,7 @@ class Logic {
   var url = TextEditingController();
   var apiURL = "";
   var foundVideo = false;
+
   Map<String, dynamic>? videoData;
   List<String> resolutions = [];
 
@@ -65,11 +66,19 @@ class Logic {
   }
 
   void extractResolutionsFromMaster(String inputString) {
+    resolutions = [];
     List<String> lines = inputString.split('\n');
     for (String line in lines) {
       if (line.contains("/playlist.m3u8")) {
         resolutions.add(line.replaceAll("/playlist.m3u8", ""));
       }
     }
+  }
+
+  downloadVOD(String slectedQuality) async {
+    String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
+
+    var downloadURL = videoData!["source"]
+        .replaceAll(RegExp(r'master\.[^/]*$'), "$slectedQuality/");
   }
 }

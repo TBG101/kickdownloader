@@ -22,10 +22,20 @@ class _HomeState extends State<Home> {
   String streamer = "";
   String title = "";
   String stramDate = "";
+  String streamLength = "";
   double gradientOpacity = 0.4;
   bool startValue = false;
   bool endValue = false;
   String? valueSelected;
+
+  // text controllers
+  TextEditingController startHour = TextEditingController();
+  TextEditingController startMinute = TextEditingController();
+  TextEditingController startSecond = TextEditingController();
+  TextEditingController endHour = TextEditingController();
+  TextEditingController endMinute = TextEditingController();
+  TextEditingController endSecond = TextEditingController();
+
   List<DropdownMenuItem<String>> listitemButton() {
     if (logic.resolutions.isEmpty) return [];
     List<DropdownMenuItem<String>> e = [];
@@ -109,6 +119,7 @@ class _HomeState extends State<Home> {
               ),
               StreamFields(field: "Tile", text: title),
               StreamFields(field: "Stream date", text: stramDate),
+              StreamFields(field: "Stream Length", text: streamLength),
               Padding(
                   padding: const EdgeInsets.only(top: 10),
                   child: TextField(
@@ -132,8 +143,15 @@ class _HomeState extends State<Home> {
                       });
                       logic.getURL().then((_) async {
                         await logic.getVidQuality();
-
                         print(logic.resolutions);
+
+                        var duration = Duration(
+                            hours: 0,
+                            seconds: 0,
+                            minutes: 0,
+                            milliseconds: logic.videoData!["livestream"]
+                                ["duration"] as int);
+
                         setState(() {
                           streamer =
                               logic.videoData!["livestream"]["channel"]["slug"];
@@ -142,6 +160,8 @@ class _HomeState extends State<Home> {
                           stramDate = logic.videoData!["livestream"]
                                   ["start_time"]
                               .split(" ")[0];
+                          streamLength = duration.toString().split('.')[0];
+
                           link = logic.thumbnailLink();
                           valueSelected = logic.resolutions[0];
                           print(logic.videoData);
@@ -237,17 +257,21 @@ class _HomeState extends State<Home> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             VideoTimeWidget(
-                                text: "H",
-                                enable: logic.foundVideo && startValue),
+                              text: "H",
+                              enable: logic.foundVideo && startValue,
+                              controller: startHour,
+                            ),
                             VideoTimeWidget(
                               text: "S",
                               padLeft: 9,
                               enable: logic.foundVideo && startValue,
+                              controller: startMinute,
                             ),
                             VideoTimeWidget(
                               text: "M",
                               padLeft: 9,
                               enable: logic.foundVideo && startValue,
+                              controller: startSecond,
                             ),
                           ],
                         ),
@@ -301,16 +325,22 @@ class _HomeState extends State<Home> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             VideoTimeWidget(
-                                text: "H",
-                                enable: logic.foundVideo && endValue),
+                              text: "H",
+                              enable: logic.foundVideo && endValue,
+                              controller: endHour,
+                            ),
                             VideoTimeWidget(
-                                text: "S",
-                                padLeft: 9,
-                                enable: logic.foundVideo && endValue),
+                              text: "S",
+                              padLeft: 9,
+                              enable: logic.foundVideo && endValue,
+                              controller: endMinute,
+                            ),
                             VideoTimeWidget(
-                                text: "M",
-                                padLeft: 9,
-                                enable: logic.foundVideo && endValue),
+                              text: "M",
+                              padLeft: 9,
+                              enable: logic.foundVideo && endValue,
+                              controller: endSecond,
+                            ),
                           ],
                         ),
                       )
@@ -328,7 +358,11 @@ class _HomeState extends State<Home> {
                     style: ElevatedButton.styleFrom(
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(5))),
-                    onPressed: () {},
+                    onPressed: () {
+                      if (logic.foundVideo) {
+                        logic.downloadVOD(valueSelected!);
+                      }
+                    },
                     child: const Text(
                       "Download VOD",
                       style: TextStyle(
