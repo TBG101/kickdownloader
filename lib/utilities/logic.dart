@@ -1,8 +1,6 @@
 import 'dart:convert';
-
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:http/http.dart';
 
 class Logic {
   var url = TextEditingController();
@@ -28,10 +26,12 @@ class Logic {
       apiURL =
           "https://kick.com/api/v1/video/$_id?${DateTime.now().millisecondsSinceEpoch}";
       print("API URL: $apiURL");
-      Response response = await http.get(Uri.parse(apiURL));
+      Response response = await Dio().get(
+        apiURL,
+      );
       if (response.statusCode == 200) {
         print("RESPONSE: 200");
-        videoData = json.decode(response.body);
+        videoData = json.decode(response.data);
         apiURL = _id;
         foundVideo = true;
       } else {
@@ -51,4 +51,6 @@ class Logic {
         "Thimbnail link: https://images.kick.com/video_thumbnails/${x[6]}/${x[12]}/720.webp");
     return "https://images.kick.com/video_thumbnails/${x[6]}/${x[12]}/720.webp";
   }
+
+  getVidQuality() {}
 }

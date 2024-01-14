@@ -108,6 +108,9 @@ class _HomeState extends State<Home> {
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(5))),
                     onPressed: () {
+                      setState(() {
+                        logic.foundVideo = false;
+                      });
                       logic.getURL().then((_) {
                         setState(() {
                           streamer =
@@ -143,6 +146,8 @@ class _HomeState extends State<Home> {
                       ),
                       child: DropdownButton<String>(
                         elevation: 2,
+                        disabledHint: const Text("Video Quality"),
+
                         value: "1",
                         iconEnabledColor: myColors.white,
                         isExpanded:
@@ -154,11 +159,11 @@ class _HomeState extends State<Home> {
                             fontSize: 18,
                             fontWeight: FontWeight.w500),
                         items: const [
-                          DropdownMenuItem(
-                              value: "1", child: Text("Video Quality")),
-                          DropdownMenuItem(value: "2", child: Text("720p")),
-                          DropdownMenuItem(value: "3", child: Text("480p")),
-                          DropdownMenuItem(value: "4", child: Text("360p")),
+                          // DropdownMenuItem(
+                          //     value: "1", child: Text("Video Quality")),
+                          // DropdownMenuItem(value: "2", child: Text("720p")),
+                          // DropdownMenuItem(value: "3", child: Text("480p")),
+                          // DropdownMenuItem(value: "4", child: Text("360p")),
                         ],
                         onChanged: (Object? value) {},
                       ),
@@ -187,22 +192,38 @@ class _HomeState extends State<Home> {
                                 child: Checkbox(
                                   value: startValue,
                                   onChanged: (s) {
-                                    setState(() {
-                                      startValue = !startValue;
-                                    });
+                                    if (logic.foundVideo == true) {
+                                      setState(() {
+                                        startValue = !startValue;
+                                      });
+                                    } else {
+                                      setState(() {
+                                        startValue = false;
+                                      });
+                                    }
                                   },
                                   visualDensity: VisualDensity.compact,
                                 ),
                               )
                             ]),
                       ),
-                      const SizedBox(
+                      SizedBox(
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            VideoTimeWidget(text: "H"),
-                            VideoTimeWidget(text: "S", padLeft: 9),
-                            VideoTimeWidget(text: "M", padLeft: 9),
+                            VideoTimeWidget(
+                                text: "H",
+                                enable: logic.foundVideo && startValue),
+                            VideoTimeWidget(
+                              text: "S",
+                              padLeft: 9,
+                              enable: logic.foundVideo && startValue,
+                            ),
+                            VideoTimeWidget(
+                              text: "M",
+                              padLeft: 9,
+                              enable: logic.foundVideo && startValue,
+                            ),
                           ],
                         ),
                       )
@@ -233,22 +254,36 @@ class _HomeState extends State<Home> {
                                 child: Checkbox(
                                   value: endValue,
                                   onChanged: (s) {
-                                    setState(() {
-                                      endValue = !endValue;
-                                    });
+                                    if (logic.foundVideo == true) {
+                                      setState(() {
+                                        endValue = !endValue;
+                                      });
+                                    } else {
+                                      setState(() {
+                                        endValue = false;
+                                      });
+                                    }
                                   },
                                   visualDensity: VisualDensity.compact,
                                 ),
                               )
                             ]),
                       ),
-                      const SizedBox(
+                      SizedBox(
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            VideoTimeWidget(text: "H"),
-                            VideoTimeWidget(text: "S", padLeft: 9),
-                            VideoTimeWidget(text: "M", padLeft: 9),
+                            VideoTimeWidget(
+                                text: "H",
+                                enable: logic.foundVideo && endValue),
+                            VideoTimeWidget(
+                                text: "S",
+                                padLeft: 9,
+                                enable: logic.foundVideo && endValue),
+                            VideoTimeWidget(
+                                text: "M",
+                                padLeft: 9,
+                                enable: logic.foundVideo && endValue),
                           ],
                         ),
                       )
@@ -261,17 +296,18 @@ class _HomeState extends State<Home> {
                 child: SizedBox(
                   height: 50,
                   child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(5))),
-                      onPressed: () {},
-                      child: const Text(
-                        "Download VOD",
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w500),
-                      )),
+                    style: ElevatedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(5))),
+                    onPressed: () {},
+                    child: const Text(
+                      "Download VOD",
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w500),
+                    ),
+                  ),
                 ),
               ),
             ],
