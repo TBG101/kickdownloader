@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:image_network/image_network.dart';
 import 'package:kickdownloader/myColors.dart';
@@ -27,7 +28,7 @@ class _HomeState extends State<Home> {
   bool startValue = false;
   bool endValue = false;
   String? valueSelected;
-
+  String? selectedDirectory;
   // text controllers
   TextEditingController startHour = TextEditingController();
   TextEditingController startMinute = TextEditingController();
@@ -358,9 +359,31 @@ class _HomeState extends State<Home> {
                     style: ElevatedButton.styleFrom(
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(5))),
-                    onPressed: () {
+                    onPressed: () async {
                       if (logic.foundVideo) {
-                        logic.downloadVOD(valueSelected!);
+                        selectedDirectory ??=
+                            await FilePicker.platform.getDirectoryPath();
+                        if (startHour.text != "" &&
+                            startMinute.text != "" &&
+                            startSecond.text != "" &&
+                            endHour.text != "" &&
+                            endMinute.text != "" &&
+                            endSecond != "") {
+                          // turn all time to milliseconds
+                          var starttime = (int.parse(startHour.text) * 60 * 60 +
+                                  int.parse(startMinute.text) * 60 +
+                                  int.parse(startSecond.text)) *
+                              60;
+                          var endtime = (int.parse(endHour.text) * 60 * 60 +
+                                  int.parse(endMinute.text) * 60 +
+                                  int.parse(endSecond.text)) *
+                              60;
+                          logic.downloadVOD(valueSelected!, selectedDirectory!,
+                              starttime, endtime);
+                        } else {
+                          logic.downloadVOD(
+                              valueSelected!, selectedDirectory!, null, null);
+                        }
                       }
                     },
                     child: const Text(

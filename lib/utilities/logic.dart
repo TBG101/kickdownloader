@@ -75,9 +75,10 @@ class Logic {
     }
   }
 
-  downloadVOD(String slectedQuality) async {
-    String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
-
+  downloadVOD(String slectedQuality, String selectedDirectory, int? startTime,
+      int? endTime) async {
+    print(startTime);
+    print(endTime);
     var downloadURL = videoData!["source"]
         .replaceAll(RegExp(r'master\.[^/]*$'), "$slectedQuality/");
   }
