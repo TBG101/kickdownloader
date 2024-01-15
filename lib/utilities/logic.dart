@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:ffmpeg_kit_flutter/ffmpeg_kit.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -94,14 +95,16 @@ class Logic {
           Response tsFile = await downloadTS(downloadURL + playlist[i + 1]);
           saveTS("$selectedDirectory/${playlist[i + 1]}", tsFile.data);
         }
-        print("DONE DOWNLOADING TS ");
+        // IMPLEMENT TS MERGE TO MP4
       }
+      print("DONE DOWNLOADING TS ");
     } else {
       var timeMilliseconds = 0;
       for (int i = 0; i < playlist.length; i++) {
         if (playlist[i].contains("#EXTINF:")) {
           if (timeMilliseconds >= endTime!) {
-            print("ENDED WITH: $timeMilliseconds");
+            print("ENDED TS WITH: $timeMilliseconds");
+            // IMPLEMENT TS MERGE TO MP4
             break;
           }
           var line = playlist[i];
