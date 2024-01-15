@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:ffmpeg_kit_flutter/ffmpeg_kit.dart';
+
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -16,7 +17,6 @@ class Logic {
 
   bool validURL() {
     RegExp validLinkPattern = RegExp(r'^https://kick.com/video/[a-zA-Z0-9-]+$');
-
     if (validLinkPattern.hasMatch(url.text)) {
       print("LINK IS VALID");
       return true;
@@ -83,6 +83,7 @@ class Logic {
 
     print(downloadURL + "playlist.m3u8");
     List<String> playlist = await getPlaylist(downloadURL);
+    List<int> queeList = [];
 
     if (startTime == null && endTime == null) {
       for (var i = 0; i < playlist.length; i++) {
@@ -92,8 +93,19 @@ class Logic {
           line = line.replaceAll(",", "");
 
           print(playlist[i + 1]);
-          Response tsFile = await downloadTS(downloadURL + playlist[i + 1]);
-          saveTS("$selectedDirectory/${playlist[i + 1]}", tsFile.data);
+          if (queeList.length < 5) {
+            queeList.add(int.parse(playlist[i + 1].replaceAll(".ts", "")));
+          } else {
+            while (queeList.length >= 5) {
+              await Future.delayed(const Duration(
+                  milliseconds: 500)); // Adjust the delay as needed
+              print('Waiting for the list length to become smaller than 5...');
+            }
+          }
+          downloadTS(downloadURL + playlist[i + 1]).then((tsFile) {
+            queeList.remove(int.parse(playlist[i + 1].replaceAll(".ts", "")));
+            saveTS("$selectedDirectory/${playlist[i + 1]}", tsFile.data);
+          });
         }
         // IMPLEMENT TS MERGE TO MP4
       }
@@ -103,8 +115,11 @@ class Logic {
       for (int i = 0; i < playlist.length; i++) {
         if (playlist[i].contains("#EXTINF:")) {
           if (timeMilliseconds >= endTime!) {
+            while (queeList.isNotEmpty) {
+              await Future.delayed(const Duration(seconds: 1));
+            }
             print("ENDED TS WITH: $timeMilliseconds");
-            // IMPLEMENT TS MERGE TO MP4
+            await mergeToMp4(selectedDirectory);
             break;
           }
           var line = playlist[i];
@@ -114,8 +129,19 @@ class Logic {
           if (timeMilliseconds >= startTime! ||
               timeMilliseconds + double.parse(line) * 60 > startTime) {
             print("Downloading ${playlist[i + 1]}");
-            Response tsFile = await downloadTS(downloadURL + playlist[i + 1]);
-            saveTS("$selectedDirectory/${playlist[i + 1]}", tsFile.data);
+            if (queeList.length < 5) {
+              queeList.add(int.parse(playlist[i + 1].replaceAll(".ts", "")));
+            } else {
+              while (queeList.length >= 5) {
+                await Future.delayed(const Duration(milliseconds: 500));
+              }
+            }
+
+            downloadTS(downloadURL + playlist[i + 1]).then((tsFile) async {
+              await saveTS(
+                  "$selectedDirectory/${playlist[i + 1]}", tsFile.data);
+              queeList.remove(int.parse(playlist[i + 1].replaceAll(".ts", "")));
+            });
           }
 
           timeMilliseconds =
@@ -125,14 +151,50 @@ class Logic {
     }
   }
 
-  downloadTS(path) async {
+  mergeToMp4(path) async {
+    var directory = Directory(path);
+    List<File> tsFiles = directory
+        .listSync()
+        .where((file) => file.path.endsWith('.ts'))
+        .cast<File>()
+        .toList(growable: false);
+    tsFiles.sort((a, b) => a.path.compareTo(b.path));
+    print(tsFiles);
+    File outputFile =
+        File('$path/all.ts'); // Replace with the desired output path
+    try {
+      // Open the output file in write mode (create if not exists)
+      RandomAccessFile outputRandomAccessFile =
+          outputFile.openSync(mode: FileMode.write);
+
+      // Iterate through each .ts file and append its content to the output file
+      for (File tsFile in tsFiles) {
+        RandomAccessFile inputRandomAccessFile =
+            tsFile.openSync(mode: FileMode.read);
+        outputRandomAccessFile.writeFromSync(
+            inputRandomAccessFile.readSync(inputRandomAccessFile.lengthSync()));
+        inputRandomAccessFile.closeSync();
+      }
+
+      await outputRandomAccessFile.close();
+
+      print('Concatenation successful!');
+
+      // convert to mp4
+      String ffmpegCommand =
+          '-i "$path/all.ts" -c:v copy -c:a copy "$path/${videoData!["livestream"]["channel"]["user"]["username"]}-${videoData!["livestream"]["created_at"].split(" ")[0]}.mp4"';
+
+      await FFmpegKit.executeAsync(ffmpegCommand);
+      deleteTs(tsFiles, path);
+    } catch (e) {
+      print('Error during concatenation: $e');
+    }
+  }
+
+  Future<Response> downloadTS(path) async {
     return await Dio().get(
       path,
-      onReceiveProgress: (count, total) {
-        if (total != -1) {
-          print("${(count / total * 100).toStringAsFixed(0)}%");
-        }
-      },
+      onReceiveProgress: (count, total) {},
       options: Options(
         responseType: ResponseType.bytes,
         followRedirects: false,
@@ -140,10 +202,10 @@ class Logic {
     );
   }
 
-  saveTS(String savePath, List<int> data) {
+  Future<void> saveTS(String savePath, List<int> data) async {
     File file = File(savePath);
     var raf = file.openSync(mode: FileMode.write);
-    raf.writeFromSync(data);
+    await raf.writeFrom(data);
   }
 
   getPlaylist(downloadURL) async {
@@ -152,5 +214,23 @@ class Logic {
 
   requestPermission() async {
     await Permission.manageExternalStorage.request();
+  }
+
+  deleteTs(List<File> tsFiles, path) async {
+    for (var file in tsFiles) {
+      if (file.existsSync()) {
+        print("deleting ${file.path}");
+        try {
+          await file.delete();
+        } catch (e) {
+          debugPrint("bug on fileTs list deletion");
+        }
+      }
+    }
+    try {
+      File("$path/all.ts").delete();
+    } catch (e) {
+      debugPrint("bug on all.ts deletion");
+    }
   }
 }
