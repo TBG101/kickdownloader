@@ -1,12 +1,9 @@
 import 'dart:convert';
-import 'dart:ffi';
 import 'dart:io';
 import 'package:dio/dio.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:permission_handler_platform_interface/permission_handler_platform_interface.dart';
 
 class Logic {
   var url = TextEditingController();
@@ -80,49 +77,74 @@ class Logic {
 
   downloadVOD(String slectedQuality, String selectedDirectory, int? startTime,
       int? endTime) async {
-    print(startTime);
-    print(endTime);
-    var milisecondsDownlaoded = 0;
     var downloadURL = videoData!["source"]
         .replaceAll(RegExp(r'master\.[^/]*$'), "$slectedQuality/");
 
     print(downloadURL + "playlist.m3u8");
-    var response =
-        (await Dio().get(downloadURL + "playlist.m3u8")).data.split("\n");
+    List<String> playlist = await getPlaylist(downloadURL);
 
-    for (var i = 0; i < 20; i++) {
-      if (response[i].contains("#EXTINF")) {
-        var line = response[i] as String;
-        line = line.replaceAll("#EXTINF:", "");
-        line = line.replaceAll(",", "");
-        print(line);
-        print(response[i + 1]);
-        Response _response = await Dio().get(
-          downloadURL + response[i + 1],
-          onReceiveProgress: (count, total) {
-            if (total != -1) {
-              print("${(count / total * 100).toStringAsFixed(0)}%");
-            }
-          },
-          //Received data with List<int>
-          options: Options(
-            responseType: ResponseType.bytes,
-            followRedirects: false,
-          ),
-        );
+    if (startTime == null && endTime == null) {
+      for (var i = 0; i < playlist.length; i++) {
+        if (playlist[i].contains("#EXTINF")) {
+          var line = playlist[i];
+          line = line.replaceAll("#EXTINF:", "");
+          line = line.replaceAll(",", "");
 
-        File file = File("$selectedDirectory/${response[i + 1]}");
-        var raf = file.openSync(mode: FileMode.write);
-        raf.writeFromSync(_response.data);
-        await raf.close();
-        milisecondsDownlaoded =
-            milisecondsDownlaoded + (double.parse(line) * 60).toInt();
+          print(playlist[i + 1]);
+          Response tsFile = await downloadTS(downloadURL + playlist[i + 1]);
+          saveTS("$selectedDirectory/${playlist[i + 1]}", tsFile.data);
+        }
+        print("DONE DOWNLOADING TS ");
       }
-      print("DONE DOWNLOADING TS ");
-    }
+    } else {
+      var timeMilliseconds = 0;
+      for (int i = 0; i < playlist.length; i++) {
+        if (playlist[i].contains("#EXTINF:")) {
+          if (timeMilliseconds >= endTime!) {
+            print("ENDED WITH: $timeMilliseconds");
+            break;
+          }
+          var line = playlist[i];
+          line = line.replaceAll("#EXTINF:", "");
+          line = line.replaceAll(",", "");
 
-    // IMPLEMENT DOWNLOAD VOD
-    // IMPLEMENT BACKGROUND DOWNLOADER
+          if (timeMilliseconds >= startTime! ||
+              timeMilliseconds + double.parse(line) * 60 > startTime) {
+            print("Downloading ${playlist[i + 1]}");
+            Response tsFile = await downloadTS(downloadURL + playlist[i + 1]);
+            saveTS("$selectedDirectory/${playlist[i + 1]}", tsFile.data);
+          }
+
+          timeMilliseconds =
+              timeMilliseconds + (double.parse(line) * 60).toInt();
+        }
+      }
+    }
+  }
+
+  downloadTS(path) async {
+    return await Dio().get(
+      path,
+      onReceiveProgress: (count, total) {
+        if (total != -1) {
+          print("${(count / total * 100).toStringAsFixed(0)}%");
+        }
+      },
+      options: Options(
+        responseType: ResponseType.bytes,
+        followRedirects: false,
+      ),
+    );
+  }
+
+  saveTS(String savePath, List<int> data) {
+    File file = File(savePath);
+    var raf = file.openSync(mode: FileMode.write);
+    raf.writeFromSync(data);
+  }
+
+  getPlaylist(downloadURL) async {
+    return (await Dio().get(downloadURL + "playlist.m3u8")).data.split("\n");
   }
 
   requestPermission() async {
