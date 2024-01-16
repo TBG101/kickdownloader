@@ -1,8 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
-import 'package:ffmpeg_kit_flutter/ffmpeg_kit.dart';
-
+import 'package:ffmpeg_kit_flutter_https_gpl/ffmpeg_kit.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -182,9 +181,15 @@ class Logic {
 
       // convert to mp4
       String ffmpegCommand =
-          '-i "$path/all.ts" -c:v copy -c:a copy "$path/${videoData!["livestream"]["channel"]["user"]["username"]}-${videoData!["livestream"]["created_at"].split(" ")[0]}.mp4"';
+          '-i "$path/all.ts" -c:v libx264 -c:a copy "$path/${videoData!["livestream"]["channel"]["user"]["username"]}-${videoData!["livestream"]["created_at"].split(" ")[0]}.mp4"';
 
-      await FFmpegKit.executeAsync(ffmpegCommand);
+      await FFmpegKit.executeAsync(
+        ffmpegCommand,
+        (session) {
+          session.getState().then((value) => print(value));
+        },
+        (log) => print((log.getMessage())),
+      );
       deleteTs(tsFiles, path);
     } catch (e) {
       print('Error during concatenation: $e');
