@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:ffmpeg_kit_flutter_https_gpl/ffmpeg_kit.dart';
+import 'package:ffmpeg_kit_flutter_https_gpl/session_state.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -77,12 +78,14 @@ class Logic {
 
   downloadVOD(String slectedQuality, String selectedDirectory, int? startTime,
       int? endTime) async {
+    List<int> queeList = [];
     var downloadURL = videoData!["source"]
         .replaceAll(RegExp(r'master\.[^/]*$'), "$slectedQuality/");
 
     print(downloadURL + "playlist.m3u8");
     List<String> playlist = await getPlaylist(downloadURL);
-    List<int> queeList = [];
+    int? overflowTime;
+
     File("$selectedDirectory/generated.txt").createSync(recursive: true);
     if (startTime == null && endTime == null) {
       for (var i = 0; i < playlist.length; i++) {
@@ -105,7 +108,7 @@ class Logic {
             saveTS("$selectedDirectory/", tsFile?.data, playlist[i + 1]);
           });
         }
-        // IMPLEMENT TS MERGE TO MP4
+        await Future.delayed(const Duration(milliseconds: 100));
       }
       print("DONE DOWNLOADING TS ");
     } else {
@@ -125,7 +128,8 @@ class Logic {
           line = line.replaceAll(",", "");
 
           if (timeMilliseconds >= startTime! ||
-              timeMilliseconds + double.parse(line) * 60 > startTime) {
+              timeMilliseconds + double.parse(line) * 1000 > startTime) {
+            overflowTime ??= startTime - timeMilliseconds;
             print("Downloading ${playlist[i + 1]}");
             if (queeList.length < 5) {
               queeList.add(int.parse(playlist[i + 1].replaceAll(".ts", "")));
@@ -143,29 +147,35 @@ class Logic {
           }
 
           timeMilliseconds =
-              timeMilliseconds + (double.parse(line) * 60).toInt();
+              timeMilliseconds + (double.parse(line) * 1000).toInt();
         }
       }
     }
+    await checkTSfiles(selectedDirectory, downloadURL);
+
+    // implment add null check
+    if (endTime == null && startTime == null) {
+      await mergeToMp4(selectedDirectory, null, null);
+    }
+    await mergeToMp4(
+        selectedDirectory, overflowTime ?? 0, (endTime! - startTime!));
   }
 
-  Future<void> mergeToMp4(path) async {
+  Future<void> mergeToMp4(
+      String path, int? overflowStart, int? overflowEnd) async {
     var directory = Directory(path);
     List<File> tsFiles = directory
         .listSync()
         .where((file) => file.path.endsWith('.ts'))
         .cast<File>()
-        .toList(growable: false);
+        .toList();
     tsFiles.sort((a, b) => a.path.compareTo(b.path));
     print(tsFiles);
-    File outputFile =
-        File('$path/all.ts'); // Replace with the desired output path
+    File outputFile = File('$path/all.ts');
     try {
-      // Open the output file in write mode (create if not exists)
       RandomAccessFile outputRandomAccessFile =
           outputFile.openSync(mode: FileMode.write);
 
-      // Iterate through each .ts file and append its content to the output file
       for (File tsFile in tsFiles) {
         RandomAccessFile inputRandomAccessFile =
             tsFile.openSync(mode: FileMode.read);
@@ -179,17 +189,29 @@ class Logic {
       print('Concatenation successful!');
 
       // convert to mp4
+      // implement the cut video
+      var x = "";
+      if (overflowStart != null && overflowEnd != null) {
+        x = "-ss ${formatMilliseconds(overflowStart)} -t ${formatMilliseconds(overflowEnd)}";
+      }
+      // using this -ss 00:05:10 -to 00:15:30
+
       String ffmpegCommand =
-          '-i "$path/all.ts" -c:v libx264 -c:a copy "$path/${videoData!["livestream"]["channel"]["user"]["username"]}-${videoData!["livestream"]["created_at"].split(" ")[0]}.mp4"';
+          '-y -i "$path/all.ts" $x -c:v libx264 -c:a copy "$path/[${videoData!["livestream"]["created_at"].split(" ")[0]}] ${videoData!["livestream"]["channel"]["user"]["username"]} - ${videoData!["livestream"]["channel"]["user"]["username"]} - ${videoData!["livestream"]["channel"]["user"]["username"]} ${videoData!["livestream"]["session_title"]} - ${DateTime.now().millisecondsSinceEpoch}.mp4"';
 
       await FFmpegKit.executeAsync(
         ffmpegCommand,
         (session) {
-          session.getState().then((value) => print(value));
+          session.getState().then((value) async {
+            print(value);
+            if (value == SessionState.completed) {
+              await deleteTs(tsFiles, path);
+              print("done deleting");
+            }
+          });
         },
         (log) => print((log.getMessage())),
       );
-      deleteTs(tsFiles, path);
     } catch (e) {
       print('Error during concatenation: $e');
     }
@@ -218,10 +240,10 @@ class Logic {
       File("${savePath}generated.txt").writeAsString("$tsFileName e\n");
       return;
     }
-    File("${savePath}generated.txt").writeAsString("$tsFileName d\n");
     File file = File(savePath + tsFileName);
     var raf = file.openSync(mode: FileMode.write);
     await raf.writeFrom(data);
+    await File("${savePath}generated.txt").writeAsString("$tsFileName d\n");
   }
 
   getPlaylist(downloadURL) async {
@@ -233,6 +255,7 @@ class Logic {
   }
 
   deleteTs(List<File> tsFiles, path) async {
+    print(tsFiles);
     for (var file in tsFiles) {
       if (file.existsSync()) {
         print("deleting ${file.path}");
@@ -244,7 +267,8 @@ class Logic {
       }
     }
     try {
-      File("$path/all.ts").delete();
+      await File("$path/all.ts").delete();
+      await File("$path/generated.txt").delete();
     } catch (e) {
       debugPrint("bug on all.ts deletion");
     }
@@ -252,5 +276,34 @@ class Logic {
 
   Future waitTimer() async {
     return await Future.delayed(const Duration(seconds: 1));
+  }
+
+  checkTSfiles(String path, String downloadPath) async {
+    File file = File("$path/generated.txt");
+    final lines = await file.readAsLines(encoding: utf8);
+    for (var line in lines) {
+      if (line.contains("e")) {
+        print("FILE $line NOT DOWNLOADED");
+        var name = line.split(" ")[0];
+        var r = await downloadTS(downloadPath, name);
+        await saveTS(path, r?.data, name);
+      }
+    }
+  }
+
+  String formatMilliseconds(int milliseconds) {
+    // Calculate hours, minutes, seconds, and remaining milliseconds
+    int hours = (milliseconds ~/ (1000 * 60 * 60)) % 24;
+    int minutes = (milliseconds ~/ (1000 * 60)) % 60;
+    int seconds = (milliseconds ~/ 1000) % 60;
+    int remainingMilliseconds = milliseconds % 1000;
+
+    // Format the result as "HOURS:MM:SS.MILLISECONDS"
+    String formattedTime = '$hours:'
+        '${minutes.toString().padLeft(2, '0')}:'
+        '${seconds.toString().padLeft(2, '0')}.'
+        '${remainingMilliseconds.toString().padLeft(3, '0')}';
+
+    return formattedTime;
   }
 }

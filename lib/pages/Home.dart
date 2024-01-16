@@ -128,8 +128,8 @@ class _HomeState extends State<Home> {
                     decoration: const InputDecoration(
                         hintText: "Stream URL", border: OutlineInputBorder()),
                   )),
-              // GET VOD DATA BUTTON
 
+              // GET VOD DATA BUTTON
               Padding(
                 padding: const EdgeInsets.only(top: 10),
                 child: SizedBox(
@@ -179,8 +179,8 @@ class _HomeState extends State<Home> {
                   ),
                 ),
               ),
-              // QUALITY SELECTOR DROPDOWN
 
+              // QUALITY SELECTOR DROPDOWN
               Padding(
                   padding: const EdgeInsets.only(top: 10),
                   child: SizedBox(
@@ -374,11 +374,11 @@ class _HomeState extends State<Home> {
                           var starttime = (int.parse(startHour.text) * 60 * 60 +
                                   int.parse(startMinute.text) * 60 +
                                   int.parse(startSecond.text)) *
-                              60;
+                              1000;
                           var endtime = (int.parse(endHour.text) * 60 * 60 +
                                   int.parse(endMinute.text) * 60 +
                                   int.parse(endSecond.text)) *
-                              60;
+                              1000;
                           logic.downloadVOD(valueSelected!, selectedDirectory!,
                               starttime, endtime);
                         } else {
