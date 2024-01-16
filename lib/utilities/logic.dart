@@ -83,7 +83,7 @@ class Logic {
     print(downloadURL + "playlist.m3u8");
     List<String> playlist = await getPlaylist(downloadURL);
     List<int> queeList = [];
-
+    File("$selectedDirectory/generated.txt").createSync(recursive: true);
     if (startTime == null && endTime == null) {
       for (var i = 0; i < playlist.length; i++) {
         if (playlist[i].contains("#EXTINF")) {
@@ -96,14 +96,13 @@ class Logic {
             queeList.add(int.parse(playlist[i + 1].replaceAll(".ts", "")));
           } else {
             while (queeList.length >= 5) {
-              await Future.delayed(const Duration(
-                  milliseconds: 500)); // Adjust the delay as needed
+              await waitTimer(); // wait for a download thread to finish
               print('Waiting for the list length to become smaller than 5...');
             }
           }
-          downloadTS(downloadURL + playlist[i + 1]).then((tsFile) {
+          downloadTS(downloadURL, playlist[i + 1]).then((tsFile) {
             queeList.remove(int.parse(playlist[i + 1].replaceAll(".ts", "")));
-            saveTS("$selectedDirectory/${playlist[i + 1]}", tsFile.data);
+            saveTS("$selectedDirectory/", tsFile?.data, playlist[i + 1]);
           });
         }
         // IMPLEMENT TS MERGE TO MP4
@@ -115,10 +114,10 @@ class Logic {
         if (playlist[i].contains("#EXTINF:")) {
           if (timeMilliseconds >= endTime!) {
             while (queeList.isNotEmpty) {
-              await Future.delayed(const Duration(seconds: 1));
+              await waitTimer(); // wait for a download thread to finish
             }
             print("ENDED TS WITH: $timeMilliseconds");
-            await mergeToMp4(selectedDirectory);
+
             break;
           }
           var line = playlist[i];
@@ -132,13 +131,13 @@ class Logic {
               queeList.add(int.parse(playlist[i + 1].replaceAll(".ts", "")));
             } else {
               while (queeList.length >= 5) {
-                await Future.delayed(const Duration(milliseconds: 500));
+                await waitTimer();
               }
             }
 
-            downloadTS(downloadURL + playlist[i + 1]).then((tsFile) async {
+            downloadTS(downloadURL, playlist[i + 1]).then((tsFile) async {
               await saveTS(
-                  "$selectedDirectory/${playlist[i + 1]}", tsFile.data);
+                  "$selectedDirectory/", tsFile?.data, playlist[i + 1]);
               queeList.remove(int.parse(playlist[i + 1].replaceAll(".ts", "")));
             });
           }
@@ -150,7 +149,7 @@ class Logic {
     }
   }
 
-  mergeToMp4(path) async {
+  Future<void> mergeToMp4(path) async {
     var directory = Directory(path);
     List<File> tsFiles = directory
         .listSync()
@@ -196,19 +195,31 @@ class Logic {
     }
   }
 
-  Future<Response> downloadTS(path) async {
-    return await Dio().get(
-      path,
-      onReceiveProgress: (count, total) {},
-      options: Options(
-        responseType: ResponseType.bytes,
-        followRedirects: false,
-      ),
-    );
+  Future<Response?> downloadTS(String path, String tsFileNB) async {
+    try {
+      var r = await Dio().get(
+        path + tsFileNB,
+        onReceiveProgress: (count, total) {},
+        options: Options(
+          responseType: ResponseType.bytes,
+          followRedirects: false,
+        ),
+      );
+      return r;
+    } catch (e) {
+      print("object");
+      return null;
+    }
   }
 
-  Future<void> saveTS(String savePath, List<int> data) async {
-    File file = File(savePath);
+  Future<void> saveTS(
+      String savePath, List<int>? data, String tsFileName) async {
+    if (data == null) {
+      File("${savePath}generated.txt").writeAsString("$tsFileName e\n");
+      return;
+    }
+    File("${savePath}generated.txt").writeAsString("$tsFileName d\n");
+    File file = File(savePath + tsFileName);
     var raf = file.openSync(mode: FileMode.write);
     await raf.writeFrom(data);
   }
@@ -237,5 +248,9 @@ class Logic {
     } catch (e) {
       debugPrint("bug on all.ts deletion");
     }
+  }
+
+  Future waitTimer() async {
+    return await Future.delayed(const Duration(seconds: 1));
   }
 }
