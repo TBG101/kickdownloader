@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ffi';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:ffmpeg_kit_flutter_https_gpl/ffmpeg_kit.dart';
@@ -14,6 +15,8 @@ class Logic {
 
   Map<String, dynamic>? videoData;
   List<String> resolutions = [];
+  double videoDownloadPercentage = 0;
+  bool downloadingVideo = false;
 
   bool validURL() {
     RegExp validLinkPattern = RegExp(r'^https://kick.com/video/[a-zA-Z0-9-]+$');
@@ -87,6 +90,7 @@ class Logic {
     int? overflowTime;
 
     File("$selectedDirectory/generated.txt").createSync(recursive: true);
+    downloadingVideo = true;
     if (startTime == null && endTime == null) {
       for (var i = 0; i < playlist.length; i++) {
         if (playlist[i].contains("#EXTINF")) {
@@ -115,12 +119,13 @@ class Logic {
       var timeMilliseconds = 0;
       for (int i = 0; i < playlist.length; i++) {
         if (playlist[i].contains("#EXTINF:")) {
+          videoDownloadPercentage = (timeMilliseconds / endTime!) * 100;
           if (timeMilliseconds >= endTime!) {
             while (queeList.isNotEmpty) {
               await waitTimer(); // wait for a download thread to finish
             }
             print("ENDED TS WITH: $timeMilliseconds");
-
+            videoDownloadPercentage = 100;
             break;
           }
           var line = playlist[i];
@@ -153,12 +158,12 @@ class Logic {
     }
     await checkTSfiles(selectedDirectory, downloadURL);
 
-    // implment add null check
     if (endTime == null && startTime == null) {
       await mergeToMp4(selectedDirectory, null, null);
+    } else {
+      await mergeToMp4(
+          selectedDirectory, overflowTime ?? 0, (endTime! - startTime!));
     }
-    await mergeToMp4(
-        selectedDirectory, overflowTime ?? 0, (endTime! - startTime!));
   }
 
   Future<void> mergeToMp4(
@@ -196,8 +201,10 @@ class Logic {
       }
       // using this -ss 00:05:10 -to 00:15:30
 
+      String filename =
+          "$path/[${videoData!["livestream"]["created_at"].split(" ")[0]}] ${videoData!["livestream"]["channel"]["user"]["username"]} - ${videoData!["livestream"]["channel"]["user"]["username"]} - ${videoData!["livestream"]["channel"]["user"]["username"]} ${videoData!["livestream"]["session_title"]} - ${DateTime.now().millisecondsSinceEpoch}.mp4";
       String ffmpegCommand =
-          '-y -i "$path/all.ts" $x -c:v libx264 -c:a copy "$path/[${videoData!["livestream"]["created_at"].split(" ")[0]}] ${videoData!["livestream"]["channel"]["user"]["username"]} - ${videoData!["livestream"]["channel"]["user"]["username"]} - ${videoData!["livestream"]["channel"]["user"]["username"]} ${videoData!["livestream"]["session_title"]} - ${DateTime.now().millisecondsSinceEpoch}.mp4"';
+          '-y -i "$path/all.ts" $x -c:v libx264 -c:a copy "$filename"';
 
       await FFmpegKit.executeAsync(
         ffmpegCommand,
@@ -219,7 +226,7 @@ class Logic {
 
   Future<Response?> downloadTS(String path, String tsFileNB) async {
     try {
-      var r = await Dio().get(
+      var responseBytes = await Dio().get(
         path + tsFileNB,
         onReceiveProgress: (count, total) {},
         options: Options(
@@ -227,7 +234,7 @@ class Logic {
           followRedirects: false,
         ),
       );
-      return r;
+      return responseBytes;
     } catch (e) {
       print("object");
       return null;
@@ -244,6 +251,7 @@ class Logic {
     var raf = file.openSync(mode: FileMode.write);
     await raf.writeFrom(data);
     await File("${savePath}generated.txt").writeAsString("$tsFileName d\n");
+    print("saving $tsFileName");
   }
 
   getPlaylist(downloadURL) async {

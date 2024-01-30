@@ -1,5 +1,4 @@
 import 'dart:math';
-
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:image_network/image_network.dart';
@@ -17,6 +16,7 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
+  int pageSelector = 0;
   String link =
       "https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/Aspect_ratio_-_16x9.svg/1200px-Aspect_ratio_-_16x9.svg.png";
   Logic logic = Logic();
@@ -49,12 +49,340 @@ class _HomeState extends State<Home> {
     return e;
   }
 
+  List<Widget> homeView(size) {
+    return [
+      // STREAM THUMBNAIL
+      Container(
+        decoration:
+            BoxDecoration(borderRadius: BorderRadius.circular(20), boxShadow: [
+          BoxShadow(
+            color: const Color(0x00000000).withOpacity(gradientOpacity),
+            offset: const Offset(0, 1),
+            blurRadius: 3,
+            spreadRadius: 1,
+          )
+        ]),
+        child: AspectRatio(
+          aspectRatio: 16 / 9,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: Image.network(
+              link,
+              fit: BoxFit.contain,
+              loadingBuilder: (BuildContext context, Widget child,
+                  ImageChunkEvent? loadingProgress) {
+                if (loadingProgress == null) {
+                  gradientOpacity = 0.4;
+                  return child;
+                }
+                gradientOpacity = 0;
+                return const Center(
+                  child: CircularProgressIndicator(),
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+      // TEXT FOR STREAM FIELDS
+      Padding(
+        padding: const EdgeInsets.only(top: 5),
+        child: StreamFields(field: "Streamer", text: streamer),
+      ),
+      StreamFields(field: "Tile", text: title),
+      StreamFields(field: "Stream date", text: stramDate),
+      StreamFields(field: "Stream Length", text: streamLength),
+      Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: TextField(
+            controller: logic.url,
+            decoration: const InputDecoration(
+                hintText: "Stream URL", border: OutlineInputBorder()),
+          )),
+
+      // GET VOD DATA BUTTON
+      Padding(
+        padding: const EdgeInsets.only(top: 10),
+        child: SizedBox(
+          height: 50,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(5))),
+            onPressed: () {
+              if (logic.url.text.isEmpty) return;
+              setState(() {
+                logic.foundVideo = false;
+              });
+              logic.getURL().then((_) async {
+                await logic.getVidQuality();
+                print(logic.resolutions);
+
+                var duration = Duration(
+                    hours: 0,
+                    seconds: 0,
+                    minutes: 0,
+                    milliseconds:
+                        logic.videoData!["livestream"]["duration"] as int);
+
+                setState(() {
+                  streamer = logic.videoData!["livestream"]["channel"]["slug"];
+                  title = logic.videoData!["livestream"]["session_title"];
+                  stramDate = logic.videoData!["livestream"]["start_time"]
+                      .split(" ")[0];
+                  streamLength = duration.toString().split('.')[0];
+
+                  link = logic.thumbnailLink();
+                  valueSelected = logic.resolutions[0];
+                  print(logic.videoData);
+                });
+              });
+            },
+            child: const Text(
+              "Get VOD data",
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500),
+            ),
+          ),
+        ),
+      ),
+
+      // QUALITY SELECTOR DROPDOWN
+      Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: SizedBox(
+            height: 50,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: myColors.btnPrimary,
+                borderRadius: BorderRadius.circular(5),
+              ),
+              child: DropdownButton<String>(
+                elevation: 2,
+                disabledHint: const Text("Video Quality"),
+                value: valueSelected,
+                iconEnabledColor: myColors.white,
+                isExpanded: true, //make true to take width of parent widget
+                underline: Container(), //empty line
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w500),
+                items: listitemButton(),
+
+                onChanged: (Object? value) {
+                  setState(() {
+                    valueSelected = value as String;
+                  });
+                },
+              ),
+            ),
+          )),
+
+      // START ROW FOR THE TIME SELECTOR
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: SizedBox(
+          height: 80,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              SizedBox(
+                width: size.width * 0.24,
+                child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const Text(
+                        "Start",
+                        style: TextStyle(fontSize: 17),
+                      ),
+                      Transform.scale(
+                        scale: 1.2,
+                        child: Checkbox(
+                          value: startValue,
+                          onChanged: (s) {
+                            if (logic.foundVideo == true) {
+                              setState(() {
+                                startValue = !startValue;
+                              });
+                            } else {
+                              setState(() {
+                                startValue = false;
+                              });
+                            }
+                          },
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      )
+                    ]),
+              ),
+              SizedBox(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    VideoTimeWidget(
+                      text: "H",
+                      enable: logic.foundVideo && startValue,
+                      controller: startHour,
+                    ),
+                    VideoTimeWidget(
+                      text: "S",
+                      padLeft: 9,
+                      enable: logic.foundVideo && startValue,
+                      controller: startMinute,
+                    ),
+                    VideoTimeWidget(
+                      text: "M",
+                      padLeft: 9,
+                      enable: logic.foundVideo && startValue,
+                      controller: startSecond,
+                    ),
+                  ],
+                ),
+              )
+            ],
+          ),
+        ),
+      ),
+
+      // END ROW FOR THE TIME SELECTOR
+      Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: SizedBox(
+          height: 80,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              SizedBox(
+                width: MediaQuery.of(context).size.width * 0.24,
+                child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const Text(
+                        "End",
+                        style: TextStyle(fontSize: 17),
+                      ),
+                      Transform.scale(
+                        scale: 1.2,
+                        child: Checkbox(
+                          value: endValue,
+                          onChanged: (s) {
+                            if (logic.foundVideo == true) {
+                              setState(() {
+                                endValue = !endValue;
+                              });
+                            } else {
+                              setState(() {
+                                endValue = false;
+                              });
+                            }
+                          },
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      )
+                    ]),
+              ),
+              SizedBox(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    VideoTimeWidget(
+                      text: "H",
+                      enable: logic.foundVideo && endValue,
+                      controller: endHour,
+                    ),
+                    VideoTimeWidget(
+                      text: "S",
+                      padLeft: 9,
+                      enable: logic.foundVideo && endValue,
+                      controller: endMinute,
+                    ),
+                    VideoTimeWidget(
+                      text: "M",
+                      padLeft: 9,
+                      enable: logic.foundVideo && endValue,
+                      controller: endSecond,
+                    ),
+                  ],
+                ),
+              )
+            ],
+          ),
+        ),
+      ),
+      //  DOWNLOAD VOD BUTTON
+
+      Padding(
+        padding: const EdgeInsets.only(top: 0, bottom: 10),
+        child: SizedBox(
+          height: 50,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(5))),
+            onPressed: () async {
+              logic.requestPermission();
+              if (logic.foundVideo) {
+                selectedDirectory ??=
+                    await FilePicker.platform.getDirectoryPath();
+                if (startHour.text != "" &&
+                    startMinute.text != "" &&
+                    startSecond.text != "" &&
+                    endHour.text != "" &&
+                    endMinute.text != "" &&
+                    endSecond.text != "") {
+                  // turn all time to milliseconds
+                  var starttime = (int.parse(startHour.text) * 60 * 60 +
+                          int.parse(startMinute.text) * 60 +
+                          int.parse(startSecond.text)) *
+                      1000;
+                  var endtime = (int.parse(endHour.text) * 60 * 60 +
+                          int.parse(endMinute.text) * 60 +
+                          int.parse(endSecond.text)) *
+                      1000;
+                  logic.downloadVOD(
+                      valueSelected!, selectedDirectory!, starttime, endtime);
+                } else {
+                  logic.downloadVOD(
+                      valueSelected!, selectedDirectory!, null, null);
+                }
+              }
+            },
+            child: const Text(
+              "Download VOD",
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500),
+            ),
+          ),
+        ),
+      ),
+    ];
+  }
+
+  List<Widget> downloadsView() {
+    return [const Text("azf")];
+  }
+
   @override
   Widget build(BuildContext context) {
     var size = MediaQuery.of(context).size;
     return SafeArea(
       child: WillPopScope(
         onWillPop: () async {
+          if (pageSelector == 1) {
+            setState(() {
+              pageSelector = 0;
+            });
+          }
           return false;
         },
         child: Scaffold(
@@ -62,7 +390,12 @@ class _HomeState extends State<Home> {
           appBar: AppBar(
             actions: [
               IconButton(
-                  onPressed: () {}, icon: const Icon(Icons.download_rounded))
+                  onPressed: () {
+                    setState(() {
+                      pageSelector = 1;
+                    });
+                  },
+                  icon: const Icon(Icons.download_rounded))
             ],
             title: const Text("Kick Downloader VOD"),
             backgroundColor: myColors.btnPrimary,
@@ -76,329 +409,8 @@ class _HomeState extends State<Home> {
             ),
           ),
           body: ListView(
-            padding: const EdgeInsets.all(10),
-            children: [
-              // STREAM THUMBNAIL
-              Container(
-                decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0x00000000)
-                            .withOpacity(gradientOpacity),
-                        offset: const Offset(0, 1),
-                        blurRadius: 3,
-                        spreadRadius: 1,
-                      )
-                    ]),
-                child: AspectRatio(
-                  aspectRatio: 16 / 9,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: Image.network(
-                      link,
-                      fit: BoxFit.contain,
-                      loadingBuilder: (BuildContext context, Widget child,
-                          ImageChunkEvent? loadingProgress) {
-                        if (loadingProgress == null) {
-                          gradientOpacity = 0.4;
-                          return child;
-                        }
-                        gradientOpacity = 0;
-                        return const Center(
-                          child: CircularProgressIndicator(),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-              ),
-              // TEXT FOR STREAM FIELDS
-              Padding(
-                padding: const EdgeInsets.only(top: 5),
-                child: StreamFields(field: "Streamer", text: streamer),
-              ),
-              StreamFields(field: "Tile", text: title),
-              StreamFields(field: "Stream date", text: stramDate),
-              StreamFields(field: "Stream Length", text: streamLength),
-              Padding(
-                  padding: const EdgeInsets.only(top: 10),
-                  child: TextField(
-                    controller: logic.url,
-                    decoration: const InputDecoration(
-                        hintText: "Stream URL", border: OutlineInputBorder()),
-                  )),
-
-              // GET VOD DATA BUTTON
-              Padding(
-                padding: const EdgeInsets.only(top: 10),
-                child: SizedBox(
-                  height: 50,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(5))),
-                    onPressed: () {
-                      setState(() {
-                        logic.foundVideo = false;
-                      });
-                      logic.getURL().then((_) async {
-                        await logic.getVidQuality();
-                        print(logic.resolutions);
-
-                        var duration = Duration(
-                            hours: 0,
-                            seconds: 0,
-                            minutes: 0,
-                            milliseconds: logic.videoData!["livestream"]
-                                ["duration"] as int);
-
-                        setState(() {
-                          streamer =
-                              logic.videoData!["livestream"]["channel"]["slug"];
-                          title =
-                              logic.videoData!["livestream"]["session_title"];
-                          stramDate = logic.videoData!["livestream"]
-                                  ["start_time"]
-                              .split(" ")[0];
-                          streamLength = duration.toString().split('.')[0];
-
-                          link = logic.thumbnailLink();
-                          valueSelected = logic.resolutions[0];
-                          print(logic.videoData);
-                        });
-                      });
-                    },
-                    child: const Text(
-                      "Get VOD data",
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w500),
-                    ),
-                  ),
-                ),
-              ),
-
-              // QUALITY SELECTOR DROPDOWN
-              Padding(
-                  padding: const EdgeInsets.only(top: 10),
-                  child: SizedBox(
-                    height: 50,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: myColors.btnPrimary,
-                        borderRadius: BorderRadius.circular(5),
-                      ),
-                      child: DropdownButton<String>(
-                        elevation: 2,
-                        disabledHint: const Text("Video Quality"),
-                        value: valueSelected,
-                        iconEnabledColor: myColors.white,
-                        isExpanded:
-                            true, //make true to take width of parent widget
-                        underline: Container(), //empty line
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w500),
-                        items: listitemButton(),
-
-                        onChanged: (Object? value) {
-                          setState(() {
-                            valueSelected = value as String;
-                          });
-                        },
-                      ),
-                    ),
-                  )),
-
-              // START ROW FOR THE TIME SELECTOR
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: SizedBox(
-                  height: 80,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      SizedBox(
-                        width: size.width * 0.24,
-                        child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              const Text(
-                                "Start",
-                                style: TextStyle(fontSize: 17),
-                              ),
-                              Transform.scale(
-                                scale: 1.2,
-                                child: Checkbox(
-                                  value: startValue,
-                                  onChanged: (s) {
-                                    if (logic.foundVideo == true) {
-                                      setState(() {
-                                        startValue = !startValue;
-                                      });
-                                    } else {
-                                      setState(() {
-                                        startValue = false;
-                                      });
-                                    }
-                                  },
-                                  visualDensity: VisualDensity.compact,
-                                ),
-                              )
-                            ]),
-                      ),
-                      SizedBox(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            VideoTimeWidget(
-                              text: "H",
-                              enable: logic.foundVideo && startValue,
-                              controller: startHour,
-                            ),
-                            VideoTimeWidget(
-                              text: "S",
-                              padLeft: 9,
-                              enable: logic.foundVideo && startValue,
-                              controller: startMinute,
-                            ),
-                            VideoTimeWidget(
-                              text: "M",
-                              padLeft: 9,
-                              enable: logic.foundVideo && startValue,
-                              controller: startSecond,
-                            ),
-                          ],
-                        ),
-                      )
-                    ],
-                  ),
-                ),
-              ),
-
-              // END ROW FOR THE TIME SELECTOR
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: SizedBox(
-                  height: 80,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      SizedBox(
-                        width: MediaQuery.of(context).size.width * 0.24,
-                        child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              const Text(
-                                "End",
-                                style: TextStyle(fontSize: 17),
-                              ),
-                              Transform.scale(
-                                scale: 1.2,
-                                child: Checkbox(
-                                  value: endValue,
-                                  onChanged: (s) {
-                                    if (logic.foundVideo == true) {
-                                      setState(() {
-                                        endValue = !endValue;
-                                      });
-                                    } else {
-                                      setState(() {
-                                        endValue = false;
-                                      });
-                                    }
-                                  },
-                                  visualDensity: VisualDensity.compact,
-                                ),
-                              )
-                            ]),
-                      ),
-                      SizedBox(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            VideoTimeWidget(
-                              text: "H",
-                              enable: logic.foundVideo && endValue,
-                              controller: endHour,
-                            ),
-                            VideoTimeWidget(
-                              text: "S",
-                              padLeft: 9,
-                              enable: logic.foundVideo && endValue,
-                              controller: endMinute,
-                            ),
-                            VideoTimeWidget(
-                              text: "M",
-                              padLeft: 9,
-                              enable: logic.foundVideo && endValue,
-                              controller: endSecond,
-                            ),
-                          ],
-                        ),
-                      )
-                    ],
-                  ),
-                ),
-              ),
-              //  DOWNLOAD VOD BUTTON
-
-              Padding(
-                padding: const EdgeInsets.only(top: 0, bottom: 10),
-                child: SizedBox(
-                  height: 50,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(5))),
-                    onPressed: () async {
-                      logic.requestPermission();
-                      if (logic.foundVideo) {
-                        selectedDirectory ??=
-                            await FilePicker.platform.getDirectoryPath();
-                        if (startHour.text != "" &&
-                            startMinute.text != "" &&
-                            startSecond.text != "" &&
-                            endHour.text != "" &&
-                            endMinute.text != "" &&
-                            endSecond.text != "") {
-                          // turn all time to milliseconds
-                          var starttime = (int.parse(startHour.text) * 60 * 60 +
-                                  int.parse(startMinute.text) * 60 +
-                                  int.parse(startSecond.text)) *
-                              1000;
-                          var endtime = (int.parse(endHour.text) * 60 * 60 +
-                                  int.parse(endMinute.text) * 60 +
-                                  int.parse(endSecond.text)) *
-                              1000;
-                          logic.downloadVOD(valueSelected!, selectedDirectory!,
-                              starttime, endtime);
-                        } else {
-                          logic.downloadVOD(
-                              valueSelected!, selectedDirectory!, null, null);
-                        }
-                      }
-                    },
-                    child: const Text(
-                      "Download VOD",
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w500),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+              padding: const EdgeInsets.all(10),
+              children: (pageSelector == 0) ? homeView(size) : downloadsView()),
         ),
       ),
     );
