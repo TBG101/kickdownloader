@@ -369,7 +369,9 @@ class _HomeState extends State<Home> {
   }
 
   List<Widget> downloadsView() {
-    return [const Text("azf")];
+    return [
+      Text("video ${logic.videoDownloadPercentage}"),
+    ];
   }
 
   @override
