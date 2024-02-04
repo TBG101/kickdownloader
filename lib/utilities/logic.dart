@@ -1,26 +1,51 @@
 import 'dart:convert';
-import 'dart:ffi';
 import 'dart:io';
-import 'package:dio/dio.dart';
 import 'package:ffmpeg_kit_flutter_https_gpl/ffmpeg_kit.dart';
 import 'package:ffmpeg_kit_flutter_https_gpl/session_state.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:get/get.dart';
+import 'package:dio/dio.dart';
 
-class Logic {
-  var url = TextEditingController();
-  var apiURL = "";
-  var foundVideo = false;
+class Logic extends GetxController {
+  var url = TextEditingController().obs;
+  RxString apiURL = "".obs;
+  RxBool foundVideo = false.obs;
 
   Map<String, dynamic>? videoData;
-  List<String> resolutions = [];
-  double videoDownloadPercentage = 0;
-  bool downloadingVideo = false;
+  var resolutions = <String>[].obs;
+  RxBool downloadingVideo = false.obs;
+  RxDouble videoDownloadPercentage = 0.0.obs;
+
+  var link =
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/Aspect_ratio_-_16x9.svg/1200px-Aspect_ratio_-_16x9.svg.png"
+          .obs;
+  RxInt pageSelector = 0.obs;
+  RxString streamer = "".obs;
+  RxString title = "".obs;
+  RxString stramDate = "".obs;
+  RxString streamLength = "".obs;
+  RxDouble gradientOpacity = 0.4.obs;
+  RxBool startValue = false.obs;
+  RxBool endValue = false.obs;
+  var valueSelected = Rxn<String>();
+  Rx<String?> selectedDirectory = Rxn<String>();
+
+  // text controllers
+  var startHour = TextEditingController().obs;
+  var startMinute = TextEditingController().obs;
+  var startSecond = TextEditingController().obs;
+  var endHour = TextEditingController().obs;
+  var endMinute = TextEditingController().obs;
+  var endSecond = TextEditingController().obs;
+
+  var queeVideoDownload = [].obs;
 
   bool validURL() {
     RegExp validLinkPattern = RegExp(r'^https://kick.com/video/[a-zA-Z0-9-]+$');
-    if (validLinkPattern.hasMatch(url.text)) {
+    if (validLinkPattern.hasMatch(url.value.text)) {
       print("LINK IS VALID");
       return true;
     } else {
@@ -31,25 +56,25 @@ class Logic {
 
   Future<void> getURL() async {
     if (validURL()) {
-      String _id = url.text.split('/').last;
-      apiURL =
+      String _id = url.value.text.split('/').last;
+      apiURL.value =
           "https://kick.com/api/v1/video/$_id?${DateTime.now().millisecondsSinceEpoch}";
       print("API URL: $apiURL");
-      Response response = await Dio().get(
-        apiURL,
+      var response = await Dio().get(
+        apiURL.value,
       );
       if (response.statusCode == 200) {
         print("RESPONSE: 200");
         videoData = json.decode(response.data);
-        apiURL = _id;
-        foundVideo = true;
+        apiURL.value = _id;
+        foundVideo.value = true;
       } else {
-        foundVideo = false;
+        foundVideo.value = false;
         // implement exception
         throw Exception('Failed to load data');
       }
     } else {
-      foundVideo = false;
+      foundVideo.value = false;
       throw Exception('Invalid URL');
     }
   }
@@ -70,27 +95,30 @@ class Logic {
   }
 
   void extractResolutionsFromMaster(String inputString) {
-    resolutions = [];
+    resolutions.clear();
     List<String> lines = inputString.split('\n');
     for (String line in lines) {
       if (line.contains("/playlist.m3u8")) {
         resolutions.add(line.replaceAll("/playlist.m3u8", ""));
       }
     }
+    resolutions.refresh();
   }
 
-  downloadVOD(String slectedQuality, String selectedDirectory, int? startTime,
-      int? endTime) async {
+  downloadVOD(String slectedQuality, String selectedDirectory) async {
     List<int> queeList = [];
-    var downloadURL = videoData!["source"]
+    var downloadURL = queeVideoDownload[0]["data"]["source"]
         .replaceAll(RegExp(r'master\.[^/]*$'), "$slectedQuality/");
-
+    int? startTime = queeVideoDownload[0]["start"];
+    int? endTime = queeVideoDownload[0]["end"];
     print(downloadURL + "playlist.m3u8");
     List<String> playlist = await getPlaylist(downloadURL);
     int? overflowTime;
 
     File("$selectedDirectory/generated.txt").createSync(recursive: true);
-    downloadingVideo = true;
+    downloadingVideo.value = true;
+    queeVideoDownload[0]["downloading"] = true;
+
     if (startTime == null && endTime == null) {
       for (var i = 0; i < playlist.length; i++) {
         if (playlist[i].contains("#EXTINF")) {
@@ -119,13 +147,13 @@ class Logic {
       var timeMilliseconds = 0;
       for (int i = 0; i < playlist.length; i++) {
         if (playlist[i].contains("#EXTINF:")) {
-          videoDownloadPercentage = (timeMilliseconds / endTime!) * 100;
-          if (timeMilliseconds >= endTime!) {
+          videoDownloadPercentage.value = (timeMilliseconds / endTime!) * 100;
+          if (timeMilliseconds >= endTime) {
             while (queeList.isNotEmpty) {
               await waitTimer(); // wait for a download thread to finish
             }
             print("ENDED TS WITH: $timeMilliseconds");
-            videoDownloadPercentage = 100;
+            videoDownloadPercentage.value = 100;
             break;
           }
           var line = playlist[i];
@@ -164,6 +192,7 @@ class Logic {
       await mergeToMp4(
           selectedDirectory, overflowTime ?? 0, (endTime! - startTime!));
     }
+    queeVideoDownload.removeAt(0);
   }
 
   Future<void> mergeToMp4(
@@ -224,7 +253,7 @@ class Logic {
     }
   }
 
-  Future<Response?> downloadTS(String path, String tsFileNB) async {
+  Future downloadTS(String path, String tsFileNB) async {
     try {
       var responseBytes = await Dio().get(
         path + tsFileNB,
@@ -313,5 +342,71 @@ class Logic {
         '${remainingMilliseconds.toString().padLeft(3, '0')}';
 
     return formattedTime;
+  }
+
+  void getVodData() {
+    if (url.value.text.isEmpty) return;
+
+    foundVideo.value = false;
+    getURL().then((_) async {
+      await getVidQuality();
+      print(resolutions);
+      var duration = Duration(
+          hours: 0,
+          seconds: 0,
+          minutes: 0,
+          milliseconds: videoData!["livestream"]["duration"] as int);
+
+      streamer.value = videoData!["livestream"]["channel"]["slug"];
+      title.value = videoData!["livestream"]["session_title"];
+      stramDate.value = videoData!["livestream"]["start_time"].split(" ")[0];
+      streamLength.value = duration.toString().split('.')[0];
+
+      link.value = thumbnailLink();
+      print(resolutions.first);
+      valueSelected.value = resolutions.first;
+      print(videoData);
+    });
+  }
+
+  void downloadVodDataBtn() async {
+    requestPermission();
+    if (foundVideo.value) {
+      selectedDirectory.value ??= await FilePicker.platform.getDirectoryPath();
+
+      if (startHour.value.text != "" &&
+          startMinute.value.text != "" &&
+          startSecond.value.text != "" &&
+          endHour.value.text != "" &&
+          endMinute.value.text != "" &&
+          endSecond.value.text != "") {
+        // turn all time to milliseconds
+        var starttime = (int.parse(startHour.value.text) * 60 * 60 +
+                int.parse(startMinute.value.text) * 60 +
+                int.parse(startSecond.value.text)) *
+            1000;
+        var endtime = (int.parse(endHour.value.text) * 60 * 60 +
+                int.parse(endMinute.value.text) * 60 +
+                int.parse(endSecond.value.text)) *
+            1000;
+        queeVideoDownload.add({
+          "downloading": false,
+          "start": starttime,
+          "end": endtime,
+          "data": videoData,
+        });
+        queeVideoDownload.refresh();
+        await downloadVOD(valueSelected.value!, selectedDirectory.value!);
+      } else {
+        queeVideoDownload.add({
+          "downloading": true,
+          "start": null,
+          "end": null,
+          "data": videoData,
+        });
+        queeVideoDownload.refresh();
+        await downloadVOD(valueSelected.value!, selectedDirectory.value!);
+      }
+    }
   }
 }

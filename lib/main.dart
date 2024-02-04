@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:kickdownloader/myColors.dart';
 import 'package:kickdownloader/pages/Home.dart';
+import 'package:kickdownloader/utilities/logic.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());
 }
 
@@ -11,7 +14,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return GetMaterialApp(
       title: 'Kick VOD donwloader',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
@@ -39,6 +42,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  final logic = Get.put(Logic());
   @override
   Widget build(BuildContext context) {
     return const Home();
