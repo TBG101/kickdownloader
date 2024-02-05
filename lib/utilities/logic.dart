@@ -105,12 +105,14 @@ class Logic extends GetxController {
     resolutions.refresh();
   }
 
-  downloadVOD(String slectedQuality, String selectedDirectory) async {
+  downloadVOD() async {
+    String selectedDirectory = queeVideoDownload[0]["savePath"];
     List<int> queeList = [];
-    var downloadURL = queeVideoDownload[0]["data"]["source"]
-        .replaceAll(RegExp(r'master\.[^/]*$'), "$slectedQuality/");
+    var slectedQuality = queeVideoDownload[0]["quality"];
     int? startTime = queeVideoDownload[0]["start"];
     int? endTime = queeVideoDownload[0]["end"];
+    var downloadURL = queeVideoDownload[0]["data"]["source"]
+        .replaceAll(RegExp(r'master\.[^/]*$'), "$slectedQuality/");
     print(downloadURL + "playlist.m3u8");
     List<String> playlist = await getPlaylist(downloadURL);
     int? overflowTime;
@@ -193,6 +195,9 @@ class Logic extends GetxController {
           selectedDirectory, overflowTime ?? 0, (endTime! - startTime!));
     }
     queeVideoDownload.removeAt(0);
+    if (queeVideoDownload.isNotEmpty) {
+      await downloadVOD();
+    }
   }
 
   Future<void> mergeToMp4(
@@ -231,7 +236,7 @@ class Logic extends GetxController {
       // using this -ss 00:05:10 -to 00:15:30
 
       String filename =
-          "$path/[${videoData!["livestream"]["created_at"].split(" ")[0]}] ${videoData!["livestream"]["channel"]["user"]["username"]} - ${videoData!["livestream"]["channel"]["user"]["username"]} - ${videoData!["livestream"]["channel"]["user"]["username"]} ${videoData!["livestream"]["session_title"]} - ${DateTime.now().millisecondsSinceEpoch}.mp4";
+          "$path/[${queeVideoDownload[0]["data"]["livestream"]["created_at"].split(" ")[0]}] - ${videoData!["livestream"]["channel"]["user"]["username"]} ${videoData!["livestream"]["session_title"]} - ${DateTime.now().millisecondsSinceEpoch}.mp4";
       String ffmpegCommand =
           '-y -i "$path/all.ts" $x -c:v libx264 -c:a copy "$filename"';
 
@@ -390,22 +395,32 @@ class Logic extends GetxController {
                 int.parse(endSecond.value.text)) *
             1000;
         queeVideoDownload.add({
+          "quality": valueSelected.value,
           "downloading": false,
           "start": starttime,
           "end": endtime,
           "data": videoData,
+          "savePath":
+              "${selectedDirectory.value!}/[${videoData!["livestream"]["created_at"].split(" ")[0]} - ${DateTime.now().millisecondsSinceEpoch}] ${videoData!["livestream"]["channel"]["user"]["username"]}"
         });
         queeVideoDownload.refresh();
-        await downloadVOD(valueSelected.value!, selectedDirectory.value!);
+        if (queeVideoDownload.length == 1) {
+          await downloadVOD();
+        }
       } else {
         queeVideoDownload.add({
-          "downloading": true,
+          "quality": valueSelected.value,
+          "downloading": false,
           "start": null,
           "end": null,
           "data": videoData,
+          "savePath":
+              "${selectedDirectory.value!}/[${videoData!["livestream"]["created_at"].split(" ")[0]} - ${DateTime.now().millisecondsSinceEpoch}] ${videoData!["livestream"]["channel"]["user"]["username"]}"
         });
         queeVideoDownload.refresh();
-        await downloadVOD(valueSelected.value!, selectedDirectory.value!);
+        if (queeVideoDownload.length == 1) {
+          await downloadVOD();
+        }
       }
     }
   }

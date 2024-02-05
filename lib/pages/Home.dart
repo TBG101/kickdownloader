@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:kickdownloader/myColors.dart';
+import 'package:kickdownloader/pages/downloadPage.dart';
 import 'package:kickdownloader/utilities/logic.dart';
 import 'package:kickdownloader/widgets/drawer.dart';
 import 'package:kickdownloader/widgets/homeWidgets/donwloadVodBtn.dart';
@@ -21,13 +22,10 @@ class Home extends GetView<Logic> {
       const StreamThumbnail(),
 
       // TEXT FOR STREAM FIELDS
-      Obx(
-        () => Padding(
+      Obx(() => Padding(
           padding: const EdgeInsets.only(top: 5),
-          child:
-              StreamFields(field: "Streamer", text: controller.streamer.value),
-        ),
-      ),
+          child: StreamFields(
+              field: "Streamer", text: controller.streamer.value))),
       Obx(() => StreamFields(field: "Tile", text: controller.title.value)),
       Obx(() =>
           StreamFields(field: "Stream date", text: controller.stramDate.value)),
@@ -51,12 +49,6 @@ class Home extends GetView<Logic> {
 
       //  DOWNLOAD VOD BUTTON
       const DownloadVodBtn()
-    ];
-  }
-
-  List<Widget> downloadsView() {
-    return [
-      Obx(() => Text("video ${controller.videoDownloadPercentage}")),
     ];
   }
 
@@ -96,11 +88,11 @@ class Home extends GetView<Logic> {
                   ),
                 ),
               ),
-              body: ListView(
-                  padding: const EdgeInsets.all(10),
-                  children: (controller.pageSelector.value == 0)
-                      ? homeView(size)
-                      : downloadsView()),
+              body: controller.pageSelector.value == 0
+                  ? ListView(
+                      padding: const EdgeInsets.all(10),
+                      children: homeView(size))
+                  : const DownloadPage(),
             ),
           )),
     );
