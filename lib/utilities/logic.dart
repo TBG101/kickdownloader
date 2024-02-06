@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:ffmpeg_kit_flutter_https_gpl/ffmpeg_kit.dart';
 import 'package:ffmpeg_kit_flutter_https_gpl/session_state.dart';
 import 'package:file_picker/file_picker.dart';
@@ -16,7 +17,6 @@ class Logic extends GetxController {
 
   Map<String, dynamic>? videoData;
   var resolutions = <String>[].obs;
-  RxBool downloadingVideo = false.obs;
   RxDouble videoDownloadPercentage = 0.0.obs;
 
   var link =
@@ -40,7 +40,6 @@ class Logic extends GetxController {
   var endHour = TextEditingController().obs;
   var endMinute = TextEditingController().obs;
   var endSecond = TextEditingController().obs;
-
   var queeVideoDownload = [].obs;
 
   bool validURL() {
@@ -106,7 +105,8 @@ class Logic extends GetxController {
   }
 
   downloadVOD() async {
-    String selectedDirectory = queeVideoDownload[0]["savePath"];
+    // ignore: no_leading_underscores_for_local_identifiers
+    String _selectedDirectory = queeVideoDownload[0]["savePath"];
     List<int> queeList = [];
     var slectedQuality = queeVideoDownload[0]["quality"];
     int? startTime = queeVideoDownload[0]["start"];
@@ -117,8 +117,7 @@ class Logic extends GetxController {
     List<String> playlist = await getPlaylist(downloadURL);
     int? overflowTime;
 
-    File("$selectedDirectory/generated.txt").createSync(recursive: true);
-    downloadingVideo.value = true;
+    File("$_selectedDirectory/generated.txt").createSync(recursive: true);
     queeVideoDownload[0]["downloading"] = true;
 
     if (startTime == null && endTime == null) {
@@ -139,7 +138,7 @@ class Logic extends GetxController {
           }
           downloadTS(downloadURL, playlist[i + 1]).then((tsFile) {
             queeList.remove(int.parse(playlist[i + 1].replaceAll(".ts", "")));
-            saveTS("$selectedDirectory/", tsFile?.data, playlist[i + 1]);
+            saveTS("$_selectedDirectory/", tsFile?.data, playlist[i + 1]);
           });
         }
         await Future.delayed(const Duration(milliseconds: 100));
@@ -176,7 +175,7 @@ class Logic extends GetxController {
 
             downloadTS(downloadURL, playlist[i + 1]).then((tsFile) async {
               await saveTS(
-                  "$selectedDirectory/", tsFile?.data, playlist[i + 1]);
+                  "$_selectedDirectory/", tsFile?.data, playlist[i + 1]);
               queeList.remove(int.parse(playlist[i + 1].replaceAll(".ts", "")));
             });
           }
@@ -186,13 +185,13 @@ class Logic extends GetxController {
         }
       }
     }
-    await checkTSfiles(selectedDirectory, downloadURL);
+    await checkTSfiles(_selectedDirectory, downloadURL);
 
     if (endTime == null && startTime == null) {
-      await mergeToMp4(selectedDirectory, null, null);
+      await mergeToMp4(_selectedDirectory, null, null);
     } else {
       await mergeToMp4(
-          selectedDirectory, overflowTime ?? 0, (endTime! - startTime!));
+          _selectedDirectory, overflowTime ?? 0, (endTime! - startTime!));
     }
     queeVideoDownload.removeAt(0);
     if (queeVideoDownload.isNotEmpty) {
@@ -376,6 +375,15 @@ class Logic extends GetxController {
 
   void downloadVodDataBtn() async {
     requestPermission();
+    await AwesomeNotifications().createNotification(
+      content: NotificationContent(
+        id: 10,
+        channelKey: "channel",
+        title: "title",
+        body: "body",
+        
+      ),
+    );
     if (foundVideo.value) {
       selectedDirectory.value ??= await FilePicker.platform.getDirectoryPath();
 
