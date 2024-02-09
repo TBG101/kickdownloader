@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:ffmpeg_kit_flutter_https_gpl/ffmpeg_kit.dart';
-import 'package:ffmpeg_kit_flutter_https_gpl/session_state.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:media_scanner/media_scanner.dart';
 import 'package:path_provider/path_provider.dart';
@@ -13,11 +13,12 @@ import 'package:dio/dio.dart';
 
 class Logic extends GetxController {
   var url = TextEditingController().obs;
-  RxString apiURL = "".obs;
+  String apiURL = "";
   RxBool foundVideo = false.obs;
-
+  var downloading = false;
   Map<String, dynamic>? videoData;
   var resolutions = <String>[].obs;
+
   RxDouble videoDownloadPercentage = 0.0.obs;
   var videoDownloadParts = 0.0;
 
@@ -44,6 +45,8 @@ class Logic extends GetxController {
   var endSecond = TextEditingController().obs;
   var queeVideoDownload = [].obs;
 
+  int notificationId = 0;
+
   bool validURL() {
     RegExp validLinkPattern = RegExp(r'^https://kick.com/video/[a-zA-Z0-9-]+$');
     if (validLinkPattern.hasMatch(url.value.text)) {
@@ -58,16 +61,16 @@ class Logic extends GetxController {
   Future<void> getURL() async {
     if (validURL()) {
       String _id = url.value.text.split('/').last;
-      apiURL.value =
+      apiURL =
           "https://kick.com/api/v1/video/$_id?${DateTime.now().millisecondsSinceEpoch}";
       print("API URL: $apiURL");
       var response = await Dio().get(
-        apiURL.value,
+        apiURL,
       );
       if (response.statusCode == 200) {
         print("RESPONSE: 200");
         videoData = json.decode(response.data);
-        apiURL.value = _id;
+        apiURL = _id;
         foundVideo.value = true;
       } else {
         foundVideo.value = false;
@@ -114,10 +117,16 @@ class Logic extends GetxController {
         .transform(utf8.decoder)
         .transform(const LineSplitter())
         .forEach((element) async {
-      if (!File("$path/$element.ts").existsSync()) {
-        print("FILE $element.ts NOT DOWNLOADED");
-        var r = await downloadTS(downloadPath, "$element.ts");
+      if (!File("$path/$element").existsSync()) {
+        if (kDebugMode) {
+          print("FILE $element NOT DOWNLOADED");
+        }
+        var r = await downloadTS(downloadPath, element);
         await saveTS(path, r?.data, "$element.ts");
+      } else {
+        if (kDebugMode) {
+          print("File exist");
+        }
       }
     });
   }
@@ -151,49 +160,53 @@ class Logic extends GetxController {
     return null;
   }
 
-  Future<void> createDownloadNotifcation(int id) async {
+  Future<void> createDownloadNotifcation(
+      int id, String title, String body) async {
     await AwesomeNotifications().createNotification(
         content: NotificationContent(
             id: id,
             channelKey: "channel",
-            title: 'Started downloading VOD',
-            body: 'VOD',
+            title: title,
+            body: body,
             category: NotificationCategory.Progress,
             notificationLayout: NotificationLayout.ProgressBar,
             progress: 0,
             locked: true));
   }
 
-  Future<void> updateNotification(int id, List file) async {
+  Future<void> updateNotification(
+      int id, List file, String title, String body) async {
     videoDownloadPercentage.value =
         (videoDownloadParts / (file.length * 100)) * 100;
     await AwesomeNotifications().createNotification(
         content: NotificationContent(
             id: id,
             channelKey: "channel",
-            title:
-                'Started downloading VOD ${videoDownloadPercentage.value.toStringAsFixed(0)}%',
-            body: 'VOD',
+            title: title,
+            body: body,
             category: NotificationCategory.Progress,
             notificationLayout: NotificationLayout.ProgressBar,
             progress: videoDownloadPercentage.value,
             locked: true));
   }
 
-  Future<void> updateNotificationEnd(int id) async {
+  Future<void> updateNotificationEnd(
+      int id, String title, String body, bool locked) async {
     await AwesomeNotifications().createNotification(
         content: NotificationContent(
             id: id,
             channelKey: "channel",
-            title: 'Download Completed',
-            body: 'VOD',
+            title: title,
+            body: body,
             category: NotificationCategory.Progress,
             notificationLayout: NotificationLayout.ProgressBar,
             progress: 100,
-            locked: true));
+            locked: locked));
   }
 
   downloadVOD() async {
+    notificationId++;
+    downloading = true;
     // ignore: no_leading_underscores_for_local_identifiers
     String _selectedDirectory = queeVideoDownload[0]["savePath"];
     List<int> queeList = [];
@@ -209,7 +222,8 @@ class Logic extends GetxController {
     videoDownloadPercentage.value = 0;
     videoDownloadParts = 0;
 
-    await createDownloadNotifcation(1);
+    await createDownloadNotifcation(notificationId, 'Started downloading VOD',
+        "Streamer ${queeVideoDownload[0]["data"]["livestream"]["channel"]["user"]["username"]}");
 
     int? overflowTime = await writeGeneratedText(
         _selectedDirectory, playlist, endTime, startTime);
@@ -217,7 +231,11 @@ class Logic extends GetxController {
     var file = File("$_selectedDirectory/generated.txt").readAsLinesSync();
     file.forEach((element) async {
       while (queeList.length >= 5) {
-        updateNotification(1, file);
+        updateNotification(
+            notificationId,
+            file,
+            'Downloading VOD ${videoDownloadPercentage.value.toStringAsFixed(0)}%',
+            "Streamer ${queeVideoDownload[0]["data"]["livestream"]["channel"]["user"]["username"]}");
         await waitTimer();
       }
       queeList.add(int.parse(element.replaceAll(".ts", "")));
@@ -229,20 +247,85 @@ class Logic extends GetxController {
     });
     while (queeList.isNotEmpty) {
       await waitTimer();
-      updateNotification(1, file);
+      updateNotification(
+          notificationId,
+          file,
+          'Downloading VOD ${videoDownloadPercentage.value.toStringAsFixed(0)}%',
+          "Streamer ${queeVideoDownload[0]["data"]["livestream"]["channel"]["user"]["username"]}");
     }
     await checkTSfiles(_selectedDirectory, downloadURL);
-    await updateNotificationEnd(10);
-
+    await updateNotificationEnd(
+        notificationId,
+        'Converting to MP4',
+        "Streamer ${queeVideoDownload[0]["data"]["livestream"]["channel"]["user"]["username"]}",
+        true);
     if (endTime == null && startTime == null) {
       await mergeToMp4(_selectedDirectory, null, null);
     } else {
       await mergeToMp4(
           _selectedDirectory, overflowTime ?? 0, (endTime! - startTime!));
     }
+    await updateNotificationEnd(
+        notificationId,
+        'Download Completed',
+        "Streamer ${queeVideoDownload[0]["data"]["livestream"]["channel"]["user"]["username"]}",
+        false);
     queeVideoDownload.removeAt(0);
     if (queeVideoDownload.isNotEmpty) {
       downloadVOD();
+    } else {
+      downloading = false;
+    }
+  }
+
+  void downloadVodDataBtn() async {
+    requestPermission();
+    if (foundVideo.value) {
+      selectedDirectory.value ??= await FilePicker.platform.getDirectoryPath();
+      if (startHour.value.text != "" &&
+          startMinute.value.text != "" &&
+          startSecond.value.text != "" &&
+          endHour.value.text != "" &&
+          endMinute.value.text != "" &&
+          endSecond.value.text != "") {
+        // turn all time to milliseconds
+        var starttime = (int.parse(startHour.value.text) * 60 * 60 +
+                int.parse(startMinute.value.text) * 60 +
+                int.parse(startSecond.value.text)) *
+            1000;
+        var endtime = (int.parse(endHour.value.text) * 60 * 60 +
+                int.parse(endMinute.value.text) * 60 +
+                int.parse(endSecond.value.text)) *
+            1000;
+        queeVideoDownload.add(
+          {
+            "quality": valueSelected.value,
+            "downloading": false,
+            "start": starttime,
+            "end": endtime,
+            "data": videoData,
+            "savePath":
+                "${selectedDirectory.value!}/[${videoData!["livestream"]["created_at"].split(" ")[0]} - ${DateTime.now().millisecondsSinceEpoch}] ${videoData!["livestream"]["channel"]["user"]["username"]}"
+          },
+        );
+      } else {
+        queeVideoDownload.add({
+          "quality": valueSelected.value,
+          "downloading": false,
+          "start": null,
+          "end": null,
+          "data": videoData,
+          "savePath":
+              "${selectedDirectory.value!}/[${videoData!["livestream"]["created_at"].split(" ")[0]} - ${DateTime.now().millisecondsSinceEpoch}] ${videoData!["livestream"]["channel"]["user"]["username"]}"
+        });
+      }
+      queeVideoDownload.refresh();
+      if (queeVideoDownload[0]["downloading"] == false &&
+          downloading == false) {
+        await downloadVOD();
+      } else {
+        downloading = false;
+      }
     }
   }
 
@@ -399,51 +482,5 @@ class Logic extends GetxController {
       valueSelected.value = resolutions.first;
       print(videoData);
     });
-  }
-
-  void downloadVodDataBtn() async {
-    requestPermission();
-    if (foundVideo.value) {
-      selectedDirectory.value ??= await FilePicker.platform.getDirectoryPath();
-      if (startHour.value.text != "" &&
-          startMinute.value.text != "" &&
-          startSecond.value.text != "" &&
-          endHour.value.text != "" &&
-          endMinute.value.text != "" &&
-          endSecond.value.text != "") {
-        // turn all time to milliseconds
-        var starttime = (int.parse(startHour.value.text) * 60 * 60 +
-                int.parse(startMinute.value.text) * 60 +
-                int.parse(startSecond.value.text)) *
-            1000;
-        var endtime = (int.parse(endHour.value.text) * 60 * 60 +
-                int.parse(endMinute.value.text) * 60 +
-                int.parse(endSecond.value.text)) *
-            1000;
-        queeVideoDownload.add(
-          {
-            "quality": valueSelected.value,
-            "downloading": false,
-            "start": starttime,
-            "end": endtime,
-            "data": videoData,
-            "savePath":
-                "${selectedDirectory.value!}/[${videoData!["livestream"]["created_at"].split(" ")[0]} - ${DateTime.now().millisecondsSinceEpoch}] ${videoData!["livestream"]["channel"]["user"]["username"]}"
-          },
-        );
-      } else {
-        queeVideoDownload.add({
-          "quality": valueSelected.value,
-          "downloading": false,
-          "start": null,
-          "end": null,
-          "data": videoData,
-          "savePath":
-              "${selectedDirectory.value!}/[${videoData!["livestream"]["created_at"].split(" ")[0]} - ${DateTime.now().millisecondsSinceEpoch}] ${videoData!["livestream"]["channel"]["user"]["username"]}"
-        });
-      }
-      queeVideoDownload.refresh();
-      if (queeVideoDownload.isEmpty) await downloadVOD();
-    }
   }
 }

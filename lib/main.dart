@@ -8,8 +8,7 @@ import 'package:kickdownloader/utilities/logic.dart';
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   AwesomeNotifications().initialize(
-      // set the icon to null if you want to use the default app icon
-      'resource://drawable/launch_background',
+      null,
       [
         NotificationChannel(
             channelKey: 'channel',

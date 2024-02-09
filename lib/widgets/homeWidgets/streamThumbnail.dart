@@ -22,21 +22,23 @@ class StreamThumbnail extends GetView<Logic> {
         aspectRatio: 16 / 9,
         child: ClipRRect(
           borderRadius: BorderRadius.circular(20),
-          child: Image.network(
-            controller.link.value,
-            fit: BoxFit.fitWidth,
-            loadingBuilder: (BuildContext context, Widget child,
-                ImageChunkEvent? loadingProgress) {
-              if (loadingProgress == null) {
-                controller.gradientOpacity.value = 0.4;
-                return child;
-              }
-              controller.gradientOpacity.value = 0;
-              return const Center(
-                child: CircularProgressIndicator(),
-              );
-            },
-          ),
+          child: Obx(() {
+            return Image.network(
+              controller.link.value,
+              fit: BoxFit.fitWidth,
+              loadingBuilder: (BuildContext context, Widget child,
+                  ImageChunkEvent? loadingProgress) {
+                if (loadingProgress == null) {
+                  controller.gradientOpacity.value = 0.4;
+                  return child;
+                }
+                controller.gradientOpacity.value = 0;
+                return const Center(
+                  child: CircularProgressIndicator(),
+                );
+              },
+            );
+          }),
         ),
       ),
     );

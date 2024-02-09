@@ -1,10 +1,6 @@
 downloadPage :
     - create better UI
 
-logic: 
-    - make a notifcation that shows converting
-    - edit the checkTS function
-
 clipDownloader:
     - add a clip downloader page
 
