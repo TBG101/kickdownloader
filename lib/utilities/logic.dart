@@ -5,6 +5,7 @@ import 'package:ffmpeg_kit_flutter_https_gpl/ffmpeg_kit.dart';
 import 'package:ffmpeg_kit_flutter_https_gpl/session_state.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:media_scanner/media_scanner.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:get/get.dart';
@@ -18,6 +19,7 @@ class Logic extends GetxController {
   Map<String, dynamic>? videoData;
   var resolutions = <String>[].obs;
   RxDouble videoDownloadPercentage = 0.0.obs;
+  var videoDownloadParts = 0.0;
 
   var link =
       "https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/Aspect_ratio_-_16x9.svg/1200px-Aspect_ratio_-_16x9.svg.png"
@@ -104,6 +106,93 @@ class Logic extends GetxController {
     resolutions.refresh();
   }
 
+  checkTSfiles(String path, String downloadPath) async {
+    // IMPLEMENT CHECK TS FILES
+    File file = File("$path/generated.txt");
+    file
+        .openRead()
+        .transform(utf8.decoder)
+        .transform(const LineSplitter())
+        .forEach((element) async {
+      if (!File("$path/$element.ts").existsSync()) {
+        print("FILE $element.ts NOT DOWNLOADED");
+        var r = await downloadTS(downloadPath, "$element.ts");
+        await saveTS(path, r?.data, "$element.ts");
+      }
+    });
+  }
+
+  Future<int?> writeGeneratedText(String savepath, List<String> playlist,
+      int? endTime, int? startTime) async {
+    if (endTime == null || startTime == null) return null;
+    File("$savepath/generated.txt").createSync(recursive: true);
+    var timeMilliseconds = 0;
+    int? overflowTime;
+    for (int i = 0; i < playlist.length; i++) {
+      if (playlist[i].contains("#EXTINF:") == false) {
+        // Go to the iteration
+        continue;
+      }
+      if (timeMilliseconds >= endTime) {
+        print("ENDED TS WITH: $timeMilliseconds");
+        return overflowTime;
+      }
+      var line = playlist[i];
+      line = line.replaceAll("#EXTINF:", "");
+      line = line.replaceAll(",", "");
+      if (timeMilliseconds >= startTime ||
+          timeMilliseconds + double.parse(line) * 1000 > startTime) {
+        overflowTime ??= startTime - timeMilliseconds;
+        await File("$savepath/generated.txt")
+            .writeAsString("${playlist[i + 1]}\n", mode: FileMode.append);
+      }
+      timeMilliseconds = timeMilliseconds + (double.parse(line) * 1000).toInt();
+    }
+    return null;
+  }
+
+  Future<void> createDownloadNotifcation(int id) async {
+    await AwesomeNotifications().createNotification(
+        content: NotificationContent(
+            id: id,
+            channelKey: "channel",
+            title: 'Started downloading VOD',
+            body: 'VOD',
+            category: NotificationCategory.Progress,
+            notificationLayout: NotificationLayout.ProgressBar,
+            progress: 0,
+            locked: true));
+  }
+
+  Future<void> updateNotification(int id, List file) async {
+    videoDownloadPercentage.value =
+        (videoDownloadParts / (file.length * 100)) * 100;
+    await AwesomeNotifications().createNotification(
+        content: NotificationContent(
+            id: id,
+            channelKey: "channel",
+            title:
+                'Started downloading VOD ${videoDownloadPercentage.value.toStringAsFixed(0)}%',
+            body: 'VOD',
+            category: NotificationCategory.Progress,
+            notificationLayout: NotificationLayout.ProgressBar,
+            progress: videoDownloadPercentage.value,
+            locked: true));
+  }
+
+  Future<void> updateNotificationEnd(int id) async {
+    await AwesomeNotifications().createNotification(
+        content: NotificationContent(
+            id: id,
+            channelKey: "channel",
+            title: 'Download Completed',
+            body: 'VOD',
+            category: NotificationCategory.Progress,
+            notificationLayout: NotificationLayout.ProgressBar,
+            progress: 100,
+            locked: true));
+  }
+
   downloadVOD() async {
     // ignore: no_leading_underscores_for_local_identifiers
     String _selectedDirectory = queeVideoDownload[0]["savePath"];
@@ -115,77 +204,35 @@ class Logic extends GetxController {
         .replaceAll(RegExp(r'master\.[^/]*$'), "$slectedQuality/");
     print(downloadURL + "playlist.m3u8");
     List<String> playlist = await getPlaylist(downloadURL);
-    int? overflowTime;
 
-    File("$_selectedDirectory/generated.txt").createSync(recursive: true);
     queeVideoDownload[0]["downloading"] = true;
+    videoDownloadPercentage.value = 0;
+    videoDownloadParts = 0;
 
-    if (startTime == null && endTime == null) {
-      for (var i = 0; i < playlist.length; i++) {
-        if (playlist[i].contains("#EXTINF")) {
-          var line = playlist[i];
-          line = line.replaceAll("#EXTINF:", "");
-          line = line.replaceAll(",", "");
+    await createDownloadNotifcation(1);
 
-          print(playlist[i + 1]);
-          if (queeList.length < 5) {
-            queeList.add(int.parse(playlist[i + 1].replaceAll(".ts", "")));
-          } else {
-            while (queeList.length >= 5) {
-              await waitTimer(); // wait for a download thread to finish
-              print('Waiting for the list length to become smaller than 5...');
-            }
-          }
-          downloadTS(downloadURL, playlist[i + 1]).then((tsFile) {
-            queeList.remove(int.parse(playlist[i + 1].replaceAll(".ts", "")));
-            saveTS("$_selectedDirectory/", tsFile?.data, playlist[i + 1]);
-          });
-        }
-        await Future.delayed(const Duration(milliseconds: 100));
+    int? overflowTime = await writeGeneratedText(
+        _selectedDirectory, playlist, endTime, startTime);
+    playlist.clear();
+    var file = File("$_selectedDirectory/generated.txt").readAsLinesSync();
+    file.forEach((element) async {
+      while (queeList.length >= 5) {
+        updateNotification(1, file);
+        await waitTimer();
       }
-      print("DONE DOWNLOADING TS ");
-    } else {
-      var timeMilliseconds = 0;
-      for (int i = 0; i < playlist.length; i++) {
-        if (playlist[i].contains("#EXTINF:")) {
-          videoDownloadPercentage.value = (timeMilliseconds / endTime!) * 100;
-          if (timeMilliseconds >= endTime) {
-            while (queeList.isNotEmpty) {
-              await waitTimer(); // wait for a download thread to finish
-            }
-            print("ENDED TS WITH: $timeMilliseconds");
-            videoDownloadPercentage.value = 100;
-            break;
-          }
-          var line = playlist[i];
-          line = line.replaceAll("#EXTINF:", "");
-          line = line.replaceAll(",", "");
-
-          if (timeMilliseconds >= startTime! ||
-              timeMilliseconds + double.parse(line) * 1000 > startTime) {
-            overflowTime ??= startTime - timeMilliseconds;
-            print("Downloading ${playlist[i + 1]}");
-            if (queeList.length < 5) {
-              queeList.add(int.parse(playlist[i + 1].replaceAll(".ts", "")));
-            } else {
-              while (queeList.length >= 5) {
-                await waitTimer();
-              }
-            }
-
-            downloadTS(downloadURL, playlist[i + 1]).then((tsFile) async {
-              await saveTS(
-                  "$_selectedDirectory/", tsFile?.data, playlist[i + 1]);
-              queeList.remove(int.parse(playlist[i + 1].replaceAll(".ts", "")));
-            });
-          }
-
-          timeMilliseconds =
-              timeMilliseconds + (double.parse(line) * 1000).toInt();
-        }
-      }
+      queeList.add(int.parse(element.replaceAll(".ts", "")));
+      print("downloading $element");
+      downloadTS(downloadURL, element).then((tsFile) {
+        queeList.remove(int.parse(element.replaceAll(".ts", "")));
+        saveTS("$_selectedDirectory/", tsFile?.data, element);
+      });
+    });
+    while (queeList.isNotEmpty) {
+      await waitTimer();
+      updateNotification(1, file);
     }
     await checkTSfiles(_selectedDirectory, downloadURL);
+    await updateNotificationEnd(10);
 
     if (endTime == null && startTime == null) {
       await mergeToMp4(_selectedDirectory, null, null);
@@ -195,7 +242,7 @@ class Logic extends GetxController {
     }
     queeVideoDownload.removeAt(0);
     if (queeVideoDownload.isNotEmpty) {
-      await downloadVOD();
+      downloadVOD();
     }
   }
 
@@ -225,43 +272,39 @@ class Logic extends GetxController {
       await outputRandomAccessFile.close();
 
       print('Concatenation successful!');
-
-      // convert to mp4
-      // implement the cut video
-      var x = "";
-      if (overflowStart != null && overflowEnd != null) {
-        x = "-ss ${formatMilliseconds(overflowStart)} -t ${formatMilliseconds(overflowEnd)}";
-      }
-      // using this -ss 00:05:10 -to 00:15:30
-
-      String filename =
-          "$path/[${queeVideoDownload[0]["data"]["livestream"]["created_at"].split(" ")[0]}] - ${videoData!["livestream"]["channel"]["user"]["username"]} ${videoData!["livestream"]["session_title"]} - ${DateTime.now().millisecondsSinceEpoch}.mp4";
-      String ffmpegCommand =
-          '-y -i "$path/all.ts" $x -c:v libx264 -c:a copy "$filename"';
-
-      await FFmpegKit.executeAsync(
-        ffmpegCommand,
-        (session) {
-          session.getState().then((value) async {
-            print(value);
-            if (value == SessionState.completed) {
-              await deleteTs(tsFiles, path);
-              print("done deleting");
-            }
-          });
-        },
-        (log) => print((log.getMessage())),
-      );
     } catch (e) {
       print('Error during concatenation: $e');
+    }
+    // convert to mp4
+    var x = "";
+    if (overflowStart != null && overflowEnd != null) {
+      x = "-ss ${formatMilliseconds(overflowStart)} -t ${formatMilliseconds(overflowEnd)}";
+    }
+
+    String filename =
+        "$path/[${queeVideoDownload[0]["data"]["livestream"]["created_at"].split(" ")[0]}] - ${videoData!["livestream"]["channel"]["user"]["username"]} ${videoData!["livestream"]["session_title"]} - ${DateTime.now().millisecondsSinceEpoch}.mp4";
+    String ffmpegCommand =
+        '-y -i "$path/all.ts" $x -c:v libx264 -c:a copy "$filename"';
+    try {
+      await FFmpegKit.execute(ffmpegCommand); // convert the ts file into mp4
+      print("done converting");
+      await deleteTs(tsFiles, path);
+      print("done deleting");
+      MediaScanner.loadMedia(path: filename);
+    } catch (e) {
+      print("error on converting to mp4 : $e");
     }
   }
 
   Future downloadTS(String path, String tsFileNB) async {
     try {
+      int lastCount = 0;
       var responseBytes = await Dio().get(
         path + tsFileNB,
-        onReceiveProgress: (count, total) {},
+        onReceiveProgress: (count, total) {
+          videoDownloadParts += ((count - lastCount) / total) * 100;
+          lastCount = count;
+        },
         options: Options(
           responseType: ResponseType.bytes,
           followRedirects: false,
@@ -269,7 +312,7 @@ class Logic extends GetxController {
       );
       return responseBytes;
     } catch (e) {
-      print("object");
+      print("problem downloding ts $e");
       return null;
     }
   }
@@ -277,13 +320,11 @@ class Logic extends GetxController {
   Future<void> saveTS(
       String savePath, List<int>? data, String tsFileName) async {
     if (data == null) {
-      File("${savePath}generated.txt").writeAsString("$tsFileName e\n");
       return;
     }
     File file = File(savePath + tsFileName);
     var raf = file.openSync(mode: FileMode.write);
     await raf.writeFrom(data);
-    await File("${savePath}generated.txt").writeAsString("$tsFileName d\n");
     print("saving $tsFileName");
   }
 
@@ -317,19 +358,6 @@ class Logic extends GetxController {
 
   Future waitTimer() async {
     return await Future.delayed(const Duration(seconds: 1));
-  }
-
-  checkTSfiles(String path, String downloadPath) async {
-    File file = File("$path/generated.txt");
-    final lines = await file.readAsLines(encoding: utf8);
-    for (var line in lines) {
-      if (line.contains("e")) {
-        print("FILE $line NOT DOWNLOADED");
-        var name = line.split(" ")[0];
-        var r = await downloadTS(downloadPath, name);
-        await saveTS(path, r?.data, name);
-      }
-    }
   }
 
   String formatMilliseconds(int milliseconds) {
@@ -375,18 +403,8 @@ class Logic extends GetxController {
 
   void downloadVodDataBtn() async {
     requestPermission();
-    await AwesomeNotifications().createNotification(
-      content: NotificationContent(
-        id: 10,
-        channelKey: "channel",
-        title: "title",
-        body: "body",
-        
-      ),
-    );
     if (foundVideo.value) {
       selectedDirectory.value ??= await FilePicker.platform.getDirectoryPath();
-
       if (startHour.value.text != "" &&
           startMinute.value.text != "" &&
           startSecond.value.text != "" &&
@@ -402,19 +420,17 @@ class Logic extends GetxController {
                 int.parse(endMinute.value.text) * 60 +
                 int.parse(endSecond.value.text)) *
             1000;
-        queeVideoDownload.add({
-          "quality": valueSelected.value,
-          "downloading": false,
-          "start": starttime,
-          "end": endtime,
-          "data": videoData,
-          "savePath":
-              "${selectedDirectory.value!}/[${videoData!["livestream"]["created_at"].split(" ")[0]} - ${DateTime.now().millisecondsSinceEpoch}] ${videoData!["livestream"]["channel"]["user"]["username"]}"
-        });
-        queeVideoDownload.refresh();
-        if (queeVideoDownload.length == 1) {
-          await downloadVOD();
-        }
+        queeVideoDownload.add(
+          {
+            "quality": valueSelected.value,
+            "downloading": false,
+            "start": starttime,
+            "end": endtime,
+            "data": videoData,
+            "savePath":
+                "${selectedDirectory.value!}/[${videoData!["livestream"]["created_at"].split(" ")[0]} - ${DateTime.now().millisecondsSinceEpoch}] ${videoData!["livestream"]["channel"]["user"]["username"]}"
+          },
+        );
       } else {
         queeVideoDownload.add({
           "quality": valueSelected.value,
@@ -425,11 +441,9 @@ class Logic extends GetxController {
           "savePath":
               "${selectedDirectory.value!}/[${videoData!["livestream"]["created_at"].split(" ")[0]} - ${DateTime.now().millisecondsSinceEpoch}] ${videoData!["livestream"]["channel"]["user"]["username"]}"
         });
-        queeVideoDownload.refresh();
-        if (queeVideoDownload.length == 1) {
-          await downloadVOD();
-        }
       }
+      queeVideoDownload.refresh();
+      if (queeVideoDownload.isEmpty) await downloadVOD();
     }
   }
 }

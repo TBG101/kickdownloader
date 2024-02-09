@@ -1,2 +1,13 @@
-implement a queee for videos to download
-add each video to a list a give it an id, once it's finished remove the first one
+downloadPage :
+    - create better UI
+
+logic: 
+    - make a notifcation that shows converting
+    - edit the checkTS function
+
+clipDownloader:
+    - add a clip downloader page
+
+Home: 
+    - make the image change when the image loads
+    - make animation for download button

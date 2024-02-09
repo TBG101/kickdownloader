@@ -71,11 +71,23 @@ class Home extends GetView<Logic> {
               appBar: AppBar(
                 actions: [
                   IconButton(
-                      onPressed: () {
-                        controller.pageSelector.value = 1;
-                        controller.update();
-                      },
-                      icon: const Icon(Icons.download_rounded))
+                    onPressed: () {
+                      controller.pageSelector.value = 1;
+                      controller.update();
+                    },
+                    icon: Obx(() {
+                      return Badge(
+                          backgroundColor: Colors.redAccent,
+                          alignment: Alignment.topRight,
+                          offset: const Offset(5, -7),
+                          isLabelVisible:
+                              controller.queeVideoDownload.isNotEmpty,
+                          label: Text(
+                              controller.queeVideoDownload.length.toString(),
+                              style: const TextStyle(color: Colors.white)),
+                          child: const Icon(Icons.download_rounded));
+                    }),
+                  )
                 ],
                 title: const Text("Kick Downloader VOD"),
                 backgroundColor: myColors.btnPrimary,

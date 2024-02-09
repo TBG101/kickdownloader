@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:kickdownloader/utilities/logic.dart';
 
-class myDrawer extends StatelessWidget {
+class myDrawer extends GetView<Logic> {
   const myDrawer({super.key});
 
   @override
@@ -10,11 +12,15 @@ class myDrawer extends StatelessWidget {
         padding: EdgeInsets.zero,
         children: [
           ListTile(
-            onTap: () {},
+            onTap: () {
+              controller.pageSelector.value = 0;
+            },
             title: const Text("VOD donwloader"),
           ),
           ListTile(
-            onTap: () {},
+            onTap: () {
+              controller.pageSelector.value = 0;
+            },
             title: const Text("Clip Downloader"),
           )
         ],
