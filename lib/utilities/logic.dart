@@ -44,8 +44,8 @@ class Logic extends GetxController {
   var endMinute = TextEditingController().obs;
   var endSecond = TextEditingController().obs;
   var queeVideoDownload = [].obs;
-
   int notificationId = 0;
+  RxList<Map> completedVideos = <Map>[].obs;
 
   bool validURL() {
     RegExp validLinkPattern = RegExp(r'^https://kick.com/video/[a-zA-Z0-9-]+$');
@@ -86,8 +86,8 @@ class Logic extends GetxController {
   thumbnailLink() {
     var x = (videoData!["source"] as String).split("\/");
     print(
-        "Thimbnail link: https://images.kick.com/video_thumbnails/${x[6]}/${x[12]}/720.webp");
-    return "https://images.kick.com/video_thumbnails/${x[6]}/${x[12]}/720.webp";
+        "Thimbnail link: https://images.kick.com/video_thumbnails/${x[6]}/${x[12]}/480.webp");
+    return "https://images.kick.com/video_thumbnails/${x[6]}/${x[12]}/480.webp";
   }
 
   getVidQuality() async {
@@ -259,10 +259,11 @@ class Logic extends GetxController {
         'Converting to MP4',
         "Streamer ${queeVideoDownload[0]["data"]["livestream"]["channel"]["user"]["username"]}",
         true);
+    String? path;
     if (endTime == null && startTime == null) {
-      await mergeToMp4(_selectedDirectory, null, null);
+      path = await mergeToMp4(_selectedDirectory, null, null);
     } else {
-      await mergeToMp4(
+      path = await mergeToMp4(
           _selectedDirectory, overflowTime ?? 0, (endTime! - startTime!));
     }
     await updateNotificationEnd(
@@ -270,8 +271,18 @@ class Logic extends GetxController {
         'Download Completed',
         "Streamer ${queeVideoDownload[0]["data"]["livestream"]["channel"]["user"]["username"]}",
         false);
+
+    if (path != null) {
+      completedVideos.add({
+        "streamer": queeVideoDownload[0]["data"]["livestream"]["channel"]
+            ["user"]["username"],
+        "path": path,
+        "image": queeVideoDownload[0]["image"],
+      });
+      completedVideos.refresh();
+    }
     queeVideoDownload.removeAt(0);
-    if (queeVideoDownload.isNotEmpty) {
+    if (queeVideoDownload.isNotEmpty && downloading) {
       downloadVOD();
     } else {
       downloading = false;
@@ -299,6 +310,7 @@ class Logic extends GetxController {
             1000;
         queeVideoDownload.add(
           {
+            "image": link.value,
             "quality": valueSelected.value,
             "downloading": false,
             "start": starttime,
@@ -310,6 +322,7 @@ class Logic extends GetxController {
         );
       } else {
         queeVideoDownload.add({
+          "image": link.value,
           "quality": valueSelected.value,
           "downloading": false,
           "start": null,
@@ -319,6 +332,7 @@ class Logic extends GetxController {
               "${selectedDirectory.value!}/[${videoData!["livestream"]["created_at"].split(" ")[0]} - ${DateTime.now().millisecondsSinceEpoch}] ${videoData!["livestream"]["channel"]["user"]["username"]}"
         });
       }
+
       queeVideoDownload.refresh();
       if (queeVideoDownload[0]["downloading"] == false &&
           downloading == false) {
@@ -329,7 +343,7 @@ class Logic extends GetxController {
     }
   }
 
-  Future<void> mergeToMp4(
+  Future<String?> mergeToMp4(
       String path, int? overflowStart, int? overflowEnd) async {
     var directory = Directory(path);
     List<File> tsFiles = directory
@@ -374,9 +388,11 @@ class Logic extends GetxController {
       await deleteTs(tsFiles, path);
       print("done deleting");
       MediaScanner.loadMedia(path: filename);
+      return filename;
     } catch (e) {
       print("error on converting to mp4 : $e");
     }
+    return null;
   }
 
   Future downloadTS(String path, String tsFileNB) async {

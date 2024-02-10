@@ -20,7 +20,6 @@ class Home extends GetView<Logic> {
     return [
       // STREAM THUMBNAIL
       const StreamThumbnail(),
-
       // TEXT FOR STREAM FIELDS
       Obx(() => Padding(
           padding: const EdgeInsets.only(top: 5),

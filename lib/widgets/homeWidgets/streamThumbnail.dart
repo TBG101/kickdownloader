@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:kickdownloader/utilities/logic.dart';
@@ -23,19 +24,14 @@ class StreamThumbnail extends GetView<Logic> {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(20),
           child: Obx(() {
-            return Image.network(
-              controller.link.value,
+            return CachedNetworkImage(
+              imageUrl: controller.link.value,
               fit: BoxFit.fitWidth,
-              loadingBuilder: (BuildContext context, Widget child,
-                  ImageChunkEvent? loadingProgress) {
-                if (loadingProgress == null) {
-                  controller.gradientOpacity.value = 0.4;
-                  return child;
-                }
-                controller.gradientOpacity.value = 0;
-                return const Center(
-                  child: CircularProgressIndicator(),
-                );
+              placeholder: (context, url) => const Center(
+                child: CircularProgressIndicator(),
+              ),
+              errorWidget: (context, url, error) {
+                return const Icon(Icons.error);
               },
             );
           }),

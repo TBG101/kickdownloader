@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:kickdownloader/utilities/logic.dart';
+import 'package:kickdownloader/widgets/downloadPage/videoCard.dart';
 
 class DownloadPage extends GetView<Logic> {
   const DownloadPage({super.key});
@@ -17,13 +18,18 @@ class DownloadPage extends GetView<Logic> {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() => ListView.builder(
-          itemCount: controller.queeVideoDownload.length,
-          itemBuilder: (context, index) {
-            return Obx(() {
+    return ListView.builder(
+        itemCount: controller.queeVideoDownload.length +
+            controller.completedVideos.length,
+        itemBuilder: (context, index) {
+          return Obx(
+            () {
+              if (index < controller.queeVideoDownload.length) {
+                return Text(textSelector(index));
+              }
               return Text(textSelector(index));
-            });
-          },
-        ));
+            },
+          );
+        });
   }
 }
