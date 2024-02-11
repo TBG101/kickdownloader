@@ -276,6 +276,7 @@ class Logic extends GetxController {
       completedVideos.add({
         "streamer": queeVideoDownload[0]["data"]["livestream"]["channel"]
             ["user"]["username"],
+        "title": queeVideoDownload[0]["data"]["livestream"]["session_title"],
         "path": path,
         "image": queeVideoDownload[0]["image"],
       });

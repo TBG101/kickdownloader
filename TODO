@@ -1,9 +1,14 @@
-downloadPage :
-    - create better UI
+downloadPage:
+  - create better UI
 
 clipDownloader:
-    - add a clip downloader page
+  - add a clip downloader page
 
-Home: 
-    - make the image change when the image loads
-    - make animation for download button
+Home:
+  - make the image change when the image loads
+  - make animation for download button
+
+Logic:
+  - implement no notification error
+  - impelement no storage error
+  - implement no internet error

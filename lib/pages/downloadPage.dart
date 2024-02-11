@@ -8,9 +8,10 @@ class DownloadPage extends GetView<Logic> {
 
   String textSelector(int index) {
     if ((controller.queeVideoDownload[index]["downloading"] as bool)) {
-      return "name : ${controller.videoDownloadPercentage.value.toStringAsFixed(0)}";
-    } else if (controller.videoDownloadPercentage.value >= 100) {
-      return "name : ${controller.videoDownloadPercentage.value.toStringAsFixed(0)}";
+      return controller.videoDownloadPercentage.value.toStringAsFixed(0);
+    } else if (controller.videoDownloadPercentage.value >= 100 &&
+        (controller.queeVideoDownload[index]["downloading"] as bool)) {
+      return "Converting to mp4";
     } else {
       return "name: waiting for quee";
     }
@@ -18,18 +19,29 @@ class DownloadPage extends GetView<Logic> {
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
-        itemCount: controller.queeVideoDownload.length +
-            controller.completedVideos.length,
-        itemBuilder: (context, index) {
-          return Obx(
-            () {
-              if (index < controller.queeVideoDownload.length) {
-                return Text(textSelector(index));
-              }
-              return Text(textSelector(index));
-            },
-          );
-        });
+    return Obx(() {
+      return ListView.builder(
+          itemCount: controller.queeVideoDownload.length +
+              controller.completedVideos.length,
+          itemBuilder: (context, index) {
+            return Obx(
+              () {
+                if (index < controller.queeVideoDownload.length) {
+                  return VideoCard(
+                      title:
+                          "${controller.queeVideoDownload[index]["data"]["livestream"]["channel"]["user"]["username"]} - ${controller.queeVideoDownload[index]["data"]["livestream"]["session_title"]}",
+                      image: controller.queeVideoDownload[index]["image"],
+                      subtitle: textSelector(index));
+                }
+                var i = index - (controller.queeVideoDownload.length);
+                return VideoCard(
+                    title:
+                        "${controller.completedVideos[i]["streamer"]} - ${controller.completedVideos[i]["title"]}",
+                    image: controller.completedVideos[i]["image"],
+                    subtitle: "Downloaded");
+              },
+            );
+          });
+    });
   }
 }
