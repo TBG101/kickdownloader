@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class myColors {
-  static Color btnPrimary =
+  static final Color btnPrimary =
       const Color.fromARGB(255, 186, 129, 255).withOpacity(.6);
   static Color btnVariant = const Color(0xff3700B3).withOpacity(.7);
   static Color btnSeconday = const Color(0xff03DAC6).withOpacity(0.2);

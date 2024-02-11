@@ -88,7 +88,10 @@ class Home extends GetView<Logic> {
                     }),
                   )
                 ],
-                title: const Text("Kick Downloader VOD"),
+                title: const Text(
+                  "Kick Downloader VOD",
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
                 backgroundColor: myColors.btnPrimary,
                 elevation: 1,
                 centerTitle: true,

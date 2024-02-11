@@ -31,10 +31,10 @@ class TimeSelectorRowEnd extends GetView<Logic> {
                           child: Checkbox(
                             value: controller.endValue.value,
                             onChanged: (s) {
+                              if (controller.foundVideo.value == false) return;
                               controller.endValue.value =
                                   !controller.endValue.value;
 
-                              if (controller.foundVideo.value == false) return;
                               if (controller.endValue.value == true) {
                                 controller.endHour.value.text =
                                     controller.streamLength.value.split(":")[0];

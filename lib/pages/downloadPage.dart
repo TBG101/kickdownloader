@@ -7,13 +7,15 @@ class DownloadPage extends GetView<Logic> {
   const DownloadPage({super.key});
 
   String textSelector(int index) {
-    if ((controller.queeVideoDownload[index]["downloading"] as bool)) {
-      return controller.videoDownloadPercentage.value.toStringAsFixed(0);
-    } else if (controller.videoDownloadPercentage.value >= 100 &&
-        (controller.queeVideoDownload[index]["downloading"] as bool)) {
+    if (controller.videoDownloadPercentage.value >= 99 &&
+        controller.queeVideoDownload[index]["downloading"] as bool) {
       return "Converting to mp4";
+    } else if (controller.queeVideoDownload[index]["downloading"] as bool &&
+        controller.videoDownloadPercentage.value < 100) {
+      print(controller.videoDownloadPercentage.value);
+      return controller.videoDownloadPercentage.value.toStringAsFixed(0);
     } else {
-      return "name: waiting for quee";
+      return "Waiting for quee";
     }
   }
 
@@ -31,14 +33,17 @@ class DownloadPage extends GetView<Logic> {
                       title:
                           "${controller.queeVideoDownload[index]["data"]["livestream"]["channel"]["user"]["username"]} - ${controller.queeVideoDownload[index]["data"]["livestream"]["session_title"]}",
                       image: controller.queeVideoDownload[index]["image"],
-                      subtitle: textSelector(index));
+                      subtitle: textSelector(index),
+                      download: index == 0 ? true : false);
                 }
                 var i = index - (controller.queeVideoDownload.length);
                 return VideoCard(
-                    title:
-                        "${controller.completedVideos[i]["streamer"]} - ${controller.completedVideos[i]["title"]}",
-                    image: controller.completedVideos[i]["image"],
-                    subtitle: "Downloaded");
+                  title:
+                      "${controller.completedVideos[i]["streamer"]} - ${controller.completedVideos[i]["title"]}",
+                  image: controller.completedVideos[i]["image"],
+                  subtitle: "Downloaded",
+                  download: false,
+                );
               },
             );
           });
