@@ -34,7 +34,8 @@ class DownloadPage extends GetView<Logic> {
                           "${controller.queeVideoDownload[index]["data"]["livestream"]["channel"]["user"]["username"]} - ${controller.queeVideoDownload[index]["data"]["livestream"]["session_title"]}",
                       image: controller.queeVideoDownload[index]["image"],
                       subtitle: textSelector(index),
-                      download: index == 0 ? true : false);
+                      download: index == 0 ? true : false,
+                      cancelDownload: controller.cancelDownload);
                 }
                 var i = index - (controller.queeVideoDownload.length);
                 return VideoCard(

@@ -11,6 +11,8 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:get/get.dart';
 import 'package:dio/dio.dart';
 import 'dart:async';
+import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 class Logic extends GetxController {
   var url = TextEditingController().obs;
@@ -47,6 +49,29 @@ class Logic extends GetxController {
   var queeVideoDownload = [].obs;
   int notificationId = 0;
   RxList<Map> completedVideos = <Map>[].obs;
+
+  // cancel token for dio()
+  late CancelToken cancel;
+
+  // Open Hive
+  late Box box;
+
+  initHive() async {
+    box = await Hive.openBox("video");
+    var listOfVideos = box.get("video");
+    if (listOfVideos != null) {
+      completedVideos = listOfVideos;
+    } else {
+      box.put("video", []);
+    }
+  }
+
+  @override
+  void onInit() {
+    // TODO: implement onInit
+    initHive();
+    super.onInit();
+  }
 
   bool validURL() {
     RegExp validLinkPattern = RegExp(r'^https://kick.com/video/[a-zA-Z0-9-]+$');
@@ -122,7 +147,8 @@ class Logic extends GetxController {
         if (kDebugMode) {
           print("FILE $element NOT DOWNLOADED");
         }
-        var r = await downloadTS(downloadPath, element);
+        var r = await downloadTS(downloadPath, element, cancel);
+
         await saveTS(path, r?.data, "$element.ts");
       } else {
         if (kDebugMode) {
@@ -222,6 +248,7 @@ class Logic extends GetxController {
     queeVideoDownload[0]["downloading"] = true;
     videoDownloadPercentage.value = 0;
     videoDownloadParts = 0;
+    cancel = CancelToken();
 
     await createDownloadNotifcation(notificationId, 'Started downloading VOD',
         "Streamer ${queeVideoDownload[0]["data"]["livestream"]["channel"]["user"]["username"]}");
@@ -230,6 +257,7 @@ class Logic extends GetxController {
         _selectedDirectory, playlist, endTime, startTime);
     playlist.clear();
     var file = File("$_selectedDirectory/generated.txt").readAsLinesSync();
+
     for (String element in file) {
       while (queeList.length >= 5) {
         updateNotification(
@@ -243,11 +271,12 @@ class Logic extends GetxController {
         await waitTimer();
       }
       if (!downloading) {
+        cancel.cancel();
         break;
       }
       queeList.add(int.parse(element.replaceAll(".ts", "")));
       print("downloading $element");
-      downloadTS(downloadURL, element).then((tsFile) {
+      downloadTS(downloadURL, element, cancel).then((tsFile) {
         queeList.remove(int.parse(element.replaceAll(".ts", "")));
         saveTS("$_selectedDirectory/", tsFile?.data, element);
       });
@@ -255,6 +284,7 @@ class Logic extends GetxController {
 
     while (queeList.isNotEmpty) {
       if (!downloading) {
+        cancel.cancel();
         break;
       }
       await waitTimer();
@@ -264,39 +294,45 @@ class Logic extends GetxController {
           'Downloading VOD ${videoDownloadPercentage.value.toStringAsFixed(0)}%',
           "Streamer ${queeVideoDownload[0]["data"]["livestream"]["channel"]["user"]["username"]}");
     }
-    await checkTSfiles(_selectedDirectory, downloadURL);
-    await updateNotificationEnd(
-        notificationId,
-        'Converting to MP4',
-        "Streamer ${queeVideoDownload[0]["data"]["livestream"]["channel"]["user"]["username"]}",
-        true);
-    String? path;
-    if (endTime == null && startTime == null) {
-      path = await mergeToMp4(_selectedDirectory, null, null);
+    if (downloading) {
+      await checkTSfiles(_selectedDirectory, downloadURL);
+      await updateNotificationEnd(
+          notificationId,
+          'Converting to MP4',
+          "Streamer ${queeVideoDownload[0]["data"]["livestream"]["channel"]["user"]["username"]}",
+          true);
+      String? path;
+      if (endTime == null && startTime == null) {
+        path = await mergeToMp4(_selectedDirectory, null, null);
+      } else {
+        path = await mergeToMp4(
+            _selectedDirectory, overflowTime ?? 0, (endTime! - startTime!));
+      }
+      await updateNotificationEnd(
+          notificationId,
+          'Download Completed',
+          "Streamer ${queeVideoDownload[0]["data"]["livestream"]["channel"]["user"]["username"]}",
+          false);
+      if (path != null && downloading) {
+        completedVideos.add({
+          "streamer": queeVideoDownload[0]["data"]["livestream"]["channel"]
+              ["user"]["username"],
+          "title": queeVideoDownload[0]["data"]["livestream"]["session_title"],
+          "path": path,
+          "image": queeVideoDownload[0]["image"],
+        });
+      }
+      completedVideos.refresh();
     } else {
-      path = await mergeToMp4(
-          _selectedDirectory, overflowTime ?? 0, (endTime! - startTime!));
+      try {
+        Directory(_selectedDirectory).deleteSync(recursive: true);
+      } catch (e) {
+        print("error on deletion of folder error is : $e");
+      }
+      downloading = true;
+      AwesomeNotifications().dismiss(notificationId);
     }
-    await updateNotificationEnd(
-        notificationId,
-        'Download Completed',
-        "Streamer ${queeVideoDownload[0]["data"]["livestream"]["channel"]["user"]["username"]}",
-        false);
 
-    if (path != null && downloading) {
-      completedVideos.add({
-        "streamer": queeVideoDownload[0]["data"]["livestream"]["channel"]
-            ["user"]["username"],
-        "title": queeVideoDownload[0]["data"]["livestream"]["session_title"],
-        "path": path,
-        "image": queeVideoDownload[0]["image"],
-      });
-    }
-    completedVideos.refresh();
-
-    if (!downloading && path != null) {
-      Directory(path).deleteSync();
-    }
     queeVideoDownload.removeAt(0);
     if (queeVideoDownload.isNotEmpty && downloading) {
       downloadVOD();
@@ -411,7 +447,7 @@ class Logic extends GetxController {
     return null;
   }
 
-  Future downloadTS(String path, String tsFileNB) async {
+  Future downloadTS(String path, String tsFileNB, CancelToken cancel) async {
     try {
       int lastCount = 0;
       var responseBytes = await Dio().get(
@@ -420,6 +456,7 @@ class Logic extends GetxController {
           videoDownloadParts += ((count - lastCount) / total) * 100;
           lastCount = count;
         },
+        cancelToken: cancel,
         options: Options(
           responseType: ResponseType.bytes,
           followRedirects: false,
@@ -427,7 +464,7 @@ class Logic extends GetxController {
       );
       return responseBytes;
     } catch (e) {
-      print("problem downloding ts $e");
+      print("problem downloding ts error is: $e");
       return null;
     }
   }
