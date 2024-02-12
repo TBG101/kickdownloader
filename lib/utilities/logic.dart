@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:get/get.dart';
 import 'package:dio/dio.dart';
+import 'dart:async';
 
 class Logic extends GetxController {
   var url = TextEditingController().obs;
@@ -204,7 +205,7 @@ class Logic extends GetxController {
             locked: locked));
   }
 
-  downloadVOD() async {
+  Future<void> downloadVOD() async {
     notificationId++;
     downloading = true;
     // ignore: no_leading_underscores_for_local_identifiers
@@ -229,14 +230,20 @@ class Logic extends GetxController {
         _selectedDirectory, playlist, endTime, startTime);
     playlist.clear();
     var file = File("$_selectedDirectory/generated.txt").readAsLinesSync();
-    file.forEach((element) async {
+    for (String element in file) {
       while (queeList.length >= 5) {
         updateNotification(
             notificationId,
             file,
             'Downloading VOD ${videoDownloadPercentage.value.toStringAsFixed(0)}%',
             "Streamer ${queeVideoDownload[0]["data"]["livestream"]["channel"]["user"]["username"]}");
+        if (!downloading) {
+          break;
+        }
         await waitTimer();
+      }
+      if (!downloading) {
+        break;
       }
       queeList.add(int.parse(element.replaceAll(".ts", "")));
       print("downloading $element");
@@ -244,8 +251,12 @@ class Logic extends GetxController {
         queeList.remove(int.parse(element.replaceAll(".ts", "")));
         saveTS("$_selectedDirectory/", tsFile?.data, element);
       });
-    });
+    }
+
     while (queeList.isNotEmpty) {
+      if (!downloading) {
+        break;
+      }
       await waitTimer();
       updateNotification(
           notificationId,
@@ -272,7 +283,7 @@ class Logic extends GetxController {
         "Streamer ${queeVideoDownload[0]["data"]["livestream"]["channel"]["user"]["username"]}",
         false);
 
-    if (path != null) {
+    if (path != null && downloading) {
       completedVideos.add({
         "streamer": queeVideoDownload[0]["data"]["livestream"]["channel"]
             ["user"]["username"],
@@ -280,7 +291,11 @@ class Logic extends GetxController {
         "path": path,
         "image": queeVideoDownload[0]["image"],
       });
-      completedVideos.refresh();
+    }
+    completedVideos.refresh();
+
+    if (!downloading && path != null) {
+      Directory(path).deleteSync();
     }
     queeVideoDownload.removeAt(0);
     if (queeVideoDownload.isNotEmpty && downloading) {
@@ -499,5 +514,9 @@ class Logic extends GetxController {
       valueSelected.value = resolutions.first;
       print(videoData);
     });
+  }
+
+  cancelDownload() {
+    downloading = false;
   }
 }

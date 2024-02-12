@@ -37,7 +37,7 @@ class MyApp extends StatelessWidget {
         brightness: Brightness.dark,
         scaffoldBackgroundColor: myColors.background,
         primaryColor: myColors.btnPrimary,
-        fontFamily: "Poppins",
+        fontFamily: "SpaceGrotesk",
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ButtonStyle(
             backgroundColor: MaterialStateProperty.all(myColors.btnPrimary),

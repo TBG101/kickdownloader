@@ -10,12 +10,14 @@ class VideoCard extends StatelessWidget {
       required this.title,
       required this.image,
       required this.subtitle,
-      required this.download});
+      required this.download,
+      this.cancelDownload});
 
   final String title;
   final String image;
   final String subtitle;
   final bool download;
+  final Function()? cancelDownload;
 
   @override
   Widget build(BuildContext context) {
@@ -76,8 +78,8 @@ class VideoCard extends StatelessWidget {
                     padding: const EdgeInsets.only(right: 8.0),
                     child: download
                         ? IconButton(
-                            onPressed: () {},
-                            icon: const Icon(Icons.cancel),
+                            onPressed: cancelDownload,
+                            icon: const Icon(Icons.close_rounded),
                           )
                         : DropdownButtonHideUnderline(
                             child: DropdownButton2(
