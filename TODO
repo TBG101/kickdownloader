@@ -8,8 +8,10 @@ Home:
   - make animation for download button
 
 Logic:
+  - add a MB reste shower
   - implement no notification error
   - impelement no storage error
   - implement no internet error
   - implement the hive logic
+  
 

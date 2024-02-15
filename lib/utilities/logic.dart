@@ -179,7 +179,7 @@ class Logic extends GetxController {
       }
       if (timeMilliseconds >= endTime) {
         print("ENDED TS WITH: $timeMilliseconds");
-        return overflowTime;
+        break;
       }
       var line = playlist[i];
       line = line.replaceAll("#EXTINF:", "");
@@ -192,7 +192,8 @@ class Logic extends GetxController {
       }
       timeMilliseconds = timeMilliseconds + (double.parse(line) * 1000).toInt();
     }
-    return null;
+    // Meaning that we are going to download the whole stream if endtime == -1
+    return endTime == -1 ? -1 : overflowTime;
   }
 
   Future<void> createDownloadNotifcation(
@@ -310,7 +311,7 @@ class Logic extends GetxController {
           "Streamer ${queeVideoDownload[0]["data"]["livestream"]["channel"]["user"]["username"]}",
           true);
       String? path;
-      if (endTime == null && startTime == null) {
+      if (endTime == -1) {
         path = await mergeToMp4(_selectedDirectory, null, null);
       } else {
         path = await mergeToMp4(
@@ -350,6 +351,10 @@ class Logic extends GetxController {
     }
   }
 
+  int convertToMillisecond(int h, int m, int s) {
+    return (h * 60 * 60 + m * 60 + s) * 1000;
+  }
+
   void downloadVodDataBtn() async {
     requestPermission();
     if (foundVideo.value) {
@@ -361,14 +366,15 @@ class Logic extends GetxController {
           endMinute.value.text != "" &&
           endSecond.value.text != "") {
         // turn all time to milliseconds
-        var starttime = (int.parse(startHour.value.text) * 60 * 60 +
-                int.parse(startMinute.value.text) * 60 +
-                int.parse(startSecond.value.text)) *
-            1000;
-        var endtime = (int.parse(endHour.value.text) * 60 * 60 +
-                int.parse(endMinute.value.text) * 60 +
-                int.parse(endSecond.value.text)) *
-            1000;
+        var starttime = convertToMillisecond(
+            int.parse(startHour.value.text),
+            int.parse(startMinute.value.text),
+            int.parse(startSecond.value.text));
+        var endtime = convertToMillisecond(
+          int.parse(endHour.value.text),
+          int.parse(endMinute.value.text),
+          int.parse(endSecond.value.text),
+        );
         queeVideoDownload.add(
           {
             "image": link.value,
@@ -386,8 +392,8 @@ class Logic extends GetxController {
           "image": link.value,
           "quality": valueSelected.value,
           "downloading": false,
-          "start": null,
-          "end": null,
+          "start": 0,
+          "end": -1,
           "data": videoData,
           "savePath":
               "${selectedDirectory.value!}/[${videoData!["livestream"]["created_at"].split(" ")[0]} - ${DateTime.now().millisecondsSinceEpoch}] ${videoData!["livestream"]["channel"]["user"]["username"]}"

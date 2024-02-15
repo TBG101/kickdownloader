@@ -5,7 +5,6 @@ import 'package:hive_flutter/adapters.dart';
 import 'package:kickdownloader/myColors.dart';
 import 'package:kickdownloader/pages/Home.dart';
 import 'package:kickdownloader/utilities/logic.dart';
-import 'package:path_provider/path_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
