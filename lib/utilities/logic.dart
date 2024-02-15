@@ -58,19 +58,24 @@ class Logic extends GetxController {
 
   initHive() async {
     box = await Hive.openBox("video");
-    var listOfVideos = box.get("video");
-    if (listOfVideos != null) {
-      completedVideos = listOfVideos;
-    } else {
-      box.put("video", []);
-    }
+  }
+
+  addVideoToHive() {
+    box.put("video", completedVideos.value);
   }
 
   @override
-  void onInit() {
-    // TODO: implement onInit
-    initHive();
-    super.onInit();
+  void onReady() async {
+    // TODO: implement onReady
+    await initHive();
+    var listOfVideos = box.get("video");
+    if (listOfVideos != null) {
+      completedVideos.value = listOfVideos as List<Map<dynamic, dynamic>>;
+      completedVideos.refresh();
+    } else {
+      box.put("video", <Map<dynamic, dynamic>>[]);
+    }
+    super.onReady();
   }
 
   bool validURL() {
@@ -323,6 +328,7 @@ class Logic extends GetxController {
         });
       }
       completedVideos.refresh();
+      addVideoToHive();
     } else {
       try {
         Directory(_selectedDirectory).deleteSync(recursive: true);

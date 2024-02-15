@@ -1,15 +1,15 @@
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:hive/hive.dart';
 import 'package:hive_flutter/adapters.dart';
 import 'package:kickdownloader/myColors.dart';
 import 'package:kickdownloader/pages/Home.dart';
 import 'package:kickdownloader/utilities/logic.dart';
+import 'package:path_provider/path_provider.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  Hive.initFlutter();
+  Hive.initFlutter((await getTemporaryDirectory()).toString());
   AwesomeNotifications().initialize(
       null,
       [
@@ -61,7 +61,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final logic = Get.put(Logic());
+  final logic = Get.put(Logic(), permanent: true);
   @override
   Widget build(BuildContext context) {
     return const Home();
