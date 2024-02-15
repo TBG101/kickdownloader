@@ -57,7 +57,7 @@ class Logic extends GetxController {
   late Box box;
 
   initHive() async {
-    box = await Hive.openBox("video");
+    box = Hive.box("video");
   }
 
   addVideoToHive() {
@@ -70,7 +70,10 @@ class Logic extends GetxController {
     await initHive();
     var listOfVideos = box.get("video");
     if (listOfVideos != null) {
-      completedVideos.value = listOfVideos as List<Map<dynamic, dynamic>>;
+      print(listOfVideos);
+      // completedVideos.addAll(iterable)
+      completedVideos.value =
+          (listOfVideos as List).map((e) => e as Map).toList();
       completedVideos.refresh();
     } else {
       box.put("video", <Map<dynamic, dynamic>>[]);

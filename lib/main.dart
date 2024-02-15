@@ -9,8 +9,9 @@ import 'package:path_provider/path_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  Hive.initFlutter((await getTemporaryDirectory()).toString());
-  AwesomeNotifications().initialize(
+  await Hive.initFlutter();
+  await Hive.openBox("video");
+  await AwesomeNotifications().initialize(
       null,
       [
         NotificationChannel(
