@@ -56,11 +56,14 @@ class Logic extends GetxController {
   // Open Hive
   late Box box;
 
-  initHive() async {
+  final GlobalKey<AnimatedListState> animatedListKey =
+      GlobalKey<AnimatedListState>();
+
+  Future<void> initHive() async {
     box = Hive.box("video");
   }
 
-  addVideoToHive() {
+  void addVideoToHive() {
     box.put("video", completedVideos.value);
   }
 
@@ -241,6 +244,8 @@ class Logic extends GetxController {
   }
 
   Future<void> downloadVOD() async {
+    videoDownloadPercentage.value = 0;
+    videoDownloadParts = 0;
     notificationId++;
     downloading = true;
     // ignore: no_leading_underscores_for_local_identifiers
@@ -255,8 +260,6 @@ class Logic extends GetxController {
     List<String> playlist = await getPlaylist(downloadURL);
 
     queeVideoDownload[0]["downloading"] = true;
-    videoDownloadPercentage.value = 0;
-    videoDownloadParts = 0;
     cancel = CancelToken();
 
     await createDownloadNotifcation(notificationId, 'Started downloading VOD',
@@ -570,5 +573,12 @@ class Logic extends GetxController {
 
   cancelDownload() {
     downloading = false;
+  }
+
+  deleteFileDropdown(int index) {
+    var deletedElement = completedVideos.removeAt(index);
+    completedVideos.refresh();
+    addVideoToHive();
+    return deletedElement;
   }
 }

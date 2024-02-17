@@ -19,35 +19,71 @@ class DownloadPage extends GetView<Logic> {
     }
   }
 
+  deleteVOD(int i) {
+    var element = controller.deleteFileDropdown(i);
+
+    controller.animatedListKey.currentState!.removeItem(i,
+        (context, animation) {
+      return SizeTransition(
+        sizeFactor: animation,
+        child: FadeTransition(
+          opacity: animation,
+          child: VideoCard(
+            title: "${element["streamer"]} - ${element["title"]}",
+            image: element["image"],
+            subtitle: "Downloaded",
+            download: false,
+            deleteVOD: null,
+          ),
+        ),
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      return ListView.builder(
-          itemCount: controller.queeVideoDownload.length +
-              controller.completedVideos.length,
-          itemBuilder: (context, index) {
-            return Obx(
-              () {
-                if (index < controller.queeVideoDownload.length) {
-                  return VideoCard(
-                      title:
-                          "${controller.queeVideoDownload[index]["data"]["livestream"]["channel"]["user"]["username"]} - ${controller.queeVideoDownload[index]["data"]["livestream"]["session_title"]}",
-                      image: controller.queeVideoDownload[index]["image"],
-                      subtitle: textSelector(index),
-                      download: index == 0 ? true : false,
-                      cancelDownload: controller.cancelDownload);
-                }
-                var i = index - (controller.queeVideoDownload.length);
-                return VideoCard(
+      return AnimatedList(
+        key: controller.animatedListKey,
+        initialItemCount: controller.queeVideoDownload.length +
+            controller.completedVideos.length,
+        itemBuilder: (context, index, animation) {
+          if (index < controller.queeVideoDownload.length) {
+            return SizeTransition(
+              sizeFactor: animation,
+              child: FadeTransition(
+                opacity: animation,
+                child: VideoCard(
                   title:
-                      "${controller.completedVideos[i]["streamer"]} - ${controller.completedVideos[i]["title"]}",
-                  image: controller.completedVideos[i]["image"],
-                  subtitle: "Downloaded",
-                  download: false,
-                );
-              },
+                      "${controller.queeVideoDownload[index]["data"]["livestream"]["channel"]["user"]["username"]} - ${controller.queeVideoDownload[index]["data"]["livestream"]["session_title"]}",
+                  image: controller.queeVideoDownload[index]["image"],
+                  subtitle: textSelector(index),
+                  download: index == 0 ? true : false,
+                  cancelDownload: controller.cancelDownload,
+                  deleteVOD: null,
+                ),
+              ),
             );
-          });
+          }
+          var i = index - (controller.queeVideoDownload.length);
+          return SizeTransition(
+            sizeFactor: animation,
+            child: FadeTransition(
+              opacity: animation,
+              child: VideoCard(
+                title:
+                    "${controller.completedVideos[i]["streamer"]} - ${controller.completedVideos[i]["title"]}",
+                image: controller.completedVideos[i]["image"],
+                subtitle: "Downloaded",
+                download: false,
+                deleteVOD: () {
+                  deleteVOD(i);
+                },
+              ),
+            ),
+          );
+        },
+      );
     });
   }
 }

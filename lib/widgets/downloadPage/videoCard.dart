@@ -5,19 +5,22 @@ import 'package:get/get.dart';
 import 'package:kickdownloader/myColors.dart';
 
 class VideoCard extends StatelessWidget {
-  const VideoCard(
-      {super.key,
-      required this.title,
-      required this.image,
-      required this.subtitle,
-      required this.download,
-      this.cancelDownload});
+  const VideoCard({
+    super.key,
+    required this.title,
+    required this.image,
+    required this.subtitle,
+    required this.download,
+    this.cancelDownload,
+    required this.deleteVOD,
+  });
 
   final String title;
   final String image;
   final String subtitle;
   final bool download;
   final Function()? cancelDownload;
+  final Function()? deleteVOD;
 
   @override
   Widget build(BuildContext context) {
@@ -105,7 +108,7 @@ class VideoCard extends StatelessWidget {
                                 ),
                                 offset: const Offset(0, 8),
                               ),
-                              items: const [
+                              items: [
                                 DropdownMenuItem(
                                   value: "1",
                                   child: Row(
@@ -131,6 +134,7 @@ class VideoCard extends StatelessWidget {
                                   ),
                                 ),
                                 DropdownMenuItem(
+                                  onTap: deleteVOD,
                                   value: "3",
                                   child: Row(
                                     children: [
