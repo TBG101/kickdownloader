@@ -403,12 +403,9 @@ class Logic extends GetxController {
         });
       }
 
-      queeVideoDownload.refresh();
       if (queeVideoDownload[0]["downloading"] == false &&
           downloading == false) {
-        await downloadVOD();
-      } else {
-        downloading = false;
+        downloadVOD();
       }
     }
   }
@@ -575,7 +572,7 @@ class Logic extends GetxController {
     downloading = false;
   }
 
-  deleteFileDropdown(int index) {
+  Map<dynamic, dynamic> deleteFileDropdown(int index) {
     var deletedElement = completedVideos.removeAt(index);
     completedVideos.refresh();
     addVideoToHive();

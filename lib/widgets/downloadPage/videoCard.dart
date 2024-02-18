@@ -12,7 +12,7 @@ class VideoCard extends StatelessWidget {
     required this.subtitle,
     required this.download,
     this.cancelDownload,
-    required this.deleteVOD,
+    this.deleteVOD,
   });
 
   final String title;
