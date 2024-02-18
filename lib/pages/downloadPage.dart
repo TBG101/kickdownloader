@@ -19,10 +19,10 @@ class DownloadPage extends GetView<Logic> {
     }
   }
 
-  deleteVOD(int i) {
+  deleteVOD(int i, int animatedListIndex) {
     var element = controller.deleteFileDropdown(i);
 
-    controller.animatedListKey.currentState!.removeItem(i,
+    controller.animatedListKey.currentState!.removeItem(animatedListIndex,
         (context, animation) {
       return SizeTransition(
         sizeFactor: animation,
@@ -49,39 +49,31 @@ class DownloadPage extends GetView<Logic> {
             controller.completedVideos.length,
         itemBuilder: (context, index, animation) {
           if (index < controller.queeVideoDownload.length) {
-            return SizeTransition(
-              sizeFactor: animation,
-              child: FadeTransition(
-                opacity: animation,
-                child: VideoCard(
-                  title:
-                      "${controller.queeVideoDownload[index]["data"]["livestream"]["channel"]["user"]["username"]} - ${controller.queeVideoDownload[index]["data"]["livestream"]["session_title"]}",
-                  image: controller.queeVideoDownload[index]["image"],
-                  subtitle: textSelector(index),
-                  download: index == 0 ? true : false,
-                  cancelDownload: controller.cancelDownload,
-                  deleteVOD: null,
-                ),
-              ),
-            );
+            return Obx(() {
+              return VideoCard(
+                title:
+                    "${controller.queeVideoDownload[index]["data"]["livestream"]["channel"]["user"]["username"]} - ${controller.queeVideoDownload[index]["data"]["livestream"]["session_title"]}",
+                image: controller.queeVideoDownload[index]["image"],
+                subtitle: textSelector(index),
+                download: index == 0 ? true : false,
+                cancelDownload: controller.cancelDownload,
+                deleteVOD: null,
+              );
+            });
           }
           var i = index - (controller.queeVideoDownload.length);
-          return SizeTransition(
-            sizeFactor: animation,
-            child: FadeTransition(
-              opacity: animation,
-              child: VideoCard(
-                title:
-                    "${controller.completedVideos[i]["streamer"]} - ${controller.completedVideos[i]["title"]}",
-                image: controller.completedVideos[i]["image"],
-                subtitle: "Downloaded",
-                download: false,
-                deleteVOD: () {
-                  deleteVOD(i);
-                },
-              ),
-            ),
-          );
+          return Obx(() {
+            return VideoCard(
+              title:
+                  "${controller.completedVideos[i]["streamer"]} - ${controller.completedVideos[i]["title"]}",
+              image: controller.completedVideos[i]["image"],
+              subtitle: "Downloaded",
+              download: false,
+              deleteVOD: () {
+                deleteVOD(i, index);
+              },
+            );
+          });
         },
       );
     });
