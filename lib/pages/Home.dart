@@ -55,13 +55,13 @@ class Home extends GetView<Logic> {
   Widget build(BuildContext context) {
     var size = MediaQuery.of(context).size;
     return SafeArea(
-      child: WillPopScope(
-          onWillPop: () async {
+      child: PopScope(
+          canPop: false,
+          onPopInvoked: (_) async {
             if (controller.pageSelector.value == 1) {
               controller.pageSelector.value = 0;
               controller.update();
             }
-            return false;
           },
           child: GetBuilder(
             init: controller,

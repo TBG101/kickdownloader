@@ -23,11 +23,13 @@ class DownloadPage extends GetView<Logic> {
     var element = controller.deleteFileDropdown(i);
 
     controller.animatedListKey.currentState!.removeItem(animatedListIndex,
-        (context, animation) {
+        duration: const Duration(milliseconds: 250), (context, animation) {
       return SizeTransition(
-        sizeFactor: animation,
+        sizeFactor: CurvedAnimation(
+            parent: animation, curve: const FlippedCurve(Curves.decelerate)),
         child: FadeTransition(
-          opacity: animation,
+          opacity: CurvedAnimation(
+              parent: animation, curve: const FlippedCurve(Curves.decelerate)),
           child: VideoCard(
             title: "${element["streamer"]} - ${element["title"]}",
             image: element["image"],

@@ -13,10 +13,12 @@ import 'package:dio/dio.dart';
 import 'dart:async';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:path/path.dart' as packagePath;
 
 class Logic extends GetxController {
   var url = TextEditingController().obs;
   String apiURL = "";
+  String _lastVideoLink = "";
   RxBool foundVideo = false.obs;
   var downloading = false;
   Map<String, dynamic>? videoData;
@@ -72,6 +74,8 @@ class Logic extends GetxController {
     // TODO: implement onReady
     await initHive();
     var listOfVideos = box.get("video");
+    selectedDirectory.value = box.get("savePath");
+
     if (listOfVideos != null) {
       print(listOfVideos);
       // completedVideos.addAll(iterable)
@@ -81,6 +85,7 @@ class Logic extends GetxController {
     } else {
       box.put("video", <Map<dynamic, dynamic>>[]);
     }
+
     super.onReady();
   }
 
@@ -203,14 +208,16 @@ class Logic extends GetxController {
       int id, String title, String body) async {
     await AwesomeNotifications().createNotification(
         content: NotificationContent(
-            id: id,
-            channelKey: "channel",
-            title: title,
-            body: body,
-            category: NotificationCategory.Progress,
-            notificationLayout: NotificationLayout.ProgressBar,
-            progress: 0,
-            locked: true));
+      id: id,
+      autoDismissible: false,
+      channelKey: "channel",
+      title: title,
+      body: body,
+      category: NotificationCategory.Progress,
+      notificationLayout: NotificationLayout.ProgressBar,
+      progress: 0,
+      locked: true,
+    ));
   }
 
   Future<void> updateNotification(
@@ -226,7 +233,8 @@ class Logic extends GetxController {
             category: NotificationCategory.Progress,
             notificationLayout: NotificationLayout.ProgressBar,
             progress: videoDownloadPercentage.value,
-            locked: true));
+            locked: true,
+            autoDismissible: false));
   }
 
   Future<void> updateNotificationEnd(
@@ -361,7 +369,11 @@ class Logic extends GetxController {
   void downloadVodDataBtn() async {
     requestPermission();
     if (foundVideo.value) {
-      selectedDirectory.value ??= await FilePicker.platform.getDirectoryPath();
+      if (selectedDirectory.value == null) {
+        selectedDirectory.value = await FilePicker.platform.getDirectoryPath();
+        box.put("savePath", selectedDirectory.value);
+      }
+
       if (startHour.value.text != "" &&
           startMinute.value.text != "" &&
           startSecond.value.text != "" &&
@@ -499,7 +511,7 @@ class Logic extends GetxController {
     return (await Dio().get(downloadURL + "playlist.m3u8")).data.split("\n");
   }
 
-  requestPermission() async {
+  void requestPermission() async {
     await Permission.manageExternalStorage.request();
   }
 
@@ -544,8 +556,8 @@ class Logic extends GetxController {
   }
 
   void getVodData() {
-    if (url.value.text.isEmpty) return;
-
+    if (url.value.text.isEmpty || url.value.text == _lastVideoLink) return;
+    _lastVideoLink = url.value.text;
     foundVideo.value = false;
     getURL().then((_) async {
       await getVidQuality();
@@ -573,6 +585,12 @@ class Logic extends GetxController {
   }
 
   Map<dynamic, dynamic> deleteFileDropdown(int index) {
+    try {
+      Directory(packagePath.dirname(completedVideos[index]["path"]))
+          .delete(recursive: true);
+    } catch (e) {
+      throw "error on deleted video : $e";
+    }
     var deletedElement = completedVideos.removeAt(index);
     completedVideos.refresh();
     addVideoToHive();
