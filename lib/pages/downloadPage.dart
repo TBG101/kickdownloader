@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:kickdownloader/utilities/logic.dart';
 import 'package:kickdownloader/widgets/downloadPage/videoCard.dart';
+import 'package:kickdownloader/widgets/homeWidgets/donwloadVodBtn.dart';
 
 class DownloadPage extends GetView<Logic> {
   const DownloadPage({super.key});
@@ -19,7 +20,7 @@ class DownloadPage extends GetView<Logic> {
     }
   }
 
-  deleteVOD(int i, int animatedListIndex) {
+  void deleteVOD(int i, int animatedListIndex) {
     var element = controller.deleteFileDropdown(i);
 
     controller.animatedListKey.currentState!.removeItem(animatedListIndex,
@@ -42,6 +43,35 @@ class DownloadPage extends GetView<Logic> {
     });
   }
 
+  void cancelDownload(int index) {
+    var name =
+        "${controller.queeVideoDownload[index]["data"]["livestream"]["channel"]["user"]["username"]} - ${controller.queeVideoDownload[index]["data"]["livestream"]["session_title"]}";
+    var img = controller.queeVideoDownload[index]["image"];
+    var sub = textSelector(index);
+    var download = index == 0 ? true : false;
+    controller.cancelDownload();
+    controller.animatedListKey.currentState!.removeItem(
+      index,
+      duration: const Duration(milliseconds: 250),
+      (context, animation) {
+        return SizeTransition(
+          sizeFactor: CurvedAnimation(
+              parent: animation, curve: const FlippedCurve(Curves.decelerate)),
+          child: FadeTransition(
+              opacity: CurvedAnimation(
+                  parent: animation,
+                  curve: const FlippedCurve(Curves.decelerate)),
+              child: VideoCard(
+                title: name,
+                image: img,
+                subtitle: sub,
+                download: download,
+              )),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Obx(() {
@@ -53,16 +83,17 @@ class DownloadPage extends GetView<Logic> {
           if (index < controller.queeVideoDownload.length) {
             return Obx(() {
               return VideoCard(
-                title:
-                    "${controller.queeVideoDownload[index]["data"]["livestream"]["channel"]["user"]["username"]} - ${controller.queeVideoDownload[index]["data"]["livestream"]["session_title"]}",
-                image: controller.queeVideoDownload[index]["image"],
-                subtitle: textSelector(index),
-                download: index == 0 ? true : false,
-                cancelDownload: controller.cancelDownload,
-                deleteVOD: null,
-              );
+                  title:
+                      "${controller.queeVideoDownload[index]["data"]["livestream"]["channel"]["user"]["username"]} - ${controller.queeVideoDownload[index]["data"]["livestream"]["session_title"]}",
+                  image: controller.queeVideoDownload[index]["image"],
+                  subtitle: textSelector(index),
+                  download: index == 0 ? true : false,
+                  cancelDownload: () {
+                    cancelDownload(index);
+                  });
             });
           }
+
           var i = index - (controller.queeVideoDownload.length);
           return Obx(() {
             return VideoCard(

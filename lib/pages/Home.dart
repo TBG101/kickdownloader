@@ -16,38 +16,45 @@ import 'package:kickdownloader/widgets/streamFields.dart';
 class Home extends GetView<Logic> {
   const Home({super.key});
 
+  List<Widget> streamerInfo() => [
+        // STREAM THUMBNAIL
+        const StreamThumbnail(),
+        // TEXT FOR STREAM FIELDS
+        Obx(() => Padding(
+            padding: const EdgeInsets.only(top: 5),
+            child: StreamFields(
+                field: "Streamer", text: controller.streamer.value))),
+        Obx(() => StreamFields(field: "Tile", text: controller.title.value)),
+        Obx(() => StreamFields(
+            field: "Stream date", text: controller.stramDate.value)),
+        Obx(() => StreamFields(
+            field: "Stream Length", text: controller.streamLength.value)),
+      ];
+
+  List<Widget> vodConfiguration() => [
+        // QUALITY SELECTOR DROPDOWN
+        const DropdownSelector(),
+
+        // START ROW FOR THE TIME SELECTOR
+        const TimeSelectorRowStart(),
+
+        // END ROW FOR THE TIME SELECTOR
+        const TimeSelectorRowEnd(),
+
+        //  DOWNLOAD VOD BUTTON
+        const DownloadVodBtn()
+      ];
+  
   List<Widget> homeView(size) {
     return [
-      // STREAM THUMBNAIL
-      const StreamThumbnail(),
-      // TEXT FOR STREAM FIELDS
-      Obx(() => Padding(
-          padding: const EdgeInsets.only(top: 5),
-          child: StreamFields(
-              field: "Streamer", text: controller.streamer.value))),
-      Obx(() => StreamFields(field: "Tile", text: controller.title.value)),
-      Obx(() =>
-          StreamFields(field: "Stream date", text: controller.stramDate.value)),
-      Obx(() => StreamFields(
-          field: "Stream Length", text: controller.streamLength.value)),
-
+      if (controller.foundVideo.value) ...streamerInfo(),
       // INPUT FOR STREAM URL
       const InputStreamUrl(),
 
       // GET VOD DATA BUTTON
       const VodDataBtn(),
 
-      // QUALITY SELECTOR DROPDOWN
-      const DropdownSelector(),
-
-      // START ROW FOR THE TIME SELECTOR
-      const TimeSelectorRowStart(),
-
-      // END ROW FOR THE TIME SELECTOR
-      const TimeSelectorRowEnd(),
-
-      //  DOWNLOAD VOD BUTTON
-      const DownloadVodBtn()
+      if (controller.foundVideo.value) ...vodConfiguration(),
     ];
   }
 
@@ -103,9 +110,11 @@ class Home extends GetView<Logic> {
                 ),
               ),
               body: controller.pageSelector.value == 0
-                  ? ListView(
-                      padding: const EdgeInsets.all(10),
-                      children: homeView(size))
+                  ? Obx(() { 
+                      return ListView(
+                          padding: const EdgeInsets.all(10),
+                          children: homeView(size));
+                    })
                   : const DownloadPage(),
             ),
           )),

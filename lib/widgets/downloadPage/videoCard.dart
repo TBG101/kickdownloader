@@ -19,8 +19,8 @@ class VideoCard extends StatelessWidget {
   final String image;
   final String subtitle;
   final bool download;
-  final Function()? cancelDownload;
-  final Function()? deleteVOD;
+  final void Function()? cancelDownload;
+  final void Function()? deleteVOD;
 
   @override
   Widget build(BuildContext context) {

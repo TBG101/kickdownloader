@@ -13,7 +13,7 @@ import 'package:dio/dio.dart';
 import 'dart:async';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:path/path.dart' as packagePath;
+import 'package:path/path.dart' as PackagePath;
 
 class Logic extends GetxController {
   var url = TextEditingController().obs;
@@ -51,7 +51,9 @@ class Logic extends GetxController {
   var queeVideoDownload = [].obs;
   int notificationId = 0;
   RxList<Map> completedVideos = <Map>[].obs;
+  late bool notificationAllowed;
 
+  final _dio = Dio();
   // cancel token for dio()
   late CancelToken cancel;
 
@@ -106,14 +108,13 @@ class Logic extends GetxController {
       apiURL =
           "https://kick.com/api/v1/video/$_id?${DateTime.now().millisecondsSinceEpoch}";
       print("API URL: $apiURL");
-      var response = await Dio().get(
+      var response = await _dio.get(
         apiURL,
       );
       if (response.statusCode == 200) {
         print("RESPONSE: 200");
         videoData = json.decode(response.data);
         apiURL = _id;
-        foundVideo.value = true;
       } else {
         foundVideo.value = false;
         // implement exception
@@ -129,12 +130,13 @@ class Logic extends GetxController {
     var x = (videoData!["source"] as String).split("\/");
     print(
         "Thimbnail link: https://images.kick.com/video_thumbnails/${x[6]}/${x[12]}/480.webp");
+    foundVideo.value = true;
     return "https://images.kick.com/video_thumbnails/${x[6]}/${x[12]}/480.webp";
   }
 
   getVidQuality() async {
     final Directory tempDir = await getTemporaryDirectory();
-    var response = await Dio().get(
+    var response = await _dio.get(
       videoData!["source"],
     );
     extractResolutionsFromMaster(response.data);
@@ -206,25 +208,30 @@ class Logic extends GetxController {
 
   Future<void> createDownloadNotifcation(
       int id, String title, String body) async {
-    await AwesomeNotifications().createNotification(
-        content: NotificationContent(
-      id: id,
-      autoDismissible: false,
-      channelKey: "channel",
-      title: title,
-      body: body,
-      category: NotificationCategory.Progress,
-      notificationLayout: NotificationLayout.ProgressBar,
-      progress: 0,
-      locked: true,
-    ));
+    notificationAllowed = await AwesomeNotifications().isNotificationAllowed();
+    if (notificationAllowed) {
+      AwesomeNotifications().createNotification(
+          content: NotificationContent(
+        id: id,
+        autoDismissible: false,
+        channelKey: "channel",
+        title: title,
+        body: body,
+        category: NotificationCategory.Progress,
+        notificationLayout: NotificationLayout.ProgressBar,
+        progress: 0,
+        locked: true,
+      ));
+    }
   }
 
   Future<void> updateNotification(
       int id, List file, String title, String body) async {
     videoDownloadPercentage.value =
         (videoDownloadParts / (file.length * 100)) * 100;
-    await AwesomeNotifications().createNotification(
+    if (!notificationAllowed) return;
+
+    AwesomeNotifications().createNotification(
         content: NotificationContent(
             id: id,
             channelKey: "channel",
@@ -239,6 +246,7 @@ class Logic extends GetxController {
 
   Future<void> updateNotificationEnd(
       int id, String title, String body, bool locked) async {
+    if (!notificationAllowed) return;
     await AwesomeNotifications().createNotification(
         content: NotificationContent(
             id: id,
@@ -341,9 +349,9 @@ class Logic extends GetxController {
           "path": path,
           "image": queeVideoDownload[0]["image"],
         });
+        completedVideos.refresh();
+        addVideoToHive();
       }
-      completedVideos.refresh();
-      addVideoToHive();
     } else {
       try {
         Directory(_selectedDirectory).deleteSync(recursive: true);
@@ -477,7 +485,7 @@ class Logic extends GetxController {
   Future downloadTS(String path, String tsFileNB, CancelToken cancel) async {
     try {
       int lastCount = 0;
-      var responseBytes = await Dio().get(
+      var responseBytes = await _dio.get(
         path + tsFileNB,
         onReceiveProgress: (count, total) {
           videoDownloadParts += ((count - lastCount) / total) * 100;
@@ -508,7 +516,7 @@ class Logic extends GetxController {
   }
 
   getPlaylist(downloadURL) async {
-    return (await Dio().get(downloadURL + "playlist.m3u8")).data.split("\n");
+    return (await _dio.get(downloadURL + "playlist.m3u8")).data.split("\n");
   }
 
   void requestPermission() async {
@@ -586,7 +594,7 @@ class Logic extends GetxController {
 
   Map<dynamic, dynamic> deleteFileDropdown(int index) {
     try {
-      Directory(packagePath.dirname(completedVideos[index]["path"]))
+      Directory(PackagePath.dirname(completedVideos[index]["path"]))
           .delete(recursive: true);
     } catch (e) {
       throw "error on deleted video : $e";
