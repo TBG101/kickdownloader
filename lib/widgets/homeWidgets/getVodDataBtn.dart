@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:kickdownloader/myColors.dart';
 import 'package:kickdownloader/utilities/logic.dart';
 
 class VodDataBtn extends GetView<Logic> {
@@ -9,10 +10,16 @@ class VodDataBtn extends GetView<Logic> {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(top: 10),
-      child: SizedBox(
+      child: Container(
         height: 50,
+        decoration: const BoxDecoration(
+          borderRadius: BorderRadius.all(Radius.circular(5)),
+          gradient: MyColors.gradient,
+        ),
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              shadowColor: Colors.transparent,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(5))),
           onPressed: controller.getVodData,

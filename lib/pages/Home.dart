@@ -4,6 +4,7 @@ import 'package:kickdownloader/myColors.dart';
 import 'package:kickdownloader/pages/downloadPage.dart';
 import 'package:kickdownloader/utilities/logic.dart';
 import 'package:kickdownloader/widgets/drawer.dart';
+import 'package:kickdownloader/widgets/homeWidgets/MyButton.dart';
 import 'package:kickdownloader/widgets/homeWidgets/donwloadVodBtn.dart';
 import 'package:kickdownloader/widgets/homeWidgets/dropdownSelector.dart';
 import 'package:kickdownloader/widgets/homeWidgets/getVodDataBtn.dart';
@@ -16,45 +17,52 @@ import 'package:kickdownloader/widgets/streamFields.dart';
 class Home extends GetView<Logic> {
   const Home({super.key});
 
-  List<Widget> streamerInfo() => [
-        // STREAM THUMBNAIL
-        const StreamThumbnail(),
-        // TEXT FOR STREAM FIELDS
-        Obx(() => Padding(
-            padding: const EdgeInsets.only(top: 5),
-            child: StreamFields(
-                field: "Streamer", text: controller.streamer.value))),
-        Obx(() => StreamFields(field: "Tile", text: controller.title.value)),
-        Obx(() => StreamFields(
-            field: "Stream date", text: controller.stramDate.value)),
-        Obx(() => StreamFields(
-            field: "Stream Length", text: controller.streamLength.value)),
-      ];
-
-  List<Widget> vodConfiguration() => [
-        // QUALITY SELECTOR DROPDOWN
-        const DropdownSelector(),
-
-        // START ROW FOR THE TIME SELECTOR
-        const TimeSelectorRowStart(),
-
-        // END ROW FOR THE TIME SELECTOR
-        const TimeSelectorRowEnd(),
-
-        //  DOWNLOAD VOD BUTTON
-        const DownloadVodBtn()
-      ];
-  
   List<Widget> homeView(size) {
     return [
-      if (controller.foundVideo.value) ...streamerInfo(),
+      // STREAM THUMBNAIL
+      const StreamThumbnail(),
+      // TEXT FOR STREAM FIELDS
+      Obx(() => Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: StreamFields(
+              field: "Streamer", text: controller.streamer.value))),
+      Obx(() => StreamFields(field: "Tile", text: controller.title.value)),
+      Obx(() =>
+          StreamFields(field: "Stream date", text: controller.stramDate.value)),
+      Obx(() => StreamFields(
+          field: "Stream Length", text: controller.streamLength.value)),
       // INPUT FOR STREAM URL
       const InputStreamUrl(),
 
       // GET VOD DATA BUTTON
-      const VodDataBtn(),
+      Padding(
+        padding: const EdgeInsets.only(top: 10, bottom: 0),
+        child: MyButton(
+          text: 'Get VOD data',
+          onTap: controller.getVodData,
+          enabled: true,
+        ),
+      ),
 
-      if (controller.foundVideo.value) ...vodConfiguration(),
+      // QUALITY SELECTOR DROPDOWN
+      const DropdownSelector(),
+
+      // START ROW FOR THE TIME SELECTOR
+      const TimeSelectorRowStart(),
+
+      // END ROW FOR THE TIME SELECTOR
+      const TimeSelectorRowEnd(),
+
+      // GET VOD DATA BUTTON
+      Padding(
+        padding: const EdgeInsets.only(top: 0, bottom: 10),
+        child: MyButton(
+          text: 'Download VOD',
+          onTap: controller.downloadVodDataBtn,
+          enabled: controller.foundVideo.value &&
+              controller.lastVideoLink.isNotEmpty,
+        ),
+      ),
     ];
   }
 
@@ -75,6 +83,22 @@ class Home extends GetView<Logic> {
             builder: (controller) => Scaffold(
               drawer: const myDrawer(),
               appBar: AppBar(
+                title: const Text(
+                  "Kick Downloader VOD",
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+                flexibleSpace: Container(
+                  decoration: const BoxDecoration(gradient: MyColors.gradient),
+                ),
+                backgroundColor: const Color(0x00000000),
+                elevation: 1,
+                centerTitle: true,
+                leading: Builder(
+                  builder: (context) => IconButton(
+                    icon: const Icon(Icons.menu_rounded),
+                    onPressed: () => Scaffold.of(context).openDrawer(),
+                  ),
+                ),
                 actions: [
                   IconButton(
                     onPressed: () {
@@ -95,26 +119,11 @@ class Home extends GetView<Logic> {
                     }),
                   )
                 ],
-                title: const Text(
-                  "Kick Downloader VOD",
-                  style: TextStyle(fontWeight: FontWeight.w700),
-                ),
-                backgroundColor: myColors.btnPrimary,
-                elevation: 1,
-                centerTitle: true,
-                leading: Builder(
-                  builder: (context) => IconButton(
-                    icon: const Icon(Icons.menu_rounded),
-                    onPressed: () => Scaffold.of(context).openDrawer(),
-                  ),
-                ),
               ),
               body: controller.pageSelector.value == 0
-                  ? Obx(() { 
-                      return ListView(
-                          padding: const EdgeInsets.all(10),
-                          children: homeView(size));
-                    })
+                  ? ListView(
+                      padding: const EdgeInsets.all(10),
+                      children: homeView(size))
                   : const DownloadPage(),
             ),
           )),

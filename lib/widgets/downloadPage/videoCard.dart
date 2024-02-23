@@ -33,7 +33,7 @@ class VideoCard extends StatelessWidget {
         ),
         child: Card(
           elevation: 2,
-          color: myColors.background,
+          color: MyColors.background,
           margin: EdgeInsets.zero,
           clipBehavior: Clip.hardEdge,
           child: Stack(
@@ -67,7 +67,7 @@ class VideoCard extends StatelessWidget {
                             child: Text(
                               subtitle.isNumericOnly ? "$subtitle%" : subtitle,
                               style: TextStyle(
-                                  color: myColors.btnPrimary,
+                                  color: MyColors.btnPrimary,
                                   overflow: TextOverflow.ellipsis,
                                   fontWeight: FontWeight.w700,
                                   fontSize: 13),
@@ -172,7 +172,7 @@ class VideoCard extends StatelessWidget {
                         width:
                             (size - 14) * ((int.tryParse(subtitle) ?? 0) / 100),
                         height: 5,
-                        decoration: BoxDecoration(color: myColors.btnPrimary),
+                        decoration: BoxDecoration(color: MyColors.btnPrimary),
                       ),
                     )
                   : const SizedBox.shrink(),

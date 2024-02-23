@@ -26,21 +26,25 @@ class DropdownSelector extends GetView<Logic> {
           height: 50,
           child: DecoratedBox(
             decoration: BoxDecoration(
-              color: myColors.btnPrimary,
+              gradient: controller.foundVideo.value &&
+                      controller.lastVideoLink.isNotEmpty
+                  ? MyColors.gradient
+                  : MyColors.gradientDisabled,
               borderRadius: BorderRadius.circular(5),
             ),
             child: DropdownButton<String>(
               elevation: 2,
               disabledHint: const Text("Video Quality"),
               value: controller.valueSelected.value,
-              iconEnabledColor: myColors.white,
+              iconEnabledColor: Colors.white,
               isExpanded: true, //make true to take width of parent widget
-              underline: Container(), //empty line
+              underline: const SizedBox.shrink(), //empty line
               padding: const EdgeInsets.symmetric(horizontal: 20),
               style: const TextStyle(
                   color: Colors.white,
                   fontSize: 18,
-                  fontWeight: FontWeight.w500),
+                  fontFamily: "SpaceGrotesk",
+                  fontWeight: FontWeight.w600),
               items: listitemButton(),
               onChanged: (Object? value) {
                 controller.valueSelected.value = value as String;

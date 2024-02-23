@@ -18,7 +18,7 @@ import 'package:path/path.dart' as PackagePath;
 class Logic extends GetxController {
   var url = TextEditingController().obs;
   String apiURL = "";
-  String _lastVideoLink = "";
+  String lastVideoLink = "";
   RxBool foundVideo = false.obs;
   var downloading = false;
   Map<String, dynamic>? videoData;
@@ -27,9 +27,7 @@ class Logic extends GetxController {
   RxDouble videoDownloadPercentage = 0.0.obs;
   var videoDownloadParts = 0.0;
 
-  var link =
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/Aspect_ratio_-_16x9.svg/1200px-Aspect_ratio_-_16x9.svg.png"
-          .obs;
+  var link = "".obs;
   RxInt pageSelector = 0.obs;
   RxString streamer = "".obs;
   RxString title = "".obs;
@@ -564,8 +562,8 @@ class Logic extends GetxController {
   }
 
   void getVodData() {
-    if (url.value.text.isEmpty || url.value.text == _lastVideoLink) return;
-    _lastVideoLink = url.value.text;
+    if (url.value.text.isEmpty || url.value.text == lastVideoLink) return;
+    lastVideoLink = url.value.text;
     foundVideo.value = false;
     getURL().then((_) async {
       await getVidQuality();

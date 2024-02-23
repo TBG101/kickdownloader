@@ -11,14 +11,18 @@ class StreamFields extends StatelessWidget {
       softWrap: true,
       text: TextSpan(
           text: '$field:  ',
-          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+          style: const TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 16,
+              fontFamily: "SpaceGrotesk"),
           children: <TextSpan>[
             TextSpan(
               text: text,
-              style: TextStyle(
-                color: myColors.white,
-                fontWeight: FontWeight.w400,
-              ),
+              style: const TextStyle(
+                  color: MyColors.white,
+                  overflow: TextOverflow.ellipsis,
+                  fontSize: 15,
+                  fontFamily: "SpaceGrotesk"),
             ),
           ]),
     );

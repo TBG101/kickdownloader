@@ -39,12 +39,12 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: myColors.background,
-        primaryColor: myColors.btnPrimary,
+        scaffoldBackgroundColor: MyColors.background,
+        primaryColor: MyColors.green,
         fontFamily: "SpaceGrotesk",
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ButtonStyle(
-            backgroundColor: MaterialStateProperty.all(myColors.btnPrimary),
+            backgroundColor: MaterialStateProperty.all(MyColors.btnPrimary),
             elevation: MaterialStateProperty.all(2),
           ),
         ),
