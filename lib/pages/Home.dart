@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:get/get_state_manager/get_state_manager.dart';
+import 'package:get/get_state_manager/src/rx_flutter/rx_obx_widget.dart';
 import 'package:kickdownloader/myColors.dart';
 import 'package:kickdownloader/pages/downloadPage.dart';
 import 'package:kickdownloader/utilities/logic.dart';
 import 'package:kickdownloader/widgets/drawer.dart';
 import 'package:kickdownloader/widgets/homeWidgets/MyButton.dart';
-import 'package:kickdownloader/widgets/homeWidgets/donwloadVodBtn.dart';
 import 'package:kickdownloader/widgets/homeWidgets/dropdownSelector.dart';
-import 'package:kickdownloader/widgets/homeWidgets/getVodDataBtn.dart';
 import 'package:kickdownloader/widgets/homeWidgets/inputStream.dart';
 import 'package:kickdownloader/widgets/homeWidgets/streamThumbnail.dart';
 import 'package:kickdownloader/widgets/homeWidgets/timeSelectorStart.dart';
@@ -22,27 +22,27 @@ class Home extends GetView<Logic> {
       // STREAM THUMBNAIL
       const StreamThumbnail(),
       // TEXT FOR STREAM FIELDS
-      Obx(() => Padding(
+      Padding(
           padding: const EdgeInsets.only(top: 10),
-          child: StreamFields(
+          child: Obx(() => StreamFields(
               field: "Streamer", text: controller.streamer.value))),
       Obx(() => StreamFields(field: "Tile", text: controller.title.value)),
       Obx(() =>
           StreamFields(field: "Stream date", text: controller.stramDate.value)),
       Obx(() => StreamFields(
           field: "Stream Length", text: controller.streamLength.value)),
+
       // INPUT FOR STREAM URL
       const InputStreamUrl(),
 
       // GET VOD DATA BUTTON
       Padding(
-        padding: const EdgeInsets.only(top: 10, bottom: 0),
-        child: MyButton(
-          text: 'Get VOD data',
-          onTap: controller.getVodData,
-          enabled: true,
-        ),
-      ),
+          padding: const EdgeInsets.only(top: 10, bottom: 0),
+          child: MyButton(
+            text: 'Get VOD data',
+            onTap: controller.getVodData,
+            enabled: true,
+          )),
 
       // QUALITY SELECTOR DROPDOWN
       const DropdownSelector(),
@@ -55,14 +55,15 @@ class Home extends GetView<Logic> {
 
       // GET VOD DATA BUTTON
       Padding(
-        padding: const EdgeInsets.only(top: 0, bottom: 10),
-        child: MyButton(
-          text: 'Download VOD',
-          onTap: controller.downloadVodDataBtn,
-          enabled: controller.foundVideo.value &&
-              controller.lastVideoLink.isNotEmpty,
-        ),
-      ),
+          padding: const EdgeInsets.only(top: 0, bottom: 10),
+          child: Obx(
+            () => MyButton(
+              text: 'Download VOD',
+              onTap: controller.downloadVodDataBtn,
+              enabled: controller.foundVideo.value &&
+                  controller.lastVideoLink.isNotEmpty,
+            ),
+          )),
     ];
   }
 
@@ -91,7 +92,6 @@ class Home extends GetView<Logic> {
                   decoration: const BoxDecoration(gradient: MyColors.gradient),
                 ),
                 backgroundColor: const Color(0x00000000),
-                elevation: 1,
                 centerTitle: true,
                 leading: Builder(
                   builder: (context) => IconButton(
