@@ -1,5 +1,4 @@
 downloadPage:
-  - create better UI
   - Better font
 
 clipDownloader:
@@ -7,14 +6,14 @@ clipDownloader:
 
 Home:
   - make animation for download button
-  - edit the Homeview to use animated list
 
 Logic:
   - add a MB reste shower
   - implement no notification error
   - impelement no storage error
   - implement no internet error
-  - implement the hive logic
 
 Done:
   - fix click on notification gets it deleted
+  - create better UI
+  - implement the hive logic
