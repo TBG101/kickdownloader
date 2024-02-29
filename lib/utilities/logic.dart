@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:ffmpeg_kit_flutter_https_gpl/ffmpeg_kit.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get_rx/get_rx.dart';
 import 'package:media_scanner/media_scanner.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -14,6 +16,7 @@ import 'dart:async';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path/path.dart' as PackagePath;
+import 'package:http/http.dart' as http;
 
 class Logic extends GetxController {
   var url = TextEditingController().obs;
@@ -26,6 +29,7 @@ class Logic extends GetxController {
 
   RxDouble videoDownloadPercentage = 0.0.obs;
   var videoDownloadParts = 0.0;
+  RxInt videoDownloadSizeBytes = 0.obs;
 
   var link = "".obs;
   RxInt pageSelector = 0.obs;
@@ -89,6 +93,13 @@ class Logic extends GetxController {
     super.onReady();
   }
 
+  (double, String) formatBytes(int bytes, int decimals) {
+    if (bytes <= 0) return (0, "B");
+    const suffixes = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+    var i = (log(bytes) / log(1024)).floor();
+    return (((bytes / pow(1024, i))), suffixes[i]);
+  }
+
   bool validURL() {
     RegExp validLinkPattern = RegExp(r'^https://kick.com/video/[a-zA-Z0-9-]+$');
     if (validLinkPattern.hasMatch(url.value.text)) {
@@ -132,7 +143,7 @@ class Logic extends GetxController {
     return "https://images.kick.com/video_thumbnails/${x[6]}/${x[12]}/480.webp";
   }
 
-  getVidQuality() async {
+  Future<void> getVidQuality() async {
     final Directory tempDir = await getTemporaryDirectory();
     var response = await _dio.get(
       videoData!["source"],
@@ -151,7 +162,7 @@ class Logic extends GetxController {
     resolutions.refresh();
   }
 
-  checkTSfiles(String path, String downloadPath) async {
+  Future<void> checkTSfiles(String path, String downloadPath) async {
     // IMPLEMENT CHECK TS FILES
     File file = File("$path/generated.txt");
     file
@@ -174,12 +185,13 @@ class Logic extends GetxController {
     });
   }
 
-  Future<int?> writeGeneratedText(String savepath, List<String> playlist,
-      int? endTime, int? startTime) async {
-    if (endTime == null || startTime == null) return null;
+  Future<(int?, int?)> writeGeneratedText(String savepath,
+      List<String> playlist, int? endTime, int? startTime) async {
+    if (endTime == null || startTime == null) return (null, null);
     File("$savepath/generated.txt").createSync(recursive: true);
     var timeMilliseconds = 0;
     int? overflowTime;
+    int nbOfTsFiles = 0;
     for (int i = 0; i < playlist.length; i++) {
       if (playlist[i].contains("#EXTINF:") == false) {
         // Go to the iteration
@@ -197,11 +209,12 @@ class Logic extends GetxController {
         overflowTime ??= startTime - timeMilliseconds;
         await File("$savepath/generated.txt")
             .writeAsString("${playlist[i + 1]}\n", mode: FileMode.append);
+        nbOfTsFiles++;
       }
       timeMilliseconds = timeMilliseconds + (double.parse(line) * 1000).toInt();
     }
     // Meaning that we are going to download the whole stream if endtime == -1
-    return endTime == -1 ? -1 : overflowTime;
+    return (endTime == -1 ? -1 : overflowTime, nbOfTsFiles);
   }
 
   Future<void> createDownloadNotifcation(
@@ -257,9 +270,27 @@ class Logic extends GetxController {
             locked: locked));
   }
 
+  Future<int> getFileSize(String url) async {
+    try {
+      http.Response r = await http.head(Uri.parse(url));
+      if (r.statusCode == 200) {
+        final contentLength = r.headers['content-length'];
+        if (contentLength != null) {
+          return int.parse(contentLength);
+        }
+      }
+    } catch (e) {
+      print("error");
+      return -1;
+    }
+    return -1;
+  }
+
   Future<void> downloadVOD() async {
     videoDownloadPercentage.value = 0;
     videoDownloadParts = 0;
+    int? overflowTime;
+    int? nbOfTsFiles;
     notificationId++;
     downloading = true;
     // ignore: no_leading_underscores_for_local_identifiers
@@ -273,24 +304,38 @@ class Logic extends GetxController {
     print(downloadURL + "playlist.m3u8");
     List<String> playlist = await getPlaylist(downloadURL);
 
+    var tsFileSize = await getFileSize(downloadURL + "1.ts");
+
     queeVideoDownload[0]["downloading"] = true;
     cancel = CancelToken();
 
     await createDownloadNotifcation(notificationId, 'Started downloading VOD',
         "Streamer ${queeVideoDownload[0]["data"]["livestream"]["channel"]["user"]["username"]}");
 
-    int? overflowTime = await writeGeneratedText(
+    (overflowTime, nbOfTsFiles) = await writeGeneratedText(
         _selectedDirectory, playlist, endTime, startTime);
+
+    // Implement error
+    if (nbOfTsFiles == null) return;
+
+    videoDownloadSizeBytes.value = (nbOfTsFiles * tsFileSize);
+    late double sizeVid;
+    late String suffix;
+
+    (sizeVid, suffix) = formatBytes(videoDownloadSizeBytes.value, 2);
+
     playlist.clear();
     var file = File("$_selectedDirectory/generated.txt").readAsLinesSync();
 
     for (String element in file) {
       while (queeList.length >= 5) {
+        var percentage = videoDownloadPercentage.value;
         updateNotification(
             notificationId,
             file,
-            'Downloading VOD ${videoDownloadPercentage.value.toStringAsFixed(0)}%',
+            'Downloading ${percentage.toStringAsFixed(0)}% ${(sizeVid * percentage / 100).toStringAsFixed(2)}/${sizeVid.toStringAsFixed(2)} $suffix',
             "Streamer ${queeVideoDownload[0]["data"]["livestream"]["channel"]["user"]["username"]}");
+
         if (!downloading) {
           break;
         }
@@ -314,10 +359,12 @@ class Logic extends GetxController {
         break;
       }
       await waitTimer();
+      var percentage = videoDownloadPercentage.value;
+
       updateNotification(
           notificationId,
           file,
-          'Downloading VOD ${videoDownloadPercentage.value.toStringAsFixed(0)}%',
+          'Downloading ${percentage.toStringAsFixed(0)}% ${(sizeVid * percentage / 100).toStringAsFixed(2)}/${sizeVid.toStringAsFixed(2)} $suffix',
           "Streamer ${queeVideoDownload[0]["data"]["livestream"]["channel"]["user"]["username"]}");
     }
     if (downloading) {
@@ -483,6 +530,7 @@ class Logic extends GetxController {
   Future downloadTS(String path, String tsFileNB, CancelToken cancel) async {
     try {
       int lastCount = 0;
+
       var responseBytes = await _dio.get(
         path + tsFileNB,
         onReceiveProgress: (count, total) {

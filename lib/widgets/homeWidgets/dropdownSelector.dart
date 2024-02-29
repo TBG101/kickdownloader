@@ -26,8 +26,7 @@ class DropdownSelector extends GetView<Logic> {
           height: 50,
           child: DecoratedBox(
             decoration: BoxDecoration(
-              gradient: controller.foundVideo.value &&
-                      controller.lastVideoLink.isNotEmpty
+              gradient: controller.foundVideo.value
                   ? MyColors.gradient
                   : MyColors.gradientDisabled,
               borderRadius: BorderRadius.circular(5),
