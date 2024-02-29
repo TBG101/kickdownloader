@@ -5,22 +5,27 @@ import 'package:get/get.dart';
 import 'package:kickdownloader/myColors.dart';
 
 class VideoCard extends StatelessWidget {
-  const VideoCard({
-    super.key,
-    required this.title,
-    required this.image,
-    required this.subtitle,
-    required this.download,
-    this.cancelDownload,
-    this.deleteVOD,
-  });
-
   final String title;
   final String image;
   final String subtitle;
   final bool download;
   final void Function()? cancelDownload;
   final void Function()? deleteVOD;
+  final void Function()? copyLink;
+  final void Function()? vodData;
+  final void Function()? openPath;
+
+  const VideoCard(
+      {super.key,
+      required this.title,
+      required this.image,
+      required this.subtitle,
+      required this.download,
+      this.cancelDownload,
+      this.deleteVOD,
+      this.copyLink,
+      this.openPath,
+      this.vodData});
 
   @override
   Widget build(BuildContext context) {
@@ -65,9 +70,9 @@ class VideoCard extends StatelessWidget {
                           Padding(
                             padding: const EdgeInsets.only(bottom: 2),
                             child: Text(
-                              subtitle.isNumericOnly ? "$subtitle%" : subtitle,
-                              style: TextStyle(
-                                  color: MyColors.btnPrimary,
+                              subtitle,
+                              style: const TextStyle(
+                                  color: MyColors.greenDownloadPage,
                                   overflow: TextOverflow.ellipsis,
                                   fontWeight: FontWeight.w700,
                                   fontSize: 13),
@@ -110,8 +115,9 @@ class VideoCard extends StatelessWidget {
                               ),
                               items: [
                                 DropdownMenuItem(
+                                  onTap: openPath,
                                   value: "1",
-                                  child: Row(
+                                  child: const Row(
                                     children: [
                                       Padding(
                                         padding: EdgeInsets.only(right: 8.0),
@@ -122,8 +128,9 @@ class VideoCard extends StatelessWidget {
                                   ),
                                 ),
                                 DropdownMenuItem(
+                                  onTap: copyLink,
                                   value: "2",
-                                  child: Row(
+                                  child: const Row(
                                     children: [
                                       Padding(
                                         padding: EdgeInsets.only(right: 8.0),
@@ -136,7 +143,7 @@ class VideoCard extends StatelessWidget {
                                 DropdownMenuItem(
                                   onTap: deleteVOD,
                                   value: "3",
-                                  child: Row(
+                                  child: const Row(
                                     children: [
                                       Padding(
                                         padding: EdgeInsets.only(right: 8.0),
@@ -147,8 +154,9 @@ class VideoCard extends StatelessWidget {
                                   ),
                                 ),
                                 DropdownMenuItem(
-                                  value: "3",
-                                  child: Row(
+                                  onTap: vodData,
+                                  value: "4",
+                                  child: const Row(
                                     children: [
                                       Padding(
                                         padding: EdgeInsets.only(right: 8.0),
@@ -164,15 +172,19 @@ class VideoCard extends StatelessWidget {
                   ),
                 ],
               ),
-              download && subtitle.isNumericOnly
+              download && subtitle[0].isNumericOnly
                   ? Align(
                       alignment: Alignment.bottomLeft,
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 100),
-                        width:
-                            (size - 14) * ((int.tryParse(subtitle) ?? 0) / 100),
+                        width: (size - 14) *
+                            ((int.tryParse(subtitle.substring(
+                                        0, subtitle.indexOf("%"))) ??
+                                    0) /
+                                100),
                         height: 5,
-                        decoration: BoxDecoration(color: MyColors.btnPrimary),
+                        decoration: const BoxDecoration(
+                            color: MyColors.greenDownloadPage),
                       ),
                     )
                   : const SizedBox.shrink(),

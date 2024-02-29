@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:kickdownloader/utilities/logic.dart';
-import 'package:kickdownloader/widgets/videoTimeWidget.dart';
+import 'package:kickdownloader/widgets/homeWidgets/videoTimeWidget.dart';
 
 class TimeSelectorRowEnd extends GetView<Logic> {
   const TimeSelectorRowEnd({super.key});

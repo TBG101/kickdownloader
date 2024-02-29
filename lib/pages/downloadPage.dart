@@ -12,8 +12,12 @@ class DownloadPage extends GetView<Logic> {
       return "Converting to mp4";
     } else if (controller.queeVideoDownload[index]["downloading"] as bool &&
         controller.videoDownloadPercentage.value < 100) {
-      print(controller.videoDownloadPercentage.value);
-      return controller.videoDownloadPercentage.value.toStringAsFixed(0);
+      var (size, suffix) =
+          controller.formatBytes(controller.videoDownloadSizeBytes.value, 2);
+      var videoDownloadSizeMb =
+          "${(size * controller.videoDownloadPercentage.value / 100).toStringAsFixed(2)} /${size.toStringAsFixed(2)} $suffix";
+
+      return "${controller.videoDownloadPercentage.value.toStringAsFixed(0)}% - $videoDownloadSizeMb";
     } else {
       return "Waiting for quee";
     }
@@ -65,6 +69,7 @@ class DownloadPage extends GetView<Logic> {
                 image: img,
                 subtitle: sub,
                 download: download,
+                
               )),
         );
       },
@@ -74,6 +79,17 @@ class DownloadPage extends GetView<Logic> {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
+      if (controller.queeVideoDownload.isEmpty &&
+          controller.completedVideos.isEmpty) {
+        return const Center(
+            child: Text(
+          "You have no videos",
+          style: TextStyle(
+            fontSize: 20,
+            color: Colors.white,
+          ),
+        ));
+      }
       return AnimatedList(
         key: controller.animatedListKey,
         initialItemCount: controller.queeVideoDownload.length +
@@ -82,14 +98,19 @@ class DownloadPage extends GetView<Logic> {
           if (index < controller.queeVideoDownload.length) {
             return Obx(() {
               return VideoCard(
-                  title:
-                      "${controller.queeVideoDownload[index]["data"]["livestream"]["channel"]["user"]["username"]} - ${controller.queeVideoDownload[index]["data"]["livestream"]["session_title"]}",
-                  image: controller.queeVideoDownload[index]["image"],
-                  subtitle: textSelector(index),
-                  download: index == 0 ? true : false,
-                  cancelDownload: () {
-                    cancelDownload(index);
-                  });
+                title:
+                    "${controller.queeVideoDownload[index]["data"]["livestream"]["channel"]["user"]["username"]} - ${controller.queeVideoDownload[index]["data"]["livestream"]["session_title"]}",
+                image: controller.queeVideoDownload[index]["image"],
+                subtitle: textSelector(index),
+                download: index == 0 ? true : false,
+                cancelDownload: () {
+                  cancelDownload(index);
+                },
+                copyLink: null,
+                vodData: null,
+                deleteVOD: null,
+                openPath: null,
+              );
             });
           }
 
@@ -104,6 +125,10 @@ class DownloadPage extends GetView<Logic> {
               deleteVOD: () {
                 deleteVOD(i, index);
               },
+              cancelDownload: null,
+              copyLink: null,
+              vodData: null,
+              openPath: null,
             );
           });
         },

@@ -6,7 +6,7 @@ import 'package:ffmpeg_kit_flutter_https_gpl/ffmpeg_kit.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get_rx/get_rx.dart';
+import 'package:flutter/services.dart';
 import 'package:media_scanner/media_scanner.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -17,6 +17,7 @@ import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path/path.dart' as PackagePath;
 import 'package:http/http.dart' as http;
+import 'package:dio/src/response.dart' as dioResponse;
 
 class Logic extends GetxController {
   var url = TextEditingController().obs;
@@ -73,6 +74,23 @@ class Logic extends GetxController {
     box.put("video", completedVideos.value);
   }
 
+  void resetAll() {
+    startHour.value.text = "";
+    startMinute.value.text = "";
+    startSecond.value.text = "";
+    endHour.value.text = "";
+    endMinute.value.text = "";
+    endSecond.value.text = "";
+    endValue.value = false;
+    startValue.value = false;
+    streamer.value = "";
+    title.value = "";
+    stramDate.value = "";
+    streamLength.value = "";
+    resolutions.clear();
+    apiURL = "";
+  }
+
   @override
   void onReady() async {
     // TODO: implement onReady
@@ -100,6 +118,32 @@ class Logic extends GetxController {
     return (((bytes / pow(1024, i))), suffixes[i]);
   }
 
+  void getVodData() {
+    if (url.value.text.isEmpty || url.value.text == lastVideoLink) return;
+    lastVideoLink = url.value.text;
+    foundVideo.value = false;
+    getURL().then((response) async {
+      if (response != 200) return;
+      await getVidQuality();
+      print(resolutions);
+      var duration = Duration(
+          hours: 0,
+          seconds: 0,
+          minutes: 0,
+          milliseconds: videoData!["livestream"]["duration"] as int);
+
+      streamer.value = videoData!["livestream"]["channel"]["slug"];
+      title.value = videoData!["livestream"]["session_title"];
+      stramDate.value = videoData!["livestream"]["start_time"].split(" ")[0];
+      streamLength.value = duration.toString().split('.')[0];
+
+      link.value = thumbnailLink();
+      print(resolutions.first);
+      valueSelected.value = resolutions.first;
+      print(videoData);
+    });
+  }
+
   bool validURL() {
     RegExp validLinkPattern = RegExp(r'^https://kick.com/video/[a-zA-Z0-9-]+$');
     if (validLinkPattern.hasMatch(url.value.text)) {
@@ -111,27 +155,39 @@ class Logic extends GetxController {
     }
   }
 
-  Future<void> getURL() async {
-    if (validURL()) {
-      String _id = url.value.text.split('/').last;
-      apiURL =
-          "https://kick.com/api/v1/video/$_id?${DateTime.now().millisecondsSinceEpoch}";
-      print("API URL: $apiURL");
-      var response = await _dio.get(
+  Future<int> getURL() async {
+    if (!validURL()) {
+      resetAll();
+      foundVideo.value = false;
+    }
+
+    String _id = url.value.text.split('/').last;
+    apiURL =
+        "https://kick.com/api/v1/video/$_id?${DateTime.now().millisecondsSinceEpoch}";
+    print("API URL: $apiURL");
+    late dioResponse.Response response;
+
+    try {
+      response = await _dio.get(
         apiURL,
       );
-      if (response.statusCode == 200) {
-        print("RESPONSE: 200");
-        videoData = json.decode(response.data);
-        apiURL = _id;
-      } else {
-        foundVideo.value = false;
-        // implement exception
-        throw Exception('Failed to load data');
-      }
+    } catch (e) {
+      foundVideo.value = false;
+      resetAll();
+      // implement exception
+      return 0;
+    }
+
+    if (response.statusCode == 200) {
+      print("RESPONSE: 200");
+      videoData = json.decode(response.data);
+      apiURL = _id;
+      return 200;
     } else {
       foundVideo.value = false;
-      throw Exception('Invalid URL');
+      resetAll();
+      // implement exception
+      return response.statusCode ?? 0;
     }
   }
 
@@ -319,10 +375,8 @@ class Logic extends GetxController {
     if (nbOfTsFiles == null) return;
 
     videoDownloadSizeBytes.value = (nbOfTsFiles * tsFileSize);
-    late double sizeVid;
-    late String suffix;
 
-    (sizeVid, suffix) = formatBytes(videoDownloadSizeBytes.value, 2);
+    var (sizeVid, suffix) = formatBytes(videoDownloadSizeBytes.value, 2);
 
     playlist.clear();
     var file = File("$_selectedDirectory/generated.txt").readAsLinesSync();
@@ -392,6 +446,7 @@ class Logic extends GetxController {
               ["user"]["username"],
           "title": queeVideoDownload[0]["data"]["livestream"]["session_title"],
           "path": path,
+          "link": queeVideoDownload[0]["link"],
           "image": queeVideoDownload[0]["image"],
         });
         completedVideos.refresh();
@@ -443,6 +498,8 @@ class Logic extends GetxController {
           int.parse(endMinute.value.text),
           int.parse(endSecond.value.text),
         );
+        if (starttime == endtime) return;
+
         queeVideoDownload.add(
           {
             "image": link.value,
@@ -451,6 +508,7 @@ class Logic extends GetxController {
             "start": starttime,
             "end": endtime,
             "data": videoData,
+            "link": lastVideoLink,
             "savePath":
                 "${selectedDirectory.value!}/[${videoData!["livestream"]["created_at"].split(" ")[0]} - ${DateTime.now().millisecondsSinceEpoch}] ${videoData!["livestream"]["channel"]["user"]["username"]}"
           },
@@ -463,6 +521,7 @@ class Logic extends GetxController {
           "start": 0,
           "end": -1,
           "data": videoData,
+          "link": lastVideoLink,
           "savePath":
               "${selectedDirectory.value!}/[${videoData!["livestream"]["created_at"].split(" ")[0]} - ${DateTime.now().millisecondsSinceEpoch}] ${videoData!["livestream"]["channel"]["user"]["username"]}"
         });
@@ -609,32 +668,7 @@ class Logic extends GetxController {
     return formattedTime;
   }
 
-  void getVodData() {
-    if (url.value.text.isEmpty || url.value.text == lastVideoLink) return;
-    lastVideoLink = url.value.text;
-    foundVideo.value = false;
-    getURL().then((_) async {
-      await getVidQuality();
-      print(resolutions);
-      var duration = Duration(
-          hours: 0,
-          seconds: 0,
-          minutes: 0,
-          milliseconds: videoData!["livestream"]["duration"] as int);
-
-      streamer.value = videoData!["livestream"]["channel"]["slug"];
-      title.value = videoData!["livestream"]["session_title"];
-      stramDate.value = videoData!["livestream"]["start_time"].split(" ")[0];
-      streamLength.value = duration.toString().split('.')[0];
-
-      link.value = thumbnailLink();
-      print(resolutions.first);
-      valueSelected.value = resolutions.first;
-      print(videoData);
-    });
-  }
-
-  cancelDownload() {
+  void cancelDownload() {
     downloading = false;
   }
 
@@ -649,5 +683,10 @@ class Logic extends GetxController {
     completedVideos.refresh();
     addVideoToHive();
     return deletedElement;
+  }
+
+  void copyLinkToClipboard(int index) async {
+    await Clipboard.setData(
+        ClipboardData(text: completedVideos[0]["link"] as String));
   }
 }

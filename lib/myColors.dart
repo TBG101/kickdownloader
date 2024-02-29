@@ -10,6 +10,7 @@ abstract class MyColors {
   static Color onPrimary = const Color(0xFF000000);
 
   static const green = Color(0xFF178262);
+  static const greenDownloadPage = Color.fromARGB(255, 32, 177, 133);
 
   static const textDisbaled = Color.fromRGBO(255, 255, 255, 0.75);
 

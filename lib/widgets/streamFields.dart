@@ -14,14 +14,16 @@ class StreamFields extends StatelessWidget {
           style: const TextStyle(
               fontWeight: FontWeight.w700,
               fontSize: 16,
+              color: Color.fromARGB(255, 255, 255, 255),
               fontFamily: "SpaceGrotesk"),
           children: <TextSpan>[
             TextSpan(
               text: text,
               style: const TextStyle(
-                  color: MyColors.white,
+                  color: Color.fromARGB(255, 235, 235, 235),
                   overflow: TextOverflow.ellipsis,
                   fontSize: 15,
+                  fontWeight: FontWeight.w600,
                   fontFamily: "SpaceGrotesk"),
             ),
           ]),
