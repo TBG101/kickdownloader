@@ -41,14 +41,36 @@ class MyApp extends StatelessWidget {
         brightness: Brightness.dark,
         scaffoldBackgroundColor: MyColors.background,
         primaryColor: MyColors.green,
-        fontFamily: "SpaceGrotesk",
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ButtonStyle(
-            backgroundColor: MaterialStateProperty.all(MyColors.btnPrimary),
+            backgroundColor: MaterialStateProperty.all(MyColors.green),
             elevation: MaterialStateProperty.all(2),
           ),
         ),
+        textTheme: const TextTheme().apply(
+          fontFamily: "SpaceGrotesk",
+          bodyColor: Colors.red,
+          displayColor: Colors.red,
+        ),
       ),
+      darkTheme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: MyColors.background,
+        primaryColor: MyColors.green,
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ButtonStyle(
+            backgroundColor: MaterialStateProperty.all(MyColors.green),
+            elevation: MaterialStateProperty.all(2),
+          ),
+        ),
+        textTheme: const TextTheme().apply(
+          fontFamily: "SpaceGrotesk",
+          bodyColor: MyColors.white,
+          displayColor: MyColors.white,
+        ),
+      ),
+      themeMode: ThemeMode.dark,
       home: const MyHomePage(),
     );
   }

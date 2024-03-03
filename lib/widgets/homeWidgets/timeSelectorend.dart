@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:kickdownloader/myColors.dart';
 import 'package:kickdownloader/utilities/logic.dart';
 import 'package:kickdownloader/widgets/homeWidgets/videoTimeWidget.dart';
 
@@ -8,11 +9,12 @@ class TimeSelectorRowEnd extends GetView<Logic> {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() => Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: SizedBox(
-            height: 80,
-            child: Row(
+    return Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: SizedBox(
+          height: 80,
+          child: Obx(
+            () => Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -22,14 +24,25 @@ class TimeSelectorRowEnd extends GetView<Logic> {
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        const Text(
+                        Text(
                           "End",
-                          style: TextStyle(fontSize: 17),
+                          style: TextStyle(
+                              fontSize: 17,
+                              color: controller.foundVideo.value
+                                  ? MyColors.white
+                                  : const Color.fromARGB(255, 131, 131, 131)),
                         ),
                         Transform.scale(
                           scale: 1.2,
                           child: Checkbox(
                             value: controller.endValue.value,
+                            side: controller.foundVideo.value
+                                ? null
+                                : const BorderSide(
+                                    width: 2, color: MyColors.disabledBorder),
+                            activeColor:
+                                const Color.fromARGB(255, 212, 212, 212),
+                            checkColor: MyColors.background,
                             onChanged: (s) {
                               if (controller.foundVideo.value == false) return;
                               controller.endValue.value =

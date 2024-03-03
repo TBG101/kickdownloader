@@ -7,6 +7,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:kickdownloader/utilities/NotificationController.dart';
 import 'package:media_scanner/media_scanner.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -20,6 +21,8 @@ import 'package:http/http.dart' as http;
 import 'package:dio/src/response.dart' as dioResponse;
 
 class Logic extends GetxController {
+  final NotificationController _notificationcontroller =
+      NotificationController();
   var url = TextEditingController().obs;
   String apiURL = "";
   String lastVideoLink = "";
@@ -475,6 +478,11 @@ class Logic extends GetxController {
   }
 
   void downloadVodDataBtn() async {
+    await _notificationcontroller.requestNotification();
+    if (_notificationcontroller.status == MyPermissionStatus.deniedForever) {
+      // Implement denied
+    }
+
     requestPermission();
     if (foundVideo.value) {
       if (selectedDirectory.value == null) {

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get/get_state_manager/get_state_manager.dart';
-import 'package:get/get_state_manager/src/rx_flutter/rx_obx_widget.dart';
 import 'package:kickdownloader/myColors.dart';
 import 'package:kickdownloader/pages/downloadPage.dart';
 import 'package:kickdownloader/utilities/logic.dart';
@@ -12,7 +11,7 @@ import 'package:kickdownloader/widgets/homeWidgets/inputStream.dart';
 import 'package:kickdownloader/widgets/homeWidgets/streamThumbnail.dart';
 import 'package:kickdownloader/widgets/homeWidgets/timeSelectorStart.dart';
 import 'package:kickdownloader/widgets/homeWidgets/timeSelectorend.dart';
-import 'package:kickdownloader/widgets/streamFields.dart';
+import 'package:kickdownloader/widgets/homeWidgets/streamFields.dart';
 
 class Home extends GetView<Logic> {
   const Home({super.key});
@@ -26,7 +25,7 @@ class Home extends GetView<Logic> {
           padding: const EdgeInsets.only(top: 10),
           child: Obx(() => StreamFields(
               field: "Streamer", text: controller.streamer.value))),
-      Obx(() => StreamFields(field: "Tile", text: controller.title.value)),
+      Obx(() => StreamFields(field: "Title", text: controller.title.value)),
       Obx(() =>
           StreamFields(field: "Stream date", text: controller.stramDate.value)),
       Obx(() => StreamFields(

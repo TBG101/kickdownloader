@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 abstract class MyColors {
   static const white = Color(0xFFFFFFFF);
+
   static final Color btnPrimary =
       const Color.fromARGB(255, 186, 129, 255).withOpacity(.6);
   static Color btnVariant = const Color(0xff3700B3).withOpacity(.7);
@@ -12,7 +13,9 @@ abstract class MyColors {
   static const green = Color(0xFF178262);
   static const greenDownloadPage = Color.fromARGB(255, 32, 177, 133);
 
-  static const textDisbaled = Color.fromRGBO(255, 255, 255, 0.75);
+  static const textDisbaled = Color.fromRGBO(255, 255, 255, 0.5);
+
+  static const disabledBorder = Color.fromRGBO(255, 255, 255, 0.2);
 
   static const LinearGradient gradient = LinearGradient(
       begin: Alignment.centerLeft,
