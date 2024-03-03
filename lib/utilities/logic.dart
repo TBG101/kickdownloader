@@ -7,6 +7,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:kickdownloader/utilities/MethodChannelHandler.dart';
 import 'package:media_scanner/media_scanner.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -15,9 +16,9 @@ import 'package:dio/dio.dart';
 import 'dart:async';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:path/path.dart' as PackagePath;
+import 'package:path/path.dart' as packagepath;
 import 'package:http/http.dart' as http;
-import 'package:dio/src/response.dart' as dioResponse;
+import 'package:dio/src/response.dart' as dioresponse;
 
 class Logic extends GetxController {
   var url = TextEditingController().obs;
@@ -165,7 +166,7 @@ class Logic extends GetxController {
     apiURL =
         "https://kick.com/api/v1/video/$_id?${DateTime.now().millisecondsSinceEpoch}";
     print("API URL: $apiURL");
-    late dioResponse.Response response;
+    late dioresponse.Response response;
 
     try {
       response = await _dio.get(
@@ -674,7 +675,7 @@ class Logic extends GetxController {
 
   Map<dynamic, dynamic> deleteFileDropdown(int index) {
     try {
-      Directory(PackagePath.dirname(completedVideos[index]["path"]))
+      Directory(packagepath.dirname(completedVideos[index]["path"]))
           .delete(recursive: true);
     } catch (e) {
       throw "error on deleted video : $e";
@@ -685,8 +686,30 @@ class Logic extends GetxController {
     return deletedElement;
   }
 
-  void copyLinkToClipboard(int index) async {
-    await Clipboard.setData(
-        ClipboardData(text: completedVideos[0]["link"] as String));
+  void showToast(String msg, BuildContext context, double toastWidth) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(
+        msg,
+        textAlign: TextAlign.center,
+        style: const TextStyle(fontSize: 16),
+      ),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(180))),
+      behavior: SnackBarBehavior.floating,
+      width: toastWidth,
+    ));
+  }
+
+  void copyLinkToClipboard(int index, BuildContext context) {
+    Clipboard.setData(
+        ClipboardData(text: completedVideos[index]["link"] as String));
+    showToast("Coppied URL", context, 140);
+  }
+
+  void openDir(int index) {
+    print("-----------");
+    print(packagepath.dirname(completedVideos[index]["path"]));
+    MethodChannelHandler()
+        .openDirectory(packagepath.dirname(completedVideos[index]["path"]));
   }
 }

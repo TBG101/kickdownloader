@@ -8,10 +8,11 @@ Home:
   - make animation for download button (could have)
 
 Logic:
+
   - implement no notification error
   - impelement no storage error
   - implement no internet error
-
+  - change the path package to use a simple dir finder with logic code 
 Done:
   - fix click on notification gets it deleted
   - create better UI

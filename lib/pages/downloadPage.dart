@@ -69,7 +69,6 @@ class DownloadPage extends GetView<Logic> {
                 image: img,
                 subtitle: sub,
                 download: download,
-                
               )),
         );
       },
@@ -126,9 +125,13 @@ class DownloadPage extends GetView<Logic> {
                 deleteVOD(i, index);
               },
               cancelDownload: null,
-              copyLink: null,
+              copyLink: () {
+                controller.copyLinkToClipboard(i, context);
+              },
               vodData: null,
-              openPath: null,
+              openPath: () {
+                controller.openDir(i);
+              },
             );
           });
         },
