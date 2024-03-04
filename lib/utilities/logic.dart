@@ -12,14 +12,13 @@ import 'package:kickdownloader/utilities/NotificationController.dart';
 import 'package:media_scanner/media_scanner.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:get/get.dart';
+import 'package:get/get.dart' hide Response;
 import 'package:dio/dio.dart';
 import 'dart:async';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path/path.dart' as packagepath;
 import 'package:http/http.dart' as http;
-import 'package:dio/src/response.dart' as dioresponse;
 
 class Logic extends GetxController {
   final NotificationController _notificationcontroller =
@@ -169,7 +168,7 @@ class Logic extends GetxController {
     apiURL =
         "https://kick.com/api/v1/video/$_id?${DateTime.now().millisecondsSinceEpoch}";
     print("API URL: $apiURL");
-    late dioresponse.Response response;
+    late Response response;
 
     try {
       response = await _dio.get(
