@@ -6,8 +6,8 @@ class MethodChannelHandler {
   Future<void> openDirectory(String path) async {
     try {
       await platform.invokeMethod('openDir', {"path": path});
-    } on PlatformException catch (e) {
-      throw "Couldn't open file: '${e.message}'.";
+    } catch (e) {
+      throw "Couldn't open file: $e";
     }
   }
 }

@@ -20,9 +20,8 @@ class MainActivity : FlutterActivity() {
         ).setMethodCallHandler { call, result ->
             if (call.method == "openDir") {
                 val path = call.argument<String>("path")
-                Log.i("kick", path.toString())
                 if (path != null) {
-                    openDir(path)
+                    playVideo(path)
                 }
                 result.success(null)
 
@@ -32,17 +31,22 @@ class MainActivity : FlutterActivity() {
         }
     }
 
-    fun openDir(path: String) {
-        val directory = File(path)
-        Log.i("kick", (directory.exists() && directory.isDirectory).toString())
-        if (directory.exists() && directory.isDirectory) {
-            // Open the directory using an intent
-            val intent = Intent(Intent.ACTION_VIEW)
-            val uri: Uri = Uri.parse(path)
+    private fun playVideo(path: String) {
 
-            intent.setDataAndType(uri, "resources/*");
-            startActivityForResult(intent, 221)
-            startActivity(intent);
+        // Create a Uri from the file path
+        val uri = Uri.parse(path)
+
+        // Create an intent with ACTION_VIEW action
+        val intent = Intent(Intent.ACTION_VIEW)
+
+        // Set the data and type for the intent
+        intent.setDataAndType(uri, "video/mp4")
+
+        if (intent.resolveActivity(packageManager) != null) {
+            // Start the activity with the intent
+            startActivity(intent)
+        } else {
+            // Handle the case where no app can handle the intent
         }
     }
 

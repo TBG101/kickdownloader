@@ -21,9 +21,9 @@ class NotificationController {
       } else {
         _status = MyPermissionStatus.deniedForever;
       }
-    } else if (s.isLimited)
+    } else if (s.isLimited) {
       _status = MyPermissionStatus.limited;
-    else {
+    } else {
       _status = MyPermissionStatus.granted;
     }
   }
@@ -33,12 +33,14 @@ class NotificationController {
   void showAlertDialog(BuildContext context) {
     Widget openSettings = TextButton(
       child: const Text("Open settings"),
-      onPressed: () {},
+      onPressed: () {
+        openAppSettings();
+      },
     );
 
     // set up the AlertDialog
     AlertDialog alert = AlertDialog(
-      title: Text("Notification Denied"),
+      title: const Text("Notification Denied"),
       content: const Text(
           "The app uses notification to show you the progress of the download.\nIf you want to enable notification open app settings"),
       actions: [

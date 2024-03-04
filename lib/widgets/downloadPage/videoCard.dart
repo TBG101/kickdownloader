@@ -154,8 +154,8 @@ class VideoCard extends StatelessWidget {
                                   ),
                                 ),
                                 DropdownMenuItem(
-                                  onTap: vodData,
                                   value: "4",
+                                  onTap: vodData,
                                   child: const Row(
                                     children: [
                                       Padding(

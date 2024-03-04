@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 import 'package:awesome_notifications/awesome_notifications.dart';
-
 import 'package:ffmpeg_kit_flutter_https_gpl/ffmpeg_kit.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
@@ -22,8 +21,11 @@ import 'package:path/path.dart' as packagepath;
 import 'package:http/http.dart' as http;
 
 class Logic extends GetxController {
+  final navigatorKey = GlobalKey<NavigatorState>();
+
   final NotificationController _notificationcontroller =
       NotificationController();
+
   var url = TextEditingController().obs;
   String apiURL = "";
   String lastVideoLink = "";
@@ -442,6 +444,7 @@ class Logic extends GetxController {
           'Download Completed',
           "Streamer ${queeVideoDownload[0]["data"]["livestream"]["channel"]["user"]["username"]}",
           false);
+
       if (path != null && downloading) {
         completedVideos.add({
           "streamer": queeVideoDownload[0]["data"]["livestream"]["channel"]
@@ -749,9 +752,32 @@ class Logic extends GetxController {
   }
 
   void openDir(int index) {
-    print("-----------");
-    print(packagepath.dirname(completedVideos[index]["path"]));
-    MethodChannelHandler()
-        .openDirectory(packagepath.dirname(completedVideos[index]["path"]));
+    MethodChannelHandler().openDirectory(completedVideos[index]["path"]);
+  }
+
+  void showFileInfoDialog(int index, BuildContext context) async {
+    //     "streamer"
+    // "title"
+    // "path"
+    // "link"
+    // "image"
+
+    // show the dialog
+
+    Get.dialog(AlertDialog(
+      title: Text(completedVideos[index]["streamer"] +
+          "-" +
+          completedVideos[index]["title"]),
+      content: null,
+      actions: [
+        Text("azfez"),
+      ],
+    ));
+    showDialog(
+      context: context,
+      builder: (context) => const AlertDialog(
+        title: null,
+      ),
+    );
   }
 }

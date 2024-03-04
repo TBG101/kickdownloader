@@ -2,15 +2,15 @@ downloadPage:
   - Add downloaded functionalities
 
 clipDownloader:
-  - add a clip downloader page (or make it in the same page)
+  - add a clip downloader page (or make it in the same page) (probabaly not gonna add it since i couldnt find a  way tot fethc the vod)
 
 Home:
   - make animation for download button (could have)
 
 Logic:
 
-  - implement no notification error
-  - impelement no storage error
+  - Check for notification permission error
+  - check for storage permissiosns error
   - implement no internet error
   - change the path package to use a simple dir finder with logic code 
 Done:

@@ -93,7 +93,7 @@ class DownloadPage extends GetView<Logic> {
         key: controller.animatedListKey,
         initialItemCount: controller.queeVideoDownload.length +
             controller.completedVideos.length,
-        itemBuilder: (context, index, animation) {
+        itemBuilder: (animatedListContext, index, animation) {
           if (index < controller.queeVideoDownload.length) {
             return Obx(() {
               return VideoCard(
@@ -128,7 +128,10 @@ class DownloadPage extends GetView<Logic> {
               copyLink: () {
                 controller.copyLinkToClipboard(i, context);
               },
-              vodData: null,
+              vodData: () {
+                controller.showFileInfoDialog(i, context);
+                
+              },
               openPath: () {
                 controller.openDir(i);
               },
