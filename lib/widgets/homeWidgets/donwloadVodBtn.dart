@@ -25,7 +25,11 @@ class DownloadVodBtn extends GetView<Logic> {
               elevation: 0,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(5))),
-          onPressed: condition ? controller.downloadVodDataBtn : null,
+          onPressed: condition
+              ? () {
+                  controller.downloadVodDataBtn(context);
+                }
+              : null,
           child: Text(
             "Download VOD",
             style: TextStyle(

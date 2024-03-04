@@ -16,7 +16,7 @@ import 'package:kickdownloader/widgets/homeWidgets/streamFields.dart';
 class Home extends GetView<Logic> {
   const Home({super.key});
 
-  List<Widget> homeView(size) {
+  List<Widget> homeView(size, BuildContext context) {
     return [
       // STREAM THUMBNAIL
       const StreamThumbnail(),
@@ -58,7 +58,9 @@ class Home extends GetView<Logic> {
           child: Obx(
             () => MyButton(
               text: 'Download VOD',
-              onTap: controller.downloadVodDataBtn,
+              onTap: () {
+                controller.downloadVodDataBtn(context);
+              },
               enabled: controller.foundVideo.value &&
                   controller.lastVideoLink.isNotEmpty,
             ),
@@ -122,7 +124,7 @@ class Home extends GetView<Logic> {
               body: controller.pageSelector.value == 0
                   ? ListView(
                       padding: const EdgeInsets.all(10),
-                      children: homeView(size))
+                      children: homeView(size, context))
                   : const DownloadPage(),
             ),
           )),

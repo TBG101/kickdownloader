@@ -1,4 +1,5 @@
 import 'package:awesome_notifications/awesome_notifications.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:kickdownloader/utilities/logic.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -28,6 +29,31 @@ class NotificationController {
   }
 
   MyPermissionStatus get status => _status;
+
+  void showAlertDialog(BuildContext context) {
+    Widget openSettings = TextButton(
+      child: const Text("Open settings"),
+      onPressed: () {},
+    );
+
+    // set up the AlertDialog
+    AlertDialog alert = AlertDialog(
+      title: Text("Notification Denied"),
+      content: const Text(
+          "The app uses notification to show you the progress of the download.\nIf you want to enable notification open app settings"),
+      actions: [
+        openSettings,
+      ],
+    );
+
+    // show the dialog
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return alert;
+      },
+    );
+  }
 
   static Future<void> onActionReceived(ReceivedAction action) async {
     final Logic controller = Get.find();

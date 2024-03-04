@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 import 'package:awesome_notifications/awesome_notifications.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:ffmpeg_kit_flutter_https_gpl/ffmpeg_kit.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
@@ -57,7 +58,6 @@ class Logic extends GetxController {
   var queeVideoDownload = [].obs;
   int notificationId = 0;
   RxList<Map> completedVideos = <Map>[].obs;
-  late bool notificationAllowed;
 
   final _dio = Dio();
   // cancel token for dio()
@@ -278,8 +278,7 @@ class Logic extends GetxController {
 
   Future<void> createDownloadNotifcation(
       int id, String title, String body) async {
-    notificationAllowed = await AwesomeNotifications().isNotificationAllowed();
-    if (notificationAllowed) {
+    if (_notificationcontroller.status == MyPermissionStatus.granted) {
       AwesomeNotifications().createNotification(
           content: NotificationContent(
         id: id,
@@ -299,7 +298,7 @@ class Logic extends GetxController {
       int id, List file, String title, String body) async {
     videoDownloadPercentage.value =
         (videoDownloadParts / (file.length * 100)) * 100;
-    if (!notificationAllowed) return;
+    if (_notificationcontroller.status == MyPermissionStatus.granted) return;
 
     AwesomeNotifications().createNotification(
         content: NotificationContent(
@@ -316,7 +315,7 @@ class Logic extends GetxController {
 
   Future<void> updateNotificationEnd(
       int id, String title, String body, bool locked) async {
-    if (!notificationAllowed) return;
+    if (_notificationcontroller.status == MyPermissionStatus.granted) return;
     await AwesomeNotifications().createNotification(
         content: NotificationContent(
             id: id,
@@ -477,68 +476,102 @@ class Logic extends GetxController {
     return (h * 60 * 60 + m * 60 + s) * 1000;
   }
 
-  void downloadVodDataBtn() async {
-    await _notificationcontroller.requestNotification();
-    if (_notificationcontroller.status == MyPermissionStatus.deniedForever) {
-      // Implement denied
+  Future<bool> requestStoragePermission() async {
+    return (await Permission.manageExternalStorage.request()).isGranted;
+  }
+
+  void savePathSelector() async {
+    if (selectedDirectory.value == null) {
+      selectedDirectory.value = await FilePicker.platform.getDirectoryPath();
+      box.put("savePath", selectedDirectory.value);
     }
+  }
 
-    requestPermission();
-    if (foundVideo.value) {
-      if (selectedDirectory.value == null) {
-        selectedDirectory.value = await FilePicker.platform.getDirectoryPath();
-        box.put("savePath", selectedDirectory.value);
-      }
+  void downloadVodDataBtn(BuildContext context) async {
+    if (!foundVideo.value) return;
 
-      if (startHour.value.text != "" &&
-          startMinute.value.text != "" &&
-          startSecond.value.text != "" &&
-          endHour.value.text != "" &&
-          endMinute.value.text != "" &&
-          endSecond.value.text != "") {
-        // turn all time to milliseconds
-        var starttime = convertToMillisecond(
-            int.parse(startHour.value.text),
-            int.parse(startMinute.value.text),
-            int.parse(startSecond.value.text));
-        var endtime = convertToMillisecond(
-          int.parse(endHour.value.text),
-          int.parse(endMinute.value.text),
-          int.parse(endSecond.value.text),
-        );
-        if (starttime == endtime) return;
+    await _notificationcontroller.requestNotification();
 
-        queeVideoDownload.add(
-          {
-            "image": link.value,
-            "quality": valueSelected.value,
-            "downloading": false,
-            "start": starttime,
-            "end": endtime,
-            "data": videoData,
-            "link": lastVideoLink,
-            "savePath":
-                "${selectedDirectory.value!}/[${videoData!["livestream"]["created_at"].split(" ")[0]} - ${DateTime.now().millisecondsSinceEpoch}] ${videoData!["livestream"]["channel"]["user"]["username"]}"
+    if (_notificationcontroller.status == MyPermissionStatus.deniedForever &&
+        context.mounted) {
+      _notificationcontroller.showAlertDialog(context);
+    }
+    var anroidApi = int.parse((await getAndroidVersion())!);
+    if (!await requestStoragePermission() && anroidApi <= 21) {
+      Widget openSettings = TextButton(
+        child: const Text("Open settings"),
+        onPressed: () {},
+      );
+
+      // set up the AlertDialog
+      AlertDialog alert = AlertDialog(
+        title: const Text("Storage Permission Denied"),
+        content: const Text(
+            "The app needs Storage permission to save VOD, without it the app won't work.\nOpen the settings to enable Storage Permission"),
+        actions: [
+          openSettings,
+        ],
+      );
+
+      // show the dialog
+      if (context.mounted) {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return alert;
           },
         );
-      } else {
-        queeVideoDownload.add({
+      }
+      return;
+    } else {
+      savePathSelector();
+    }
+
+    if (startHour.value.text != "" &&
+        startMinute.value.text != "" &&
+        startSecond.value.text != "" &&
+        endHour.value.text != "" &&
+        endMinute.value.text != "" &&
+        endSecond.value.text != "") {
+      // turn all time to milliseconds
+      var starttime = convertToMillisecond(int.parse(startHour.value.text),
+          int.parse(startMinute.value.text), int.parse(startSecond.value.text));
+      var endtime = convertToMillisecond(
+        int.parse(endHour.value.text),
+        int.parse(endMinute.value.text),
+        int.parse(endSecond.value.text),
+      );
+      if (starttime == endtime) return;
+
+      queeVideoDownload.add(
+        {
           "image": link.value,
           "quality": valueSelected.value,
           "downloading": false,
-          "start": 0,
-          "end": -1,
+          "start": starttime,
+          "end": endtime,
           "data": videoData,
           "link": lastVideoLink,
           "savePath":
               "${selectedDirectory.value!}/[${videoData!["livestream"]["created_at"].split(" ")[0]} - ${DateTime.now().millisecondsSinceEpoch}] ${videoData!["livestream"]["channel"]["user"]["username"]}"
-        });
-      }
+        },
+      );
+    } else {
+      queeVideoDownload.add({
+        "image": link.value,
+        "quality": valueSelected.value,
+        "downloading": false,
+        "start": 0,
+        "end": -1,
+        "data": videoData,
+        "link": lastVideoLink,
+        "savePath":
+            "${selectedDirectory.value!}/[${videoData!["livestream"]["created_at"].split(" ")[0]} - ${DateTime.now().millisecondsSinceEpoch}] ${videoData!["livestream"]["channel"]["user"]["username"]}"
+      });
+    }
 
-      if (queeVideoDownload[0]["downloading"] == false &&
-          downloading == false) {
-        downloadVOD();
-      }
+    if (queeVideoDownload[0]["downloading"] == false && downloading == false) {
+      downloadVOD();
     }
   }
 
@@ -632,10 +665,6 @@ class Logic extends GetxController {
     return (await _dio.get(downloadURL + "playlist.m3u8")).data.split("\n");
   }
 
-  void requestPermission() async {
-    await Permission.manageExternalStorage.request();
-  }
-
   deleteTs(List<File> tsFiles, path) async {
     print(tsFiles);
     for (var file in tsFiles) {
@@ -691,6 +720,12 @@ class Logic extends GetxController {
     completedVideos.refresh();
     addVideoToHive();
     return deletedElement;
+  }
+
+  Future<String?> getAndroidVersion() async {
+    DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+    AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
+    return androidInfo.version.release;
   }
 
   void showToast(String msg, BuildContext context, double toastWidth) {
