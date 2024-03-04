@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 import 'package:awesome_notifications/awesome_notifications.dart';
-import 'package:device_info_plus/device_info_plus.dart';
+
 import 'package:ffmpeg_kit_flutter_https_gpl/ffmpeg_kit.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
@@ -477,27 +477,18 @@ class Logic extends GetxController {
   }
 
   Future<bool> requestStoragePermission() async {
-    return (await Permission.manageExternalStorage.request()).isGranted;
+    return (await Permission.storage.request()).isGranted;
   }
 
-  void savePathSelector() async {
+  Future<void> savePathSelector(BuildContext context) async {
     if (selectedDirectory.value == null) {
-      selectedDirectory.value = await FilePicker.platform.getDirectoryPath();
-      box.put("savePath", selectedDirectory.value);
-    }
-  }
+      var savePath = await FilePicker.platform.getDirectoryPath();
 
-  void downloadVodDataBtn(BuildContext context) async {
-    if (!foundVideo.value) return;
-
-    await _notificationcontroller.requestNotification();
-
-    if (_notificationcontroller.status == MyPermissionStatus.deniedForever &&
-        context.mounted) {
-      _notificationcontroller.showAlertDialog(context);
-    }
-    var anroidApi = int.parse((await getAndroidVersion())!);
-    if (!await requestStoragePermission() && anroidApi <= 21) {
+      if (savePath != "/" && savePath != null) {
+        selectedDirectory.value = savePath;
+        box.put("savePath", selectedDirectory.value);
+        return;
+      }
       Widget openSettings = TextButton(
         child: const Text("Open settings"),
         onPressed: () {},
@@ -522,9 +513,24 @@ class Logic extends GetxController {
           },
         );
       }
+    }
+  }
+
+  void downloadVodDataBtn(BuildContext context) async {
+    if (!foundVideo.value && !context.mounted) return;
+
+    await _notificationcontroller.requestNotification();
+
+    if (_notificationcontroller.status == MyPermissionStatus.deniedForever &&
+        context.mounted) {
+      _notificationcontroller.showAlertDialog(context);
+    }
+
+    await requestStoragePermission();
+    await savePathSelector(context);
+
+    if (selectedDirectory.value == null) {
       return;
-    } else {
-      savePathSelector();
     }
 
     if (startHour.value.text != "" &&
@@ -720,12 +726,6 @@ class Logic extends GetxController {
     completedVideos.refresh();
     addVideoToHive();
     return deletedElement;
-  }
-
-  Future<String?> getAndroidVersion() async {
-    DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
-    AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
-    return androidInfo.version.release;
   }
 
   void showToast(String msg, BuildContext context, double toastWidth) {
