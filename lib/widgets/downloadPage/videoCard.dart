@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:kickdownloader/myColors.dart';
@@ -45,8 +46,8 @@ class VideoCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  SizedBox(
-                    height: double.infinity,
+                  AspectRatio(
+                    aspectRatio: 16/9,
                     child: CachedNetworkImage(
                       imageUrl: image,
                       fit: BoxFit.fitHeight,
@@ -83,93 +84,104 @@ class VideoCard extends StatelessWidget {
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.only(right: 8.0),
-                    child: download
-                        ? IconButton(
-                            onPressed: cancelDownload,
-                            icon: const Icon(Icons.close_rounded),
-                          )
-                        : DropdownButtonHideUnderline(
-                            child: DropdownButton2(
-                              onChanged: (value) {},
-                              customButton: const Padding(
-                                padding: EdgeInsets.all(10),
-                                child: Icon(
-                                  Icons.more_horiz_rounded,
-                                ),
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: download
+                          ? IconButton(
+                              onPressed: cancelDownload,
+                              icon: const Icon(Icons.close_rounded),
+                            )
+                          : PopupMenuButton(
+                              icon: const Icon(
+                                Icons.more_horiz_rounded,
                               ),
-                              buttonStyleData: ButtonStyleData(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(180),
-                                ),
-                              ),
-                              dropdownStyleData: DropdownStyleData(
-                                width: 160,
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 6),
-                                elevation: 2,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                offset: const Offset(0, 8),
-                              ),
-                              items: [
-                                DropdownMenuItem(
-                                  onTap: openPath,
-                                  value: "1",
-                                  child: const Row(
-                                    children: [
-                                      Padding(
-                                        padding: EdgeInsets.only(right: 8.0),
-                                        child: Icon(Icons.open_in_new),
-                                      ),
-                                      Text("Open"),
-                                    ],
+                              offset: const Offset(0, 35),
+                              shape: const RoundedRectangleBorder(
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(10))),
+                              itemBuilder: (BuildContext context) {
+                                return [
+                                  PopupMenuItem(
+                                    onTap: openPath,
+                                    value: "1",
+                                    child: const Row(
+                                      children: [
+                                        Padding(
+                                          padding: EdgeInsets.only(right: 8.0),
+                                          child: Icon(Icons.open_in_new),
+                                        ),
+                                        Text("Open"),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                                DropdownMenuItem(
-                                  onTap: copyLink,
-                                  value: "2",
-                                  child: const Row(
-                                    children: [
-                                      Padding(
-                                        padding: EdgeInsets.only(right: 8.0),
-                                        child: Icon(Icons.link),
-                                      ),
-                                      Text("Stream URL"),
-                                    ],
+                                  PopupMenuItem(
+                                    onTap: copyLink,
+                                    value: "2",
+                                    child: const Row(
+                                      children: [
+                                        Padding(
+                                          padding: EdgeInsets.only(right: 8.0),
+                                          child: Icon(Icons.link),
+                                        ),
+                                        Text("Stream URL"),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                                DropdownMenuItem(
-                                  onTap: deleteVOD,
-                                  value: "3",
-                                  child: const Row(
-                                    children: [
-                                      Padding(
-                                        padding: EdgeInsets.only(right: 8.0),
-                                        child: Icon(Icons.delete),
-                                      ),
-                                      Text("Delete file"),
-                                    ],
+                                  PopupMenuItem(
+                                    onTap: deleteVOD,
+                                    value: "3",
+                                    child: const Row(
+                                      children: [
+                                        Padding(
+                                          padding: EdgeInsets.only(right: 8.0),
+                                          child: Icon(Icons.delete),
+                                        ),
+                                        Text("Delete file"),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                                DropdownMenuItem(
-                                  value: "4",
-                                  onTap: vodData,
-                                  child: const Row(
-                                    children: [
-                                      Padding(
-                                        padding: EdgeInsets.only(right: 8.0),
-                                        child: Icon(Icons.info),
-                                      ),
-                                      Text("File Info"),
-                                    ],
+                                  PopupMenuItem(
+                                    value: "4",
+                                    onTap: vodData,
+                                    child: const Row(
+                                      children: [
+                                        Padding(
+                                          padding: EdgeInsets.only(right: 8.0),
+                                          child: Icon(Icons.info),
+                                        ),
+                                        Text("File Info"),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                              ],
-                            ),
-                          ),
-                  ),
+                                ];
+                              },
+                            )
+                      //  DropdownButtonHideUnderline(
+                      //   child: DropdownButton2(
+                      //     onChanged: (value) {},
+                      //     customButton: const Padding(
+                      //       padding: EdgeInsets.all(10),
+                      //       child: Icon(
+                      //         Icons.more_horiz_rounded,
+                      //       ),
+                      //     ),
+                      //     buttonStyleData: ButtonStyleData(
+                      //       decoration: BoxDecoration(
+                      //         borderRadius: BorderRadius.circular(180),
+                      //       ),
+                      //     ),
+                      //     dropdownStyleData: DropdownStyleData(
+                      //       width: 160,
+                      //       padding:
+                      //           const EdgeInsets.symmetric(vertical: 6),
+                      //       elevation: 2,
+                      //       decoration: BoxDecoration(
+                      //         borderRadius: BorderRadius.circular(10),
+                      //       ),
+                      //       offset: const Offset(0, 8),
+                      //     ),
+                      //
+
+                      ),
                 ],
               ),
               download && subtitle[0].isNumericOnly

@@ -39,7 +39,9 @@ class Home extends GetView<Logic> {
           padding: const EdgeInsets.only(top: 10, bottom: 0),
           child: MyButton(
             text: 'Get VOD data',
-            onTap: controller.getVodData,
+            onTap: () {
+              controller.getVodData(context);
+            },
             enabled: true,
           )),
 
@@ -65,6 +67,7 @@ class Home extends GetView<Logic> {
                   controller.lastVideoLink.isNotEmpty,
             ),
           )),
+         
     ];
   }
 

@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
-import 'package:awesome_notifications/awesome_notifications.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:ffmpeg_kit_flutter_https_gpl/ffmpeg_kit.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
@@ -9,9 +9,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kickdownloader/utilities/MethodChannelHandler.dart';
 import 'package:kickdownloader/utilities/NotificationController.dart';
+import 'package:kickdownloader/utilities/PermissionHandler.dart';
 import 'package:media_scanner/media_scanner.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:get/get.dart' hide Response;
 import 'package:dio/dio.dart';
 import 'dart:async';
@@ -61,6 +61,8 @@ class Logic extends GetxController {
   int notificationId = 0;
   RxList<Map> completedVideos = <Map>[].obs;
 
+  bool hasInternet = true;
+
   final _dio = Dio();
   // cancel token for dio()
   late CancelToken cancel;
@@ -70,6 +72,18 @@ class Logic extends GetxController {
 
   final GlobalKey<AnimatedListState> animatedListKey =
       GlobalKey<AnimatedListState>();
+
+  void checkNetwork() {
+    Connectivity().onConnectivityChanged.listen((ConnectivityResult result) {
+      if (result == ConnectivityResult.none) {
+        print("inter not working");
+        hasInternet = false;
+      } else {
+        hasInternet = true;
+        print("internetworking");
+      }
+    });
+  }
 
   Future<void> initHive() async {
     box = Hive.box("video");
@@ -103,6 +117,13 @@ class Logic extends GetxController {
     var listOfVideos = box.get("video");
     selectedDirectory.value = box.get("savePath");
 
+    Connectivity().checkConnectivity().then(
+      (value) {
+        if (value == ConnectivityResult.none) hasInternet = false;
+      },
+    );
+    checkNetwork();
+
     if (listOfVideos != null) {
       print(listOfVideos);
       // completedVideos.addAll(iterable)
@@ -112,6 +133,8 @@ class Logic extends GetxController {
     } else {
       box.put("video", <Map<dynamic, dynamic>>[]);
     }
+
+    _notificationcontroller.startListener();
 
     super.onReady();
   }
@@ -123,7 +146,14 @@ class Logic extends GetxController {
     return (((bytes / pow(1024, i))), suffixes[i]);
   }
 
-  void getVodData() {
+  void getVodData(BuildContext context) {
+    print(hasInternet);
+    if (!hasInternet) {
+      // IMPLEMENT NO INTERNET
+      showToast("No internet Connection", context, 250);
+      return;
+    }
+
     if (url.value.text.isEmpty || url.value.text == lastVideoLink) return;
     lastVideoLink = url.value.text;
     foundVideo.value = false;
@@ -278,58 +308,6 @@ class Logic extends GetxController {
     return (endTime == -1 ? -1 : overflowTime, nbOfTsFiles);
   }
 
-  Future<void> createDownloadNotifcation(
-      int id, String title, String body) async {
-    if (_notificationcontroller.status == MyPermissionStatus.granted) {
-      AwesomeNotifications().createNotification(
-          content: NotificationContent(
-        id: id,
-        autoDismissible: false,
-        channelKey: "channel",
-        title: title,
-        body: body,
-        category: NotificationCategory.Progress,
-        notificationLayout: NotificationLayout.ProgressBar,
-        progress: 0,
-        locked: true,
-      ));
-    }
-  }
-
-  Future<void> updateNotification(
-      int id, List file, String title, String body) async {
-    videoDownloadPercentage.value =
-        (videoDownloadParts / (file.length * 100)) * 100;
-    if (_notificationcontroller.status == MyPermissionStatus.granted) return;
-
-    AwesomeNotifications().createNotification(
-        content: NotificationContent(
-            id: id,
-            channelKey: "channel",
-            title: title,
-            body: body,
-            category: NotificationCategory.Progress,
-            notificationLayout: NotificationLayout.ProgressBar,
-            progress: videoDownloadPercentage.value,
-            locked: true,
-            autoDismissible: false));
-  }
-
-  Future<void> updateNotificationEnd(
-      int id, String title, String body, bool locked) async {
-    if (_notificationcontroller.status == MyPermissionStatus.granted) return;
-    await AwesomeNotifications().createNotification(
-        content: NotificationContent(
-            id: id,
-            channelKey: "channel",
-            title: title,
-            body: body,
-            category: NotificationCategory.Progress,
-            notificationLayout: NotificationLayout.ProgressBar,
-            progress: 100,
-            locked: locked));
-  }
-
   Future<int> getFileSize(String url) async {
     try {
       http.Response r = await http.head(Uri.parse(url));
@@ -369,7 +347,9 @@ class Logic extends GetxController {
     queeVideoDownload[0]["downloading"] = true;
     cancel = CancelToken();
 
-    await createDownloadNotifcation(notificationId, 'Started downloading VOD',
+    await _notificationcontroller.createDownloadNotifcation(
+        notificationId,
+        'Started downloading VOD',
         "Streamer ${queeVideoDownload[0]["data"]["livestream"]["channel"]["user"]["username"]}");
 
     (overflowTime, nbOfTsFiles) = await writeGeneratedText(
@@ -388,11 +368,15 @@ class Logic extends GetxController {
     for (String element in file) {
       while (queeList.length >= 5) {
         var percentage = videoDownloadPercentage.value;
-        updateNotification(
+        videoDownloadPercentage.value =
+            (videoDownloadParts / (file.length * 100)) * 100;
+
+        _notificationcontroller.updateNotification(
             notificationId,
             file,
             'Downloading ${percentage.toStringAsFixed(0)}% ${(sizeVid * percentage / 100).toStringAsFixed(2)}/${sizeVid.toStringAsFixed(2)} $suffix',
-            "Streamer ${queeVideoDownload[0]["data"]["livestream"]["channel"]["user"]["username"]}");
+            "Streamer ${queeVideoDownload[0]["data"]["livestream"]["channel"]["user"]["username"]}",
+            videoDownloadPercentage.value);
 
         if (!downloading) {
           break;
@@ -418,16 +402,19 @@ class Logic extends GetxController {
       }
       await waitTimer();
       var percentage = videoDownloadPercentage.value;
+      videoDownloadPercentage.value =
+          (videoDownloadParts / (file.length * 100)) * 100;
 
-      updateNotification(
+      _notificationcontroller.updateNotification(
           notificationId,
           file,
           'Downloading ${percentage.toStringAsFixed(0)}% ${(sizeVid * percentage / 100).toStringAsFixed(2)}/${sizeVid.toStringAsFixed(2)} $suffix',
-          "Streamer ${queeVideoDownload[0]["data"]["livestream"]["channel"]["user"]["username"]}");
+          "Streamer ${queeVideoDownload[0]["data"]["livestream"]["channel"]["user"]["username"]}",
+          videoDownloadPercentage.value);
     }
     if (downloading) {
       await checkTSfiles(_selectedDirectory, downloadURL);
-      await updateNotificationEnd(
+      await _notificationcontroller.updateNotificationEnd(
           notificationId,
           'Converting to MP4',
           "Streamer ${queeVideoDownload[0]["data"]["livestream"]["channel"]["user"]["username"]}",
@@ -439,7 +426,7 @@ class Logic extends GetxController {
         path = await mergeToMp4(
             _selectedDirectory, overflowTime ?? 0, (endTime! - startTime!));
       }
-      await updateNotificationEnd(
+      await _notificationcontroller.updateNotificationEnd(
           notificationId,
           'Download Completed',
           "Streamer ${queeVideoDownload[0]["data"]["livestream"]["channel"]["user"]["username"]}",
@@ -464,7 +451,7 @@ class Logic extends GetxController {
         print("error on deletion of folder error is : $e");
       }
       downloading = true;
-      AwesomeNotifications().dismiss(notificationId);
+      _notificationcontroller.dissmissNotification(notificationId);
     }
 
     queeVideoDownload.removeAt(0);
@@ -477,10 +464,6 @@ class Logic extends GetxController {
 
   int convertToMillisecond(int h, int m, int s) {
     return (h * 60 * 60 + m * 60 + s) * 1000;
-  }
-
-  Future<bool> requestStoragePermission() async {
-    return (await Permission.storage.request()).isGranted;
   }
 
   Future<void> savePathSelector(BuildContext context) async {
@@ -520,19 +503,24 @@ class Logic extends GetxController {
   }
 
   void downloadVodDataBtn(BuildContext context) async {
+    if (!hasInternet) {
+      // IMPLEMENT NO INTERNET
+      showToast("No internet Connection", context, 50);
+      return;
+    }
     if (!foundVideo.value && !context.mounted) return;
 
-    await _notificationcontroller.requestNotification();
+    await PermissionHandler.requestNotificationPermission();
 
-    if (_notificationcontroller.status == MyPermissionStatus.deniedForever &&
-        context.mounted) {
+    await PermissionHandler.requestStoragePermission();
+    if (await PermissionHandler.getStorageStatus() != true && context.mounted) {
       _notificationcontroller.showAlertDialog(context);
     }
 
-    await requestStoragePermission();
     await savePathSelector(context);
 
-    if (selectedDirectory.value == null) {
+    if (selectedDirectory.value == null || selectedDirectory.value == "/") {
+      // implement disclaimer for path is not available
       return;
     }
 
@@ -752,31 +740,14 @@ class Logic extends GetxController {
   }
 
   void openDir(int index) {
-    MethodChannelHandler().openDirectory(completedVideos[index]["path"]);
+    MethodChannelHandler.openDirectory(completedVideos[index]["path"]);
   }
 
   void showFileInfoDialog(int index, BuildContext context) async {
-    //     "streamer"
-    // "title"
-    // "path"
-    // "link"
-    // "image"
-
-    // show the dialog
-
-    Get.dialog(AlertDialog(
-      title: Text(completedVideos[index]["streamer"] +
-          "-" +
-          completedVideos[index]["title"]),
-      content: null,
-      actions: [
-        Text("azfez"),
-      ],
-    ));
     showDialog(
       context: context,
       builder: (context) => const AlertDialog(
-        title: null,
+        title: Text("data"),
       ),
     );
   }

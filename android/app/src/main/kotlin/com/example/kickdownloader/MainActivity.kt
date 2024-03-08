@@ -18,15 +18,25 @@ class MainActivity : FlutterActivity() {
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger, CHANNEL
         ).setMethodCallHandler { call, result ->
-            if (call.method == "openDir") {
-                val path = call.argument<String>("path")
-                if (path != null) {
-                    playVideo(path)
-                }
-                result.success(null)
+            when (call.method) {
 
-            } else {
-                result.notImplemented()
+                "openDir" -> {
+                    val path = call.argument<String>("path")
+                    if (path != null) {
+                        playVideo(path)
+                    }
+                    result.success(null)
+                }
+
+                "deviceVersion" -> {
+                    result.success(android.os.Build.VERSION.SDK_INT)
+
+                }
+                else -> {
+                    result.notImplemented()
+
+                }
+
             }
         }
     }

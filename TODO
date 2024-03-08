@@ -13,6 +13,15 @@ Logic:
   - check for storage permissiosns error
   - implement no internet error
   - change the path package to use a simple dir finder with logic code 
+NotificationContoller:
+  - Move all awesomenotifcation controller to this class
+  
+GENERAL:
+  - create a permission handler class
+    - handle the storage permission and notifcation permission
+  - create a disclaimer for the user to inform him how to app works and how the app needs storage to function
+  
+
 Done:
   - fix click on notification gets it deleted
   - create better UI

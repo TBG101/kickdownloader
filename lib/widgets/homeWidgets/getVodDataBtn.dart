@@ -22,7 +22,7 @@ class VodDataBtn extends GetView<Logic> {
               shadowColor: Colors.transparent,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(5))),
-          onPressed: controller.getVodData,
+          onPressed: (){controller.getVodData(context);},
           child: const Text(
             "Get VOD data",
             style: TextStyle(

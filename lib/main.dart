@@ -4,11 +4,11 @@ import 'package:get/get.dart';
 import 'package:hive_flutter/adapters.dart';
 import 'package:kickdownloader/myColors.dart';
 import 'package:kickdownloader/pages/Home.dart';
-import 'package:kickdownloader/utilities/NotificationController.dart';
 import 'package:kickdownloader/utilities/logic.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  Get.put(Logic(), permanent: true);
   await Hive.initFlutter();
   await Hive.openBox("video");
   await AwesomeNotifications().initialize(
@@ -24,7 +24,7 @@ void main() async {
             ledColor: Colors.white)
       ],
       // Channel groups are only visual and are not required
-      debug: true);
+      debug: false);
   runApp(const MyApp());
 }
 
@@ -71,30 +71,7 @@ class MyApp extends StatelessWidget {
         ),
       ),
       themeMode: ThemeMode.dark,
-      home: const MyHomePage(),
+      home: const Home(),
     );
-  }
-}
-
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key});
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  @override
-  void initState() {
-    super.initState();
-    AwesomeNotifications().setListeners(
-      onActionReceivedMethod: NotificationController.onActionReceived,
-    );
-  }
-
-  final logic = Get.put(Logic(), permanent: true);
-  @override
-  Widget build(BuildContext context) {
-    return const Home();
   }
 }
