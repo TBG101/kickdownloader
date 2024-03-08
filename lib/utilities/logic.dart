@@ -7,7 +7,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:kickdownloader/myColors.dart';
 import 'package:kickdownloader/utilities/MethodChannelHandler.dart';
 import 'package:kickdownloader/utilities/NotificationController.dart';
 import 'package:kickdownloader/utilities/PermissionHandler.dart';
@@ -140,7 +139,7 @@ class Logic extends GetxController {
     super.onReady();
   }
 
-  (double, String) formatBytes(int bytes, int decimals) {
+  (double, String) formatBytes(int bytes) {
     if (bytes <= 0) return (0, "B");
     const suffixes = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
     var i = (log(bytes) / log(1024)).floor();
@@ -169,7 +168,7 @@ class Logic extends GetxController {
 
       streamer.value = videoData!["livestream"]["channel"]["slug"];
       title.value = videoData!["livestream"]["session_title"];
-      stramDate.value = videoData!["livestream"]["start_time"].split(" ")[0];
+      stramDate.value = videoData!["livestream"]["created_at"].split(" ")[0];
       streamLength.value = duration.toString().split('.')[0];
 
       link.value = thumbnailLink();
@@ -328,6 +327,19 @@ class Logic extends GetxController {
     return -1;
   }
 
+  Future<String> getDownloadedSize(String path) async {
+    try {
+      // Replace 'path/to/your/file' with the path to your file
+      File file = File(path);
+      int fileSizeInBytes = await file.length();
+      var (size, suffix) = formatBytes(fileSizeInBytes);
+      return "${size.toStringAsFixed(2)} $suffix";
+    } catch (e) {
+      print('Error getting file size: $e');
+      return "";
+    }
+  }
+
   Future<void> downloadVOD() async {
     videoDownloadPercentage.value = 0;
     videoDownloadParts = 0;
@@ -364,7 +376,7 @@ class Logic extends GetxController {
 
     videoDownloadSizeBytes.value = (nbOfTsFiles * tsFileSize);
 
-    var (sizeVid, suffix) = formatBytes(videoDownloadSizeBytes.value, 2);
+    var (sizeVid, suffix) = formatBytes(videoDownloadSizeBytes.value);
 
     playlist.clear();
     var file = File("$_selectedDirectory/generated.txt").readAsLinesSync();
@@ -436,14 +448,21 @@ class Logic extends GetxController {
           "Streamer ${queeVideoDownload[0]["data"]["livestream"]["channel"]["user"]["username"]}",
           false);
 
+      DateTime now = DateTime.now();
+      String formattedDate = "${now.year}-${(now.month)}-${(now.day)}";
       if (path != null && downloading) {
+        var fileSize = await getDownloadedSize(path);
         completedVideos.add({
+          "streamDate": queeVideoDownload[0]["streamDate"],
           "streamer": queeVideoDownload[0]["data"]["livestream"]["channel"]
               ["user"]["username"],
           "title": queeVideoDownload[0]["data"]["livestream"]["session_title"],
           "path": path,
           "link": queeVideoDownload[0]["link"],
           "image": queeVideoDownload[0]["image"],
+          "DownloadDate": formattedDate,
+          "resolution": slectedQuality,
+          "size": fileSize
         });
         completedVideos.refresh();
         addVideoToHive();
@@ -546,6 +565,9 @@ class Logic extends GetxController {
 
       queeVideoDownload.add(
         {
+          "streamDate":
+              (videoData!["livestream"]["created_at"].split(" ")[0] as String)
+                  .replaceAll("-", "\\"),
           "image": link.value,
           "quality": valueSelected.value,
           "downloading": false,
@@ -554,11 +576,14 @@ class Logic extends GetxController {
           "data": videoData,
           "link": lastVideoLink,
           "savePath":
-              "${selectedDirectory.value!}/[${videoData!["livestream"]["created_at"].split(" ")[0]} - ${DateTime.now().millisecondsSinceEpoch}] ${videoData!["livestream"]["channel"]["user"]["username"]}"
+              "${selectedDirectory.value!}/[${videoData!["livestream"]["created_at"].split(" ")[0]} - ${DateTime.now().hour}-${DateTime.now().minute}] ${videoData!["livestream"]["channel"]["user"]["username"]}",
         },
       );
     } else {
       queeVideoDownload.add({
+        "streamDate":
+            (videoData!["livestream"]["created_at"].split(" ")[0] as String)
+                .replaceAll("-", "\\"),
         "image": link.value,
         "quality": valueSelected.value,
         "downloading": false,
@@ -567,7 +592,7 @@ class Logic extends GetxController {
         "data": videoData,
         "link": lastVideoLink,
         "savePath":
-            "${selectedDirectory.value!}/[${videoData!["livestream"]["created_at"].split(" ")[0]} - ${DateTime.now().millisecondsSinceEpoch}] ${videoData!["livestream"]["channel"]["user"]["username"]}"
+            "${selectedDirectory.value!}/[${videoData!["livestream"]["created_at"].split(" ")[0]} - ${DateTime.now().hour}-${DateTime.now().minute}] ${videoData!["livestream"]["channel"]["user"]["username"]}"
       });
     }
 
@@ -612,7 +637,7 @@ class Logic extends GetxController {
     }
 
     String filename =
-        "$path/[${queeVideoDownload[0]["data"]["livestream"]["created_at"].split(" ")[0]}] - ${videoData!["livestream"]["channel"]["user"]["username"]} ${videoData!["livestream"]["session_title"]} - ${DateTime.now().millisecondsSinceEpoch}.mp4";
+        "$path/[${queeVideoDownload[0]["data"]["livestream"]["created_at"].split(" ")[0]}] - ${videoData!["livestream"]["channel"]["user"]["username"]} ${videoData!["livestream"]["session_title"]}.mp4";
     String ffmpegCommand =
         '-y -i "$path/all.ts" $x -c:v libx264 -c:a copy "$filename"';
     try {
@@ -748,12 +773,7 @@ class Logic extends GetxController {
   }
 
   void showFileInfoDialog(int index, BuildContext context) async {
-//     "streamer"
-// "title"
-// "path"
-// "link"
-// "image"
-    var textStyle = const TextStyle(fontSize: 18, fontFamily: "SpaceGrotesk");
+    var textStyle = const TextStyle(fontFamily: "SpaceGrotesk");
     showModalBottomSheet(
         constraints: const BoxConstraints.expand(),
         elevation: 5,
@@ -765,21 +785,34 @@ class Logic extends GetxController {
                 mainAxisAlignment: MainAxisAlignment.start,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Streamer: ${completedVideos[index]["streamer"]}',
+                  SelectableText(
+                    'Streamer:  ${completedVideos[index]["streamer"]}',
                     style: textStyle,
                   ),
-                  Text(
-                    "Title: ${completedVideos[index]["title"]}",
-                    style: textStyle,
-                  ),
-                  const Text("Stream Date:"),
-                  const Text("Download Date:"),
-                  Text("Path:"),
-                  Text("Size:"),
-                  Text("Link:"),
-                  Text("Resolution:")
-                  
+                  const Divider(),
+                  SelectableText("Title:  ${completedVideos[index]["title"]}",
+                      style: textStyle),
+                  const Divider(),
+                  SelectableText(
+                      "Stream Date:  ${completedVideos[index]["streamDate"]}",
+                      style: textStyle),
+                  const Divider(),
+                  SelectableText(
+                      "Download Date:  ${completedVideos[index]["DownloadDate"]}",
+                      style: textStyle),
+                  const Divider(),
+                  SelectableText("Path:  ${completedVideos[index]["path"]}",
+                      style: textStyle),
+                  const Divider(),
+                  SelectableText("Size:  ${completedVideos[index]["size"]}",
+                      style: textStyle),
+                  const Divider(),
+                  SelectableText("Link:  ${completedVideos[index]["link"]}",
+                      style: textStyle),
+                  const Divider(),
+                  SelectableText(
+                      "Resolution:  ${completedVideos[index]["resolution"]}fps",
+                      style: textStyle)
                 ],
               ),
             ));

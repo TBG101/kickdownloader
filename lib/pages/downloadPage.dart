@@ -13,7 +13,7 @@ class DownloadPage extends GetView<Logic> {
     } else if (controller.queeVideoDownload[index]["downloading"] as bool &&
         controller.videoDownloadPercentage.value < 100) {
       var (size, suffix) =
-          controller.formatBytes(controller.videoDownloadSizeBytes.value, 2);
+          controller.formatBytes(controller.videoDownloadSizeBytes.value);
       var videoDownloadSizeMb =
           "${(size * controller.videoDownloadPercentage.value / 100).toStringAsFixed(2)} /${size.toStringAsFixed(2)} $suffix";
 
