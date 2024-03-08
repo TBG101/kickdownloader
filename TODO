@@ -1,5 +1,5 @@
 downloadPage:
-  - Add downloaded functionalities
+  - add the file info 
 
 clipDownloader:
   - add a clip downloader page (or make it in the same page) (probabaly not gonna add it since i couldnt find a  way tot fethc the vod)
@@ -8,25 +8,24 @@ Home:
   - make animation for download button (could have)
 
 Logic:
-
-  - Check for notification permission error
-  - check for storage permissiosns error
-  - implement no internet error
   - change the path package to use a simple dir finder with logic code 
-NotificationContoller:
-  - Move all awesomenotifcation controller to this class
-  
-GENERAL:
-  - create a permission handler class
-    - handle the storage permission and notifcation permission
   - create a disclaimer for the user to inform him how to app works and how the app needs storage to function
-  
 
+
+  
 Done:
   - fix click on notification gets it deleted
   - create better UI
   - implement the hive logic
   - add a MB reste shower
   - Better font
-
+  - Check for notification permission error
+  - check for storage permissiosns error
+  - implement no internet error
+  GENERAL:
+  - create a permission handler class
+    - handle the storage permission and notifcation permission
+  NotificationContoller:
+  - Move all awesomenotifcation controller to this class
+  
 MIN API 21

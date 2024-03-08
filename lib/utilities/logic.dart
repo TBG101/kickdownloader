@@ -7,6 +7,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:kickdownloader/myColors.dart';
 import 'package:kickdownloader/utilities/MethodChannelHandler.dart';
 import 'package:kickdownloader/utilities/NotificationController.dart';
 import 'package:kickdownloader/utilities/PermissionHandler.dart';
@@ -149,7 +150,6 @@ class Logic extends GetxController {
   void getVodData(BuildContext context) {
     print(hasInternet);
     if (!hasInternet) {
-      // IMPLEMENT NO INTERNET
       showToast("No internet Connection", context, 250);
       return;
     }
@@ -157,7 +157,7 @@ class Logic extends GetxController {
     if (url.value.text.isEmpty || url.value.text == lastVideoLink) return;
     lastVideoLink = url.value.text;
     foundVideo.value = false;
-    getURL().then((response) async {
+    getURL(context).then((response) async {
       if (response != 200) return;
       await getVidQuality();
       print(resolutions);
@@ -190,10 +190,11 @@ class Logic extends GetxController {
     }
   }
 
-  Future<int> getURL() async {
+  Future<int> getURL(context) async {
     if (!validURL()) {
       resetAll();
       foundVideo.value = false;
+      showToast("URL is not valid", context, 300);
     }
 
     String _id = url.value.text.split('/').last;
@@ -209,7 +210,8 @@ class Logic extends GetxController {
     } catch (e) {
       foundVideo.value = false;
       resetAll();
-      // implement exception
+      showToast("Error occured", context, 300);
+
       return 0;
     }
 
@@ -221,6 +223,8 @@ class Logic extends GetxController {
     } else {
       foundVideo.value = false;
       resetAll();
+      showToast("Error occured", context, 300);
+
       // implement exception
       return response.statusCode ?? 0;
     }
@@ -744,11 +748,40 @@ class Logic extends GetxController {
   }
 
   void showFileInfoDialog(int index, BuildContext context) async {
-    showDialog(
-      context: context,
-      builder: (context) => const AlertDialog(
-        title: Text("data"),
-      ),
-    );
+//     "streamer"
+// "title"
+// "path"
+// "link"
+// "image"
+    var textStyle = const TextStyle(fontSize: 18, fontFamily: "SpaceGrotesk");
+    showModalBottomSheet(
+        constraints: const BoxConstraints.expand(),
+        elevation: 5,
+        barrierColor: const Color.fromARGB(160, 0, 0, 0),
+        context: context,
+        builder: (context) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Streamer: ${completedVideos[index]["streamer"]}',
+                    style: textStyle,
+                  ),
+                  Text(
+                    "Title: ${completedVideos[index]["title"]}",
+                    style: textStyle,
+                  ),
+                  const Text("Stream Date:"),
+                  const Text("Download Date:"),
+                  Text("Path:"),
+                  Text("Size:"),
+                  Text("Link:"),
+                  Text("Resolution:")
+                  
+                ],
+              ),
+            ));
   }
 }
