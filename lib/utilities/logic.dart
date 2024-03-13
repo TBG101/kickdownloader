@@ -576,7 +576,7 @@ class Logic extends GetxController {
           "data": videoData,
           "link": lastVideoLink,
           "savePath":
-              "${selectedDirectory.value!}/[${videoData!["livestream"]["created_at"].split(" ")[0]} - ${DateTime.now().hour}-${DateTime.now().minute}] ${videoData!["livestream"]["channel"]["user"]["username"]}",
+              "${selectedDirectory.value!}/[${videoData!["livestream"]["created_at"].split(" ")[0]} - ${DateTime.now().hour}:${DateTime.now().minute}:${DateTime.now().second}] ${videoData!["livestream"]["channel"]["user"]["username"]}",
         },
       );
     } else {
