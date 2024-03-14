@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:ffmpeg_kit_flutter_https_gpl/ffmpeg_kit.dart';
+import 'package:ffmpeg_kit_flutter_https_gpl/session_state.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -282,7 +283,11 @@ class Logic extends GetxController {
   Future<(int?, int?)> writeGeneratedText(String savepath,
       List<String> playlist, int? endTime, int? startTime) async {
     if (endTime == null || startTime == null) return (null, null);
-    File("$savepath/generated.txt").createSync(recursive: true);
+    try {
+      File("$savepath/generated.txt").createSync(recursive: true);
+    } catch (e) {
+      throw ("Got error on generating text file $e");
+    }
     var timeMilliseconds = 0;
     int? overflowTime;
     int nbOfTsFiles = 0;
@@ -329,14 +334,13 @@ class Logic extends GetxController {
 
   Future<String> getDownloadedSize(String path) async {
     try {
-      // Replace 'path/to/your/file' with the path to your file
       File file = File(path);
       int fileSizeInBytes = await file.length();
       var (size, suffix) = formatBytes(fileSizeInBytes);
       return "${size.toStringAsFixed(2)} $suffix";
     } catch (e) {
       print('Error getting file size: $e');
-      return "";
+      return "Couldn't get file size";
     }
   }
 
@@ -368,8 +372,17 @@ class Logic extends GetxController {
         'Started downloading VOD',
         "Streamer ${queeVideoDownload[0]["data"]["livestream"]["channel"]["user"]["username"]}");
 
-    (overflowTime, nbOfTsFiles) = await writeGeneratedText(
-        _selectedDirectory, playlist, endTime, startTime);
+    try {
+      (overflowTime, nbOfTsFiles) = await writeGeneratedText(
+          _selectedDirectory, playlist, endTime, startTime);
+    } catch (e) {
+      // IMPLEMENT ERROR GENERATING TEXT FILE
+      print("Error generating txt file $e");
+      queeVideoDownload.removeAt(0);
+      downloading = false;
+
+      return;
+    }
 
     // Implement error
     if (nbOfTsFiles == null) return;
@@ -469,6 +482,7 @@ class Logic extends GetxController {
       }
     } else {
       try {
+        print(("should delete now"));
         Directory(_selectedDirectory).deleteSync(recursive: true);
       } catch (e) {
         print("error on deletion of folder error is : $e");
@@ -489,39 +503,20 @@ class Logic extends GetxController {
     return (h * 60 * 60 + m * 60 + s) * 1000;
   }
 
-  Future<void> savePathSelector(BuildContext context) async {
-    if (selectedDirectory.value == null) {
-      var savePath = await FilePicker.platform.getDirectoryPath();
+  Future<bool> savePathSelector(BuildContext context) async {
+    if (selectedDirectory.value != null) {
+      return true; // early Return if we already have a working path
+    }
 
-      if (savePath != "/" && savePath != null) {
-        selectedDirectory.value = savePath;
-        box.put("savePath", selectedDirectory.value);
-        return;
-      }
-      Widget openSettings = TextButton(
-        child: const Text("Open settings"),
-        onPressed: () {},
-      );
+    var savePath = await FilePicker.platform.getDirectoryPath();
 
-      // set up the AlertDialog
-      AlertDialog alert = AlertDialog(
-        title: const Text("Storage Permission Denied"),
-        content: const Text(
-            "The app needs Storage permission to save VOD, without it the app won't work.\nOpen the settings to enable Storage Permission"),
-        actions: [
-          openSettings,
-        ],
-      );
-
-      // show the dialog
-      if (context.mounted) {
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return alert;
-          },
-        );
-      }
+    if (savePath != "/" && savePath != null) {
+      selectedDirectory.value = savePath;
+      box.put("savePath", selectedDirectory.value);
+      return true;
+    } else {
+      if (context.mounted) PermissionHandler.storagePathNotAvailable(context);
+      return false;
     }
   }
 
@@ -531,28 +526,34 @@ class Logic extends GetxController {
       showToast("No internet Connection", context, 50);
       return;
     }
-    if (!foundVideo.value && !context.mounted) return;
+    if (!foundVideo.value) return;
 
-    await PermissionHandler.requestNotificationPermission();
-
-    await PermissionHandler.requestStoragePermission();
-    if (await PermissionHandler.getStorageStatus() != true && context.mounted) {
-      _notificationcontroller.showAlertDialog(context);
+    // NOTIFICATION PERMISSION
+    // IMPLEMENT NOTIFICATION DISCLAIMER
+    if (await PermissionHandler.getNotificationStatus() == false) {
+      await PermissionHandler.requestNotificationPermission();
     }
 
-    await savePathSelector(context);
-
-    if (selectedDirectory.value == null || selectedDirectory.value == "/") {
-      // implement disclaimer for path is not available
-      return;
+    // STORAGE PERMISSION
+    if (await PermissionHandler.getStorageStatus() == false &&
+        context.mounted) {
+      var result = await PermissionHandler.showStorageInfo(context);
+      if (!result) return;
+      await PermissionHandler.requestStoragePermission();
+      if (await PermissionHandler.getStorageStatus() == false &&
+          context.mounted) {
+        PermissionHandler.storagePermissionRefused(context);
+      }
     }
 
-    if (startHour.value.text != "" &&
-        startMinute.value.text != "" &&
-        startSecond.value.text != "" &&
-        endHour.value.text != "" &&
-        endMinute.value.text != "" &&
-        endSecond.value.text != "") {
+    if (!await savePathSelector(context)) return;
+
+    if (startHour.value.text.isNotEmpty &&
+        startMinute.value.text.isNotEmpty &&
+        startSecond.value.text.isNotEmpty &&
+        endHour.value.text.isNotEmpty &&
+        endMinute.value.text.isNotEmpty &&
+        endSecond.value.text.isNotEmpty) {
       // turn all time to milliseconds
       var starttime = convertToMillisecond(int.parse(startHour.value.text),
           int.parse(startMinute.value.text), int.parse(startSecond.value.text));
@@ -561,13 +562,11 @@ class Logic extends GetxController {
         int.parse(endMinute.value.text),
         int.parse(endSecond.value.text),
       );
-      if (starttime == endtime) return;
+      if (starttime >= endtime) return;
 
       queeVideoDownload.add(
         {
-          "streamDate":
-              (videoData!["livestream"]["created_at"].split(" ")[0] as String)
-                  .replaceAll("-", "\\"),
+          "streamDate": (videoData!["livestream"]["created_at"].split(" ")[0]),
           "image": link.value,
           "quality": valueSelected.value,
           "downloading": false,
@@ -576,7 +575,7 @@ class Logic extends GetxController {
           "data": videoData,
           "link": lastVideoLink,
           "savePath":
-              "${selectedDirectory.value!}/[${videoData!["livestream"]["created_at"].split(" ")[0]} - ${DateTime.now().hour}:${DateTime.now().minute}:${DateTime.now().second}] ${videoData!["livestream"]["channel"]["user"]["username"]}",
+              "${selectedDirectory.value!}/[${videoData!["livestream"]["created_at"].split(" ")[0]} - ${DateTime.now().hour}h ${DateTime.now().minute}m ${DateTime.now().second}s] ${videoData!["livestream"]["channel"]["user"]["username"]}",
         },
       );
     } else {
@@ -637,11 +636,13 @@ class Logic extends GetxController {
     }
 
     String filename =
-        "$path/[${queeVideoDownload[0]["data"]["livestream"]["created_at"].split(" ")[0]}] - ${videoData!["livestream"]["channel"]["user"]["username"]} ${videoData!["livestream"]["session_title"]}.mp4";
+        "$path/[${queeVideoDownload[0]["data"]["livestream"]["created_at"].split(" ")[0]}] - ${videoData!["livestream"]["channel"]["user"]["username"]} ${(videoData!["livestream"]["session_title"] as String).replaceAll(RegExp(r'[|]+'), '-')}.mp4";
     String ffmpegCommand =
         '-y -i "$path/all.ts" $x -c:v libx264 -c:a copy "$filename"';
     try {
-      await FFmpegKit.execute(ffmpegCommand); // convert the ts file into mp4
+      var x = await FFmpegKit.execute(
+          ffmpegCommand); // convert the ts file into mp4
+      x.getState().then((value) => print(value.toString()));
       print("done converting");
       await deleteTs(tsFiles, path);
       print("done deleting");

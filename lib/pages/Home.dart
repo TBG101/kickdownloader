@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:get/get_state_manager/get_state_manager.dart';
 import 'package:kickdownloader/myColors.dart';
 import 'package:kickdownloader/pages/downloadPage.dart';
+import 'package:kickdownloader/utilities/PermissionHandler.dart';
 import 'package:kickdownloader/utilities/logic.dart';
 import 'package:kickdownloader/widgets/drawer.dart';
 import 'package:kickdownloader/widgets/homeWidgets/MyButton.dart';
@@ -18,6 +19,8 @@ class Home extends GetView<Logic> {
 
   List<Widget> homeView(size, BuildContext context) {
     return [
+    
+
       // STREAM THUMBNAIL
       const StreamThumbnail(),
       // TEXT FOR STREAM FIELDS
@@ -67,7 +70,6 @@ class Home extends GetView<Logic> {
                   controller.lastVideoLink.isNotEmpty,
             ),
           )),
-         
     ];
   }
 

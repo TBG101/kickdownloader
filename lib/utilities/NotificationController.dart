@@ -82,30 +82,4 @@ class NotificationController {
     }
   }
 
-  void showAlertDialog(BuildContext context) {
-    Widget openSettings = TextButton(
-      child: const Text("Open settings"),
-      onPressed: () {
-        openAppSettings();
-      },
-    );
-
-    // set up the AlertDialog
-    AlertDialog alert = AlertDialog(
-      title: const Text("Notification Denied"),
-      content: const Text(
-          "The app uses notification to show you the progress of the download.\nIf you want to enable notification open app settings"),
-      actions: [
-        openSettings,
-      ],
-    );
-
-    // show the dialog
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return alert;
-      },
-    );
-  }
 }
