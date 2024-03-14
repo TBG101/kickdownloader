@@ -50,7 +50,6 @@ dependencies:
   http: ^1.0.0
   connectivity_plus: ^2.3.8
 
-
 dev_dependencies:
   flutter_test:
     sdk: flutter

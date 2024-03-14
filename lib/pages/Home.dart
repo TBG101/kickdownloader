@@ -19,8 +19,6 @@ class Home extends GetView<Logic> {
 
   List<Widget> homeView(size, BuildContext context) {
     return [
-    
-
       // STREAM THUMBNAIL
       const StreamThumbnail(),
       // TEXT FOR STREAM FIELDS
@@ -101,7 +99,7 @@ class Home extends GetView<Logic> {
                 centerTitle: true,
                 leading: Builder(
                   builder: (context) => IconButton(
-                    icon: const Icon(Icons.menu_rounded),
+                    icon: const Icon(Icons.settings),
                     onPressed: () => Scaffold.of(context).openDrawer(),
                   ),
                 ),

@@ -23,8 +23,8 @@ class DownloadPage extends GetView<Logic> {
     }
   }
 
-  void deleteVOD(int i, int animatedListIndex) {
-    var element = controller.deleteFileDropdown(i);
+  void deleteVOD(int i, int animatedListIndex) async {
+    var element = controller.completedVideos[i];
 
     controller.animatedListKey.currentState!.removeItem(animatedListIndex,
         duration: const Duration(milliseconds: 250), (context, animation) {
@@ -44,6 +44,7 @@ class DownloadPage extends GetView<Logic> {
         ),
       );
     });
+    controller.deleteFileDropdown(i);
   }
 
   void cancelDownload(int index) {
@@ -130,7 +131,6 @@ class DownloadPage extends GetView<Logic> {
               },
               vodData: () {
                 controller.showFileInfoDialog(i, context);
-                
               },
               openPath: () {
                 controller.openDir(i);

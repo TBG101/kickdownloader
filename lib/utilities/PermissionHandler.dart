@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:kickdownloader/myColors.dart';
 import 'package:kickdownloader/utilities/MethodChannelHandler.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class PermissionHandler {
-  final MY_FONT = "zefa";
+  final myFont = "SpaceGrotesk";
 
   static Future<void> requestStoragePermission() async {
     var ver = await MethodChannelHandler.getDeviceVersion();
@@ -53,10 +54,9 @@ class PermissionHandler {
     }
   }
 
-  static Future<bool> showStorageInfo(BuildContext context) async {
-    var value = await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
+  static Future<bool> showStorageInfo() async {
+    var value = await Get.dialog(
+      AlertDialog(
         title: const Text("Storage Permission",
             style: TextStyle(fontFamily: "SpaceGrotesk")),
         content: const Text(
@@ -72,7 +72,7 @@ class PermissionHandler {
                 ),
               ),
               onPressed: () {
-                Navigator.of(context).pop(true);
+                Get.back(result: true);
               },
               child: const Text(
                 "Continue",
@@ -91,28 +91,19 @@ class PermissionHandler {
     }
   }
 
-  static void storagePermissionRefused(BuildContext context) {
+  static void storagePermissionRefused() {
     // IMPLEMENT FOR LOW THAN SPECIFIC API
-    showDialog(
-      context: context,
-      builder: (context) {
-        return const AlertDialog(
-          title:
-              Text("Disclaimer", style: TextStyle(fontFamily: "SpaceGrotesk")),
-          content: Text("The app will not work without Storage Permission ",
-              style: TextStyle(
-                  color: MyColors.white,
-                  fontSize: 16,
-                  fontFamily: "SpaceGrotesk")),
-        );
-      },
-    );
+    Get.dialog(const AlertDialog(
+      title: Text("Disclaimer", style: TextStyle(fontFamily: "SpaceGrotesk")),
+      content: Text("The app will not work without Storage Permission ",
+          style: TextStyle(
+              color: MyColors.white, fontSize: 16, fontFamily: "SpaceGrotesk")),
+    ));
   }
 
-  static void storagePathNotAvailable(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => const AlertDialog(
+  static void storagePathNotAvailable() {
+    Get.dialog(
+      const AlertDialog(
         title: Text("Path is not available",
             style: TextStyle(fontFamily: "SpaceGrotesk")),
         content: Text(
@@ -120,4 +111,102 @@ class PermissionHandler {
       ),
     );
   }
+
+  static Future<bool> showNotificationInfo() async {
+    var x = await Get.dialog(AlertDialog(
+      actionsAlignment: MainAxisAlignment.center,
+      title: const Text("Notification Permission",
+          style: TextStyle(fontFamily: "SpaceGrotesk")),
+      content: const Text(
+        "App needs notification permission to notify you about the download progress",
+        style: TextStyle(fontFamily: "SpaceGrotesk"),
+      ),
+      actions: [
+        ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: MyColors.green,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: () {
+              Get.back(result: false);
+            },
+            child: const Text(
+              "Don't Allow",
+              style: TextStyle(
+                  color: MyColors.white,
+                  fontSize: 14,
+                  fontFamily: "SpaceGrotesk"),
+            )),
+        ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: MyColors.green,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: () {
+              Get.back(result: true);
+            },
+            child: const Text(
+              "Request",
+              style: TextStyle(
+                  color: MyColors.white,
+                  fontSize: 14,
+                  fontFamily: "SpaceGrotesk"),
+            ))
+      ],
+    ));
+    return x ?? false;
+  }
+
+  static void showNotificationPermaRefused() {
+    Get.dialog(
+      AlertDialog(
+        title: const Text("Notification Permission"),
+        content:
+            const Text("You can always enable the permission in app settings."),
+        actions: [
+          ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: MyColors.green,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: () async {
+                Get.back();
+              },
+              child: const Text(
+                "Continue",
+                style: TextStyle(
+                    color: MyColors.white,
+                    fontSize: 14,
+                    fontFamily: "SpaceGrotesk"),
+              )),
+          ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: MyColors.green,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: () async {
+                openAppSettings();
+                Get.back();
+              },
+              child: const Text(
+                "App settings",
+                style: TextStyle(
+                    color: MyColors.white,
+                    fontSize: 14,
+                    fontFamily: "SpaceGrotesk"),
+              )),
+        ],
+      ),
+    );
+  }
+
+  
 }

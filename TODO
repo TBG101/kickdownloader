@@ -8,11 +8,8 @@ Home:
   - make animation for download button (could have)
 
 Logic:
-  - change the path package to use a simple dir finder with logic code 
-  - create a disclaimer for the user to inform him how to app works and how the app needs storage to function
+  - check if the disclaimer works for API 30 AND BELOW
 
-
-  
 Done:
   - fix click on notification gets it deleted
   - create better UI
@@ -22,6 +19,8 @@ Done:
   - Check for notification permission error
   - check for storage permissiosns error
   - implement no internet error
+  - change the path package to use a simple dir finder with logic code 
+
   GENERAL:
   - create a permission handler class
     - handle the storage permission and notifcation permission

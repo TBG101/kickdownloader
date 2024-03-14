@@ -3,7 +3,6 @@ import 'dart:io';
 import 'dart:math';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:ffmpeg_kit_flutter_https_gpl/ffmpeg_kit.dart';
-import 'package:ffmpeg_kit_flutter_https_gpl/session_state.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -18,7 +17,6 @@ import 'package:dio/dio.dart';
 import 'dart:async';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:path/path.dart' as packagepath;
 import 'package:http/http.dart' as http;
 
 class Logic extends GetxController {
@@ -209,9 +207,9 @@ class Logic extends GetxController {
       );
     } catch (e) {
       foundVideo.value = false;
+      print(e);
       resetAll();
-      showToast("Error occured", context, 300);
-
+      showToast("Wrong URL", context, 300);
       return 0;
     }
 
@@ -385,7 +383,10 @@ class Logic extends GetxController {
     }
 
     // Implement error
-    if (nbOfTsFiles == null) return;
+    if (nbOfTsFiles == null) {
+      Get.snackbar("error", "Error occured");
+      return;
+    }
 
     videoDownloadSizeBytes.value = (nbOfTsFiles * tsFileSize);
 
@@ -515,7 +516,7 @@ class Logic extends GetxController {
       box.put("savePath", selectedDirectory.value);
       return true;
     } else {
-      if (context.mounted) PermissionHandler.storagePathNotAvailable(context);
+      PermissionHandler.storagePathNotAvailable();
       return false;
     }
   }
@@ -530,19 +531,27 @@ class Logic extends GetxController {
 
     // NOTIFICATION PERMISSION
     // IMPLEMENT NOTIFICATION DISCLAIMER
+
     if (await PermissionHandler.getNotificationStatus() == false) {
-      await PermissionHandler.requestNotificationPermission();
+      if (await PermissionHandler.showNotificationInfo()) {
+        await PermissionHandler.requestNotificationPermission();
+      } else {
+        PermissionHandler.showNotificationPermaRefused();
+      }
     }
 
     // STORAGE PERMISSION
-    if (await PermissionHandler.getStorageStatus() == false &&
-        context.mounted) {
-      var result = await PermissionHandler.showStorageInfo(context);
-      if (!result) return;
+    var status = await PermissionHandler.getStorageStatus();
+    if (status == false) {
+      var result = await PermissionHandler.showStorageInfo();
+      if (!result) {
+        PermissionHandler.storagePermissionRefused();
+        return;
+      }
       await PermissionHandler.requestStoragePermission();
-      if (await PermissionHandler.getStorageStatus() == false &&
-          context.mounted) {
-        PermissionHandler.storagePermissionRefused(context);
+      if (await PermissionHandler.getStorageStatus() == false) {
+        PermissionHandler.storagePermissionRefused();
+        return;
       }
     }
 
@@ -736,17 +745,16 @@ class Logic extends GetxController {
     downloading = false;
   }
 
-  Map<dynamic, dynamic> deleteFileDropdown(int index) {
+  Future<void> deleteFileDropdown(int index) async {
     try {
-      Directory(packagepath.dirname(completedVideos[index]["path"]))
+      await Directory(getDir(completedVideos[index]["path"]))
           .delete(recursive: true);
     } catch (e) {
-      throw "error on deleted video : $e";
+      print("error on deleted video : $e");
     }
-    var deletedElement = completedVideos.removeAt(index);
+    completedVideos.removeAt(index);
     completedVideos.refresh();
     addVideoToHive();
-    return deletedElement;
   }
 
   void showToast(String msg, BuildContext context, double toastWidth) {
@@ -771,6 +779,12 @@ class Logic extends GetxController {
 
   void openDir(int index) {
     MethodChannelHandler.openDirectory(completedVideos[index]["path"]);
+  }
+
+  String getDir(String path) {
+    var x = path.split("/");
+    x.removeLast();
+    return "${x.join("/")}/";
   }
 
   void showFileInfoDialog(int index, BuildContext context) async {
