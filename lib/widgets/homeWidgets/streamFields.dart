@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:kickdownloader/myColors.dart';
 
 class StreamFields extends StatelessWidget {
   const StreamFields({super.key, required this.field, required this.text});

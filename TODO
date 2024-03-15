@@ -9,7 +9,8 @@ Home:
 
 Logic:
   - check if the disclaimer works for API 30 AND BELOW
-
+TimeSelector:
+  - turn both into 1 widget
 Done:
   - fix click on notification gets it deleted
   - create better UI

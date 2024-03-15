@@ -2,16 +2,14 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:ffmpeg_kit_flutter_https_gpl/ffmpeg_kit.dart';
+import 'package:ffmpeg_kit_flutter_min_gpl/ffmpeg_kit.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kickdownloader/utilities/MethodChannelHandler.dart';
 import 'package:kickdownloader/utilities/NotificationController.dart';
 import 'package:kickdownloader/utilities/PermissionHandler.dart';
 import 'package:media_scanner/media_scanner.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:get/get.dart' hide Response;
 import 'package:dio/dio.dart';
 import 'dart:async';
@@ -75,11 +73,9 @@ class Logic extends GetxController {
   void checkNetwork() {
     Connectivity().onConnectivityChanged.listen((ConnectivityResult result) {
       if (result == ConnectivityResult.none) {
-        print("inter not working");
         hasInternet = false;
       } else {
         hasInternet = true;
-        print("internetworking");
       }
     });
   }
@@ -89,16 +85,16 @@ class Logic extends GetxController {
   }
 
   void addVideoToHive() {
-    box.put("video", completedVideos.value);
+    box.put("video", completedVideos);
   }
 
   void resetAll() {
-    startHour.value.text = "";
-    startMinute.value.text = "";
-    startSecond.value.text = "";
-    endHour.value.text = "";
-    endMinute.value.text = "";
-    endSecond.value.text = "";
+    startHour.value.clear();
+    startMinute.value.clear();
+    startSecond.value.clear();
+    endHour.value.clear();
+    endMinute.value.clear();
+    endSecond.value.clear();
     endValue.value = false;
     startValue.value = false;
     streamer.value = "";
@@ -124,8 +120,6 @@ class Logic extends GetxController {
     checkNetwork();
 
     if (listOfVideos != null) {
-      print(listOfVideos);
-      // completedVideos.addAll(iterable)
       completedVideos.value =
           (listOfVideos as List).map((e) => e as Map).toList();
       completedVideos.refresh();
@@ -145,8 +139,7 @@ class Logic extends GetxController {
     return (((bytes / pow(1024, i))), suffixes[i]);
   }
 
-  void getVodData(BuildContext context) {
-    print(hasInternet);
+  void getVodData(BuildContext context) async {
     if (!hasInternet) {
       showToast("No internet Connection", context, 250);
       return;
@@ -155,35 +148,32 @@ class Logic extends GetxController {
     if (url.value.text.isEmpty || url.value.text == lastVideoLink) return;
     lastVideoLink = url.value.text;
     foundVideo.value = false;
-    getURL(context).then((response) async {
-      if (response != 200) return;
-      await getVidQuality();
-      print(resolutions);
-      var duration = Duration(
-          hours: 0,
-          seconds: 0,
-          minutes: 0,
-          milliseconds: videoData!["livestream"]["duration"] as int);
+    var response = await getURL(context);
 
-      streamer.value = videoData!["livestream"]["channel"]["slug"];
-      title.value = videoData!["livestream"]["session_title"];
-      stramDate.value = videoData!["livestream"]["created_at"].split(" ")[0];
-      streamLength.value = duration.toString().split('.')[0];
+    if (response != 200) {
+      return; // early reaturn if the response is diffrenet than 200
+    }
+    await getVidQuality();
+    var duration = Duration(
+        hours: 0,
+        seconds: 0,
+        minutes: 0,
+        milliseconds: videoData!["livestream"]["duration"] as int);
 
-      link.value = thumbnailLink();
-      print(resolutions.first);
-      valueSelected.value = resolutions.first;
-      print(videoData);
-    });
+    streamer.value = videoData!["livestream"]["channel"]["slug"];
+    title.value = videoData!["livestream"]["session_title"];
+    stramDate.value = videoData!["livestream"]["created_at"].split(" ")[0];
+    streamLength.value = duration.toString().split('.')[0];
+
+    link.value = thumbnailLink();
+    valueSelected.value = resolutions.first;
   }
 
   bool validURL() {
     RegExp validLinkPattern = RegExp(r'^https://kick.com/video/[a-zA-Z0-9-]+$');
     if (validLinkPattern.hasMatch(url.value.text)) {
-      print("LINK IS VALID");
       return true;
     } else {
-      print("LINK NOT VALID");
       return false;
     }
   }
@@ -195,10 +185,9 @@ class Logic extends GetxController {
       showToast("URL is not valid", context, 300);
     }
 
-    String _id = url.value.text.split('/').last;
+    String id = url.value.text.split('/').last;
     apiURL =
-        "https://kick.com/api/v1/video/$_id?${DateTime.now().millisecondsSinceEpoch}";
-    print("API URL: $apiURL");
+        "https://kick.com/api/v1/video/$id?${DateTime.now().millisecondsSinceEpoch}";
     late Response response;
 
     try {
@@ -207,16 +196,14 @@ class Logic extends GetxController {
       );
     } catch (e) {
       foundVideo.value = false;
-      print(e);
       resetAll();
       showToast("Wrong URL", context, 300);
       return 0;
     }
 
     if (response.statusCode == 200) {
-      print("RESPONSE: 200");
       videoData = json.decode(response.data);
-      apiURL = _id;
+      apiURL = id;
       return 200;
     } else {
       foundVideo.value = false;
@@ -230,14 +217,11 @@ class Logic extends GetxController {
 
   thumbnailLink() {
     var x = (videoData!["source"] as String).split("\/");
-    print(
-        "Thimbnail link: https://images.kick.com/video_thumbnails/${x[6]}/${x[12]}/480.webp");
     foundVideo.value = true;
     return "https://images.kick.com/video_thumbnails/${x[6]}/${x[12]}/480.webp";
   }
 
   Future<void> getVidQuality() async {
-    final Directory tempDir = await getTemporaryDirectory();
     var response = await _dio.get(
       videoData!["source"],
     );
@@ -264,16 +248,8 @@ class Logic extends GetxController {
         .transform(const LineSplitter())
         .forEach((element) async {
       if (!File("$path/$element").existsSync()) {
-        if (kDebugMode) {
-          print("FILE $element NOT DOWNLOADED");
-        }
         var r = await downloadTS(downloadPath, element, cancel);
-
         await saveTS(path, r?.data, "$element.ts");
-      } else {
-        if (kDebugMode) {
-          print("File exist");
-        }
       }
     });
   }
@@ -295,7 +271,6 @@ class Logic extends GetxController {
         continue;
       }
       if (timeMilliseconds >= endTime) {
-        print("ENDED TS WITH: $timeMilliseconds");
         break;
       }
       var line = playlist[i];
@@ -324,7 +299,6 @@ class Logic extends GetxController {
         }
       }
     } catch (e) {
-      print("error");
       return -1;
     }
     return -1;
@@ -337,7 +311,6 @@ class Logic extends GetxController {
       var (size, suffix) = formatBytes(fileSizeInBytes);
       return "${size.toStringAsFixed(2)} $suffix";
     } catch (e) {
-      print('Error getting file size: $e');
       return "Couldn't get file size";
     }
   }
@@ -355,9 +328,8 @@ class Logic extends GetxController {
     var slectedQuality = queeVideoDownload[0]["quality"];
     int? startTime = queeVideoDownload[0]["start"];
     int? endTime = queeVideoDownload[0]["end"];
-    var downloadURL = queeVideoDownload[0]["data"]["source"]
+    var downloadURL = queeVideoDownload[0]["downloadURL"]
         .replaceAll(RegExp(r'master\.[^/]*$'), "$slectedQuality/");
-    print(downloadURL + "playlist.m3u8");
     List<String> playlist = await getPlaylist(downloadURL);
 
     var tsFileSize = await getFileSize(downloadURL + "1.ts");
@@ -368,14 +340,13 @@ class Logic extends GetxController {
     await _notificationcontroller.createDownloadNotifcation(
         notificationId,
         'Started downloading VOD',
-        "Streamer ${queeVideoDownload[0]["data"]["livestream"]["channel"]["user"]["username"]}");
+        "Streamer ${queeVideoDownload[0]["username"]}");
 
     try {
       (overflowTime, nbOfTsFiles) = await writeGeneratedText(
           _selectedDirectory, playlist, endTime, startTime);
     } catch (e) {
       // IMPLEMENT ERROR GENERATING TEXT FILE
-      print("Error generating txt file $e");
       queeVideoDownload.removeAt(0);
       downloading = false;
 
@@ -405,7 +376,7 @@ class Logic extends GetxController {
             notificationId,
             file,
             'Downloading ${percentage.toStringAsFixed(0)}% ${(sizeVid * percentage / 100).toStringAsFixed(2)}/${sizeVid.toStringAsFixed(2)} $suffix',
-            "Streamer ${queeVideoDownload[0]["data"]["livestream"]["channel"]["user"]["username"]}",
+            "Streamer ${queeVideoDownload[0]["username"]}",
             videoDownloadPercentage.value);
 
         if (!downloading) {
@@ -418,7 +389,6 @@ class Logic extends GetxController {
         break;
       }
       queeList.add(int.parse(element.replaceAll(".ts", "")));
-      print("downloading $element");
       downloadTS(downloadURL, element, cancel).then((tsFile) {
         queeList.remove(int.parse(element.replaceAll(".ts", "")));
         saveTS("$_selectedDirectory/", tsFile?.data, element);
@@ -439,7 +409,7 @@ class Logic extends GetxController {
           notificationId,
           file,
           'Downloading ${percentage.toStringAsFixed(0)}% ${(sizeVid * percentage / 100).toStringAsFixed(2)}/${sizeVid.toStringAsFixed(2)} $suffix',
-          "Streamer ${queeVideoDownload[0]["data"]["livestream"]["channel"]["user"]["username"]}",
+          "Streamer ${queeVideoDownload[0]["username"]}",
           videoDownloadPercentage.value);
     }
     if (downloading) {
@@ -447,7 +417,7 @@ class Logic extends GetxController {
       await _notificationcontroller.updateNotificationEnd(
           notificationId,
           'Converting to MP4',
-          "Streamer ${queeVideoDownload[0]["data"]["livestream"]["channel"]["user"]["username"]}",
+          "Streamer ${queeVideoDownload[0]["username"]}",
           true);
       String? path;
       if (endTime == -1) {
@@ -459,7 +429,7 @@ class Logic extends GetxController {
       await _notificationcontroller.updateNotificationEnd(
           notificationId,
           'Download Completed',
-          "Streamer ${queeVideoDownload[0]["data"]["livestream"]["channel"]["user"]["username"]}",
+          "Streamer ${queeVideoDownload[0]["username"]}",
           false);
 
       DateTime now = DateTime.now();
@@ -468,9 +438,8 @@ class Logic extends GetxController {
         var fileSize = await getDownloadedSize(path);
         completedVideos.add({
           "streamDate": queeVideoDownload[0]["streamDate"],
-          "streamer": queeVideoDownload[0]["data"]["livestream"]["channel"]
-              ["user"]["username"],
-          "title": queeVideoDownload[0]["data"]["livestream"]["session_title"],
+          "streamer": queeVideoDownload[0]["username"],
+          "title": queeVideoDownload[0]["title"],
           "path": path,
           "link": queeVideoDownload[0]["link"],
           "image": queeVideoDownload[0]["image"],
@@ -483,10 +452,9 @@ class Logic extends GetxController {
       }
     } else {
       try {
-        print(("should delete now"));
         Directory(_selectedDirectory).deleteSync(recursive: true);
       } catch (e) {
-        print("error on deletion of folder error is : $e");
+        // IMPLEMENT ERROR
       }
       downloading = true;
       _notificationcontroller.dissmissNotification(notificationId);
@@ -504,7 +472,7 @@ class Logic extends GetxController {
     return (h * 60 * 60 + m * 60 + s) * 1000;
   }
 
-  Future<bool> savePathSelector(BuildContext context) async {
+  Future<bool> savePathSelector() async {
     if (selectedDirectory.value != null) {
       return true; // early Return if we already have a working path
     }
@@ -555,7 +523,10 @@ class Logic extends GetxController {
       }
     }
 
-    if (!await savePathSelector(context)) return;
+    if (!await savePathSelector()) return;
+
+    int? starttime;
+    int? endtime;
 
     if (startHour.value.text.isNotEmpty &&
         startMinute.value.text.isNotEmpty &&
@@ -571,38 +542,29 @@ class Logic extends GetxController {
         int.parse(endMinute.value.text),
         int.parse(endSecond.value.text),
       );
-      if (starttime >= endtime) return;
-
-      queeVideoDownload.add(
-        {
-          "streamDate": (videoData!["livestream"]["created_at"].split(" ")[0]),
-          "image": link.value,
-          "quality": valueSelected.value,
-          "downloading": false,
-          "start": starttime,
-          "end": endtime,
-          "data": videoData,
-          "link": lastVideoLink,
-          "savePath":
-              "${selectedDirectory.value!}/[${videoData!["livestream"]["created_at"].split(" ")[0]} - ${DateTime.now().hour}h ${DateTime.now().minute}m ${DateTime.now().second}s] ${videoData!["livestream"]["channel"]["user"]["username"]}",
-        },
-      );
-    } else {
-      queeVideoDownload.add({
-        "streamDate":
-            (videoData!["livestream"]["created_at"].split(" ")[0] as String)
-                .replaceAll("-", "\\"),
+      if (starttime >= endtime) {
+        //  Impelment error
+        return;
+      }
+    }
+    queeVideoDownload.add(
+      {
+        "downloading": false,
+        "streamDate": (videoData!["livestream"]["created_at"].split(" ")[0]),
         "image": link.value,
         "quality": valueSelected.value,
-        "downloading": false,
-        "start": 0,
-        "end": -1,
+        "start": starttime ?? 0,
+        "end": endtime ?? -1,
         "data": videoData,
         "link": lastVideoLink,
+        "title": queeVideoDownload[0]["data"]["livestream"]["session_title"],
+        "downloadURL": videoData!["data"]["source"],
+        "username": queeVideoDownload[0]["data"]["livestream"]["channel"]
+            ["user"]["username"],
         "savePath":
-            "${selectedDirectory.value!}/[${videoData!["livestream"]["created_at"].split(" ")[0]} - ${DateTime.now().hour}-${DateTime.now().minute}] ${videoData!["livestream"]["channel"]["user"]["username"]}"
-      });
-    }
+            "${selectedDirectory.value!}/[${videoData!["livestream"]["created_at"].split(" ")[0]} - ${DateTime.now().hour}h ${DateTime.now().minute}m ${DateTime.now().second}s] ${videoData!["livestream"]["channel"]["user"]["username"]}",
+      },
+    );
 
     if (queeVideoDownload[0]["downloading"] == false && downloading == false) {
       downloadVOD();
@@ -618,7 +580,6 @@ class Logic extends GetxController {
         .cast<File>()
         .toList();
     tsFiles.sort((a, b) => a.path.compareTo(b.path));
-    print(tsFiles);
     File outputFile = File('$path/all.ts');
     try {
       RandomAccessFile outputRandomAccessFile =
@@ -633,10 +594,8 @@ class Logic extends GetxController {
       }
 
       await outputRandomAccessFile.close();
-
-      print('Concatenation successful!');
     } catch (e) {
-      print('Error during concatenation: $e');
+      throw "Error during concatenation: $e";
     }
     // convert to mp4
     var x = "";
@@ -646,21 +605,22 @@ class Logic extends GetxController {
 
     String filename =
         "$path/[${queeVideoDownload[0]["data"]["livestream"]["created_at"].split(" ")[0]}] - ${videoData!["livestream"]["channel"]["user"]["username"]} ${(videoData!["livestream"]["session_title"] as String).replaceAll(RegExp(r'[|]+'), '-')}.mp4";
-    String ffmpegCommand =
-        '-y -i "$path/all.ts" $x -c:v libx264 -c:a copy "$filename"';
+
+    // NEW
+
+    String ffmpegCommand = '-y -i "$path/all.ts" $x -c copy "$filename"';
+    // OLD
+    // String ffmpegCommand =
+    //     '-y -i "$path/all.ts" $x -c:v libx264 -c:a copy "$filename"';
     try {
-      var x = await FFmpegKit.execute(
-          ffmpegCommand); // convert the ts file into mp4
-      x.getState().then((value) => print(value.toString()));
-      print("done converting");
+      await FFmpegKit.execute(ffmpegCommand); // convert the ts file into mp4
+
       await deleteTs(tsFiles, path);
-      print("done deleting");
       MediaScanner.loadMedia(path: filename);
       return filename;
     } catch (e) {
-      print("error on converting to mp4 : $e");
+      throw "error on converting to mp4 : $e";
     }
-    return null;
   }
 
   Future downloadTS(String path, String tsFileNB, CancelToken cancel) async {
@@ -681,8 +641,7 @@ class Logic extends GetxController {
       );
       return responseBytes;
     } catch (e) {
-      print("problem downloding ts error is: $e");
-      return null;
+      // Implement error on download TS
     }
   }
 
@@ -694,7 +653,6 @@ class Logic extends GetxController {
     File file = File(savePath + tsFileName);
     var raf = file.openSync(mode: FileMode.write);
     await raf.writeFrom(data);
-    print("saving $tsFileName");
   }
 
   getPlaylist(downloadURL) async {
@@ -702,14 +660,12 @@ class Logic extends GetxController {
   }
 
   deleteTs(List<File> tsFiles, path) async {
-    print(tsFiles);
     for (var file in tsFiles) {
       if (file.existsSync()) {
-        print("deleting ${file.path}");
         try {
           await file.delete();
         } catch (e) {
-          debugPrint("bug on fileTs list deletion");
+          // IMLEMENT COULDNT DELETE
         }
       }
     }
@@ -717,7 +673,7 @@ class Logic extends GetxController {
       await File("$path/all.ts").delete();
       await File("$path/generated.txt").delete();
     } catch (e) {
-      debugPrint("bug on all.ts deletion");
+      // IMPLEMENT COULDNT DELETE
     }
   }
 
@@ -749,9 +705,7 @@ class Logic extends GetxController {
     try {
       await Directory(getDir(completedVideos[index]["path"]))
           .delete(recursive: true);
-    } catch (e) {
-      print("error on deleted video : $e");
-    }
+    } catch (e) {}
     completedVideos.removeAt(index);
     completedVideos.refresh();
     addVideoToHive();

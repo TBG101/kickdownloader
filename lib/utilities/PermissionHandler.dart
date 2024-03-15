@@ -5,8 +5,6 @@ import 'package:kickdownloader/utilities/MethodChannelHandler.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class PermissionHandler {
-  final myFont = "SpaceGrotesk";
-
   static Future<void> requestStoragePermission() async {
     var ver = await MethodChannelHandler.getDeviceVersion();
     if (ver >= 30) {
@@ -207,6 +205,4 @@ class PermissionHandler {
       ),
     );
   }
-
-  
 }

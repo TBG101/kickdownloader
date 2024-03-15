@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:kickdownloader/myColors.dart';
 
 class MyButton extends StatelessWidget {
