@@ -70,7 +70,12 @@ class Logic extends GetxController {
   final GlobalKey<AnimatedListState> animatedListKey =
       GlobalKey<AnimatedListState>();
 
-  void checkNetwork() {
+  void checkNetwork() async {
+    await Connectivity().checkConnectivity().then(
+      (value) {
+        if (value == ConnectivityResult.none) hasInternet = false;
+      },
+    );
     Connectivity().onConnectivityChanged.listen((ConnectivityResult result) {
       if (result == ConnectivityResult.none) {
         hasInternet = false;
@@ -112,11 +117,6 @@ class Logic extends GetxController {
     var listOfVideos = box.get("video");
     selectedDirectory.value = box.get("savePath");
 
-    Connectivity().checkConnectivity().then(
-      (value) {
-        if (value == ConnectivityResult.none) hasInternet = false;
-      },
-    );
     checkNetwork();
 
     if (listOfVideos != null) {
@@ -146,13 +146,14 @@ class Logic extends GetxController {
     }
 
     if (url.value.text.isEmpty || url.value.text == lastVideoLink) return;
-    lastVideoLink = url.value.text;
+
     foundVideo.value = false;
     var response = await getURL(context);
 
     if (response != 200) {
       return; // early reaturn if the response is diffrenet than 200
     }
+    lastVideoLink = url.value.text;
     await getVidQuality();
     var duration = Duration(
         hours: 0,
@@ -167,15 +168,13 @@ class Logic extends GetxController {
 
     link.value = thumbnailLink();
     valueSelected.value = resolutions.first;
+    foundVideo.value = true;
   }
 
   bool validURL() {
-    RegExp validLinkPattern = RegExp(r'^https://kick.com/video/[a-zA-Z0-9-]+$');
-    if (validLinkPattern.hasMatch(url.value.text)) {
-      return true;
-    } else {
-      return false;
-    }
+    RegExp validLinkPattern =
+        RegExp(r'^(kick.com|https://kick.com)/video/[a-zA-Z0-9-]+$');
+    return validLinkPattern.hasMatch(url.value.text);
   }
 
   Future<int> getURL(context) async {
@@ -217,7 +216,6 @@ class Logic extends GetxController {
 
   thumbnailLink() {
     var x = (videoData!["source"] as String).split("\/");
-    foundVideo.value = true;
     return "https://images.kick.com/video_thumbnails/${x[6]}/${x[12]}/480.webp";
   }
 
@@ -255,8 +253,7 @@ class Logic extends GetxController {
   }
 
   Future<(int?, int?)> writeGeneratedText(String savepath,
-      List<String> playlist, int? endTime, int? startTime) async {
-    if (endTime == null || startTime == null) return (null, null);
+      List<String> playlist, int endTime, int startTime) async {
     try {
       File("$savepath/generated.txt").createSync(recursive: true);
     } catch (e) {
@@ -265,12 +262,17 @@ class Logic extends GetxController {
     var timeMilliseconds = 0;
     int? overflowTime;
     int nbOfTsFiles = 0;
+
+    if (endTime == -1) {
+      playlist[playlist.length - 2];
+    }
+
     for (int i = 0; i < playlist.length; i++) {
       if (playlist[i].contains("#EXTINF:") == false) {
-        // Go to the iteration
         continue;
       }
-      if (timeMilliseconds >= endTime) {
+
+      if (timeMilliseconds >= endTime && endTime != -1) {
         break;
       }
       var line = playlist[i];
@@ -326,8 +328,8 @@ class Logic extends GetxController {
     String _selectedDirectory = queeVideoDownload[0]["savePath"];
     List<int> queeList = [];
     var slectedQuality = queeVideoDownload[0]["quality"];
-    int? startTime = queeVideoDownload[0]["start"];
-    int? endTime = queeVideoDownload[0]["end"];
+    int startTime = queeVideoDownload[0]["start"];
+    int endTime = queeVideoDownload[0]["end"];
     var downloadURL = queeVideoDownload[0]["downloadURL"]
         .replaceAll(RegExp(r'master\.[^/]*$'), "$slectedQuality/");
     List<String> playlist = await getPlaylist(downloadURL);
@@ -421,10 +423,10 @@ class Logic extends GetxController {
           true);
       String? path;
       if (endTime == -1) {
-        path = await mergeToMp4(_selectedDirectory, null, null);
+        path = await mergeToMp4(_selectedDirectory, overflowTime ?? 0, null);
       } else {
         path = await mergeToMp4(
-            _selectedDirectory, overflowTime ?? 0, (endTime! - startTime!));
+            _selectedDirectory, overflowTime ?? 0, (endTime - startTime));
       }
       await _notificationcontroller.updateNotificationEnd(
           notificationId,
@@ -535,17 +537,25 @@ class Logic extends GetxController {
         endMinute.value.text.isNotEmpty &&
         endSecond.value.text.isNotEmpty) {
       // turn all time to milliseconds
-      var starttime = convertToMillisecond(int.parse(startHour.value.text),
+      starttime = convertToMillisecond(int.parse(startHour.value.text),
           int.parse(startMinute.value.text), int.parse(startSecond.value.text));
-      var endtime = convertToMillisecond(
-        int.parse(endHour.value.text),
-        int.parse(endMinute.value.text),
-        int.parse(endSecond.value.text),
-      );
+      endtime = convertToMillisecond(int.parse(endHour.value.text),
+          int.parse(endMinute.value.text), int.parse(endSecond.value.text));
+
       if (starttime >= endtime) {
         //  Impelment error
         return;
       }
+    } else if (startHour.value.text.isNotEmpty &&
+        startMinute.value.text.isNotEmpty &&
+        startSecond.value.text.isNotEmpty) {
+      starttime = convertToMillisecond(int.parse(startHour.value.text),
+          int.parse(startMinute.value.text), int.parse(startSecond.value.text));
+    } else if (endHour.value.text.isNotEmpty &&
+        endMinute.value.text.isNotEmpty &&
+        endSecond.value.text.isNotEmpty) {
+      endtime = convertToMillisecond(int.parse(endHour.value.text),
+          int.parse(endMinute.value.text), int.parse(endSecond.value.text));
     }
     queeVideoDownload.add(
       {
@@ -557,10 +567,9 @@ class Logic extends GetxController {
         "end": endtime ?? -1,
         "data": videoData,
         "link": lastVideoLink,
-        "title": queeVideoDownload[0]["data"]["livestream"]["session_title"],
-        "downloadURL": videoData!["data"]["source"],
-        "username": queeVideoDownload[0]["data"]["livestream"]["channel"]
-            ["user"]["username"],
+        "title": videoData!["livestream"]["session_title"],
+        "downloadURL": videoData!["source"],
+        "username": videoData!["livestream"]["channel"]["user"]["username"],
         "savePath":
             "${selectedDirectory.value!}/[${videoData!["livestream"]["created_at"].split(" ")[0]} - ${DateTime.now().hour}h ${DateTime.now().minute}m ${DateTime.now().second}s] ${videoData!["livestream"]["channel"]["user"]["username"]}",
       },
@@ -572,7 +581,7 @@ class Logic extends GetxController {
   }
 
   Future<String?> mergeToMp4(
-      String path, int? overflowStart, int? overflowEnd) async {
+      String path, int overflowStart, int? overflowEnd) async {
     var directory = Directory(path);
     List<File> tsFiles = directory
         .listSync()
@@ -599,12 +608,15 @@ class Logic extends GetxController {
     }
     // convert to mp4
     var x = "";
-    if (overflowStart != null && overflowEnd != null) {
+    if (overflowEnd != null) {
       x = "-ss ${formatMilliseconds(overflowStart)} -t ${formatMilliseconds(overflowEnd)}";
+    } else {
+      x = "-ss ${formatMilliseconds(overflowStart)} ";
     }
 
+    var validFileName= RegExp(r'[\"*\/:<>?\\|]');
     String filename =
-        "$path/[${queeVideoDownload[0]["data"]["livestream"]["created_at"].split(" ")[0]}] - ${videoData!["livestream"]["channel"]["user"]["username"]} ${(videoData!["livestream"]["session_title"] as String).replaceAll(RegExp(r'[|]+'), '-')}.mp4";
+        "$path/[${queeVideoDownload[0]["streamDate"]}] - ${queeVideoDownload[0]["username"]} ${(queeVideoDownload[0]["title"] as String).replaceAll(validFileName, '-')}.mp4";
 
     // NEW
 
