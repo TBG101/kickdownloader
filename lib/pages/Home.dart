@@ -19,6 +19,7 @@ class Home extends GetView<Logic> {
   List<Widget> homeView(size, BuildContext context) {
     return [
       // STREAM THUMBNAIL
+
       const StreamThumbnail(),
       // TEXT FOR STREAM FIELDS
       Padding(
@@ -98,7 +99,7 @@ class Home extends GetView<Logic> {
                 centerTitle: true,
                 leading: Builder(
                   builder: (context) => IconButton(
-                    icon: const Icon(Icons.settings),
+                    icon: const Icon(Icons.menu_rounded),
                     onPressed: () => Scaffold.of(context).openDrawer(),
                   ),
                 ),

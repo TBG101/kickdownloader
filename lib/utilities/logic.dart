@@ -16,6 +16,7 @@ import 'dart:async';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:http/http.dart' as http;
+import 'package:package_info_plus/package_info_plus.dart';
 
 class Logic extends GetxController {
   final navigatorKey = GlobalKey<NavigatorState>();
@@ -63,6 +64,8 @@ class Logic extends GetxController {
   final _dio = Dio();
   // cancel token for dio()
   late CancelToken cancel;
+
+  late String appVersion;
 
   // Open Hive
   late Box box;
@@ -114,6 +117,8 @@ class Logic extends GetxController {
   void onReady() async {
     // TODO: implement onReady
     await initHive();
+    appVersion = (await PackageInfo.fromPlatform()).version;
+
     var listOfVideos = box.get("video");
     selectedDirectory.value = box.get("savePath");
 
@@ -614,7 +619,7 @@ class Logic extends GetxController {
       x = "-ss ${formatMilliseconds(overflowStart)} ";
     }
 
-    var validFileName= RegExp(r'[\"*\/:<>?\\|]');
+    var validFileName = RegExp(r'[\"*\/:<>?\\|]');
     String filename =
         "$path/[${queeVideoDownload[0]["streamDate"]}] - ${queeVideoDownload[0]["username"]} ${(queeVideoDownload[0]["title"] as String).replaceAll(validFileName, '-')}.mp4";
 

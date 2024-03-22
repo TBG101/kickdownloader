@@ -29,6 +29,7 @@ class DownloadPage extends GetView<Logic> {
     controller.animatedListKey.currentState!.removeItem(animatedListIndex,
         duration: const Duration(milliseconds: 250), (context, animation) {
       return SizeTransition(
+        axisAlignment: -1,
         sizeFactor: CurvedAnimation(
             parent: animation, curve: const FlippedCurve(Curves.decelerate)),
         child: FadeTransition(

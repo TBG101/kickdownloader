@@ -1,5 +1,11 @@
+GENERAL:
+  - Add settings
+  - Add  license
+  - fix the sorting problem with downloaded
+  - Add ADS
+  
 downloadPage:
-  - add the file info 
+
 
 clipDownloader:
   - add a clip downloader page (or make it in the same page) (probabaly not gonna add it since i couldnt find a  way tot fethc the vod)
@@ -20,10 +26,11 @@ Done:
   - Check for notification permission error
   - check for storage permissiosns error
   - implement no internet error
-  - change the path package to use a simple dir finder with logic code 
+  - change the path package to use a simple dir finder with logic code
+  - add the file info  
 
   GENERAL:
-  - create a permission handler class
+    - create a permission handler class
     - handle the storage permission and notifcation permission
   NotificationContoller:
   - Move all awesomenotifcation controller to this class

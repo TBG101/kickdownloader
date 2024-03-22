@@ -37,23 +37,7 @@ class MyApp extends StatelessWidget {
       title: 'Kick VOD donwloader',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: MyColors.background,
-        primaryColor: MyColors.green,
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ButtonStyle(
-            backgroundColor: MaterialStateProperty.all(MyColors.green),
-            elevation: MaterialStateProperty.all(2),
-          ),
-        ),
-        textTheme: const TextTheme().apply(
-          fontFamily: "SpaceGrotesk",
-          bodyColor: Colors.red,
-          displayColor: Colors.red,
-        ),
-      ),
-      darkTheme: ThemeData(
+        fontFamily: "SpaceGrotesk",
         useMaterial3: true,
         brightness: Brightness.dark,
         scaffoldBackgroundColor: MyColors.background,
