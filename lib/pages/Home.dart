@@ -41,6 +41,7 @@ class Home extends GetView<Logic> {
           child: MyButton(
             text: 'Get VOD data',
             onTap: () {
+              FocusManager.instance.primaryFocus?.unfocus();
               controller.getVodData(context);
             },
             enabled: true,

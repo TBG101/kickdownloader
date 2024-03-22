@@ -3,6 +3,12 @@ GENERAL:
   - Add  license
   - fix the sorting problem with downloaded
   - Add ADS
+  - add upgrade to premium
+  
+TimeSelector:
+  - turn both into 1 widget
+  - fix the time in timewidget
+  - add sorted time selection ie:: when the users taps on enter he goes to the next time +
   
 downloadPage:
 
@@ -15,8 +21,6 @@ Home:
 
 Logic:
   - check if the disclaimer works for API 30 AND BELOW
-TimeSelector:
-  - turn both into 1 widget
 Done:
   - fix click on notification gets it deleted
   - create better UI

@@ -23,7 +23,7 @@ class myDrawer extends GetView<Logic> {
                 ),
               );
             },
-            title: const Text("Versions"),
+            title: const Text("Version"),
           ),
           ListTile(
             leading: const Icon(Icons.shopping_cart_outlined),

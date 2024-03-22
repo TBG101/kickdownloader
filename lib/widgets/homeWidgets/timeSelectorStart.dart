@@ -74,14 +74,14 @@ class TimeSelectorRowStart extends GetView<Logic> {
                         controller: controller.startHour.value,
                       ),
                       VideoTimeWidget(
-                        text: "S",
+                        text: "M",
                         padLeft: 9,
                         enable: controller.foundVideo.value &&
                             controller.startValue.value,
                         controller: controller.startMinute.value,
                       ),
                       VideoTimeWidget(
-                        text: "M",
+                        text: "S",
                         padLeft: 9,
                         enable: controller.foundVideo.value &&
                             controller.startValue.value,

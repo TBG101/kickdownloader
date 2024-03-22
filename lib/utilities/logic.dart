@@ -149,10 +149,13 @@ class Logic extends GetxController {
       showToast("No internet Connection", context, 250);
       return;
     }
+    if (url.value.text.isEmpty || url.value.text == lastVideoLink) {
+      showToast("Link not valid", context, 250);
+      return;
+    }
 
-    if (url.value.text.isEmpty || url.value.text == lastVideoLink) return;
+    foundVideo.value = false; 
 
-    foundVideo.value = false;
     var response = await getURL(context);
 
     if (response != 200) {

@@ -9,12 +9,12 @@ class DropdownSelector extends GetView<Logic> {
   List<DropdownMenuItem<String>> listitemButton() {
     if (controller.resolutions.isEmpty) return [];
     List<DropdownMenuItem<String>> e = [];
-    controller.resolutions.forEach((element) {
+    for (var element in controller.resolutions) {
       e.add(DropdownMenuItem(
         value: element,
         child: Text(element),
       ));
-    });
+    }
     return e;
   }
 

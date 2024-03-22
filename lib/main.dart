@@ -36,7 +36,8 @@ class MyApp extends StatelessWidget {
     return GetMaterialApp(
       title: 'Kick VOD donwloader',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
+      themeMode: ThemeMode.dark,
+      darkTheme: ThemeData(
         fontFamily: "SpaceGrotesk",
         useMaterial3: true,
         brightness: Brightness.dark,
@@ -48,13 +49,15 @@ class MyApp extends StatelessWidget {
             elevation: MaterialStateProperty.all(2),
           ),
         ),
+        dialogTheme: const DialogTheme(
+          titleTextStyle: TextStyle(fontSize: 1),
+        ),
         textTheme: const TextTheme().apply(
           fontFamily: "SpaceGrotesk",
           bodyColor: MyColors.white,
           displayColor: MyColors.white,
         ),
       ),
-      themeMode: ThemeMode.dark,
       home: const Home(),
     );
   }

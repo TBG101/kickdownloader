@@ -29,6 +29,16 @@ class VideoTimeWidget extends StatelessWidget {
             inputFormatters: <TextInputFormatter>[
               FilteringTextInputFormatter.digitsOnly
             ],
+            textInputAction: TextInputAction.next,
+            onChanged: (value) {
+              var time = int.tryParse(value);
+              if (time == null) return;
+              if (text == "S" || text == "M") {
+                if (time < 0 && time > 60) {
+                  value = "0";
+                }
+              }
+            },
             enabled: enable,
             textAlign: TextAlign.center,
             decoration: InputDecoration(

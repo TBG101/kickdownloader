@@ -47,7 +47,7 @@ dependencies:
   http: ^1.0.0
   connectivity_plus: ^2.3.8
   dart_code_metrics: ^4.19.2
-  package_info_plus: ^6.0.0
+  package_info_plus: ^5.0.1
 
 dev_dependencies:
   flutter_test:

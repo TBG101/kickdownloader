@@ -11,6 +11,7 @@ class InputStreamUrl extends GetView<Logic> {
         padding: const EdgeInsets.only(top: 10),
         child: TextField(
           controller: controller.url.value,
+          autocorrect: false,
           decoration: const InputDecoration(
               hintText: "Stream URL", border: OutlineInputBorder()),
         ));
