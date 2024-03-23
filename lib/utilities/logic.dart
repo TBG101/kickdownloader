@@ -65,7 +65,8 @@ class Logic extends GetxController {
   // cancel token for dio()
   late CancelToken cancel;
 
-  late String appVersion;
+  late final String appVersion;
+  late final String appName;
 
   // Open Hive
   late Box box;
@@ -118,6 +119,7 @@ class Logic extends GetxController {
     // TODO: implement onReady
     await initHive();
     appVersion = (await PackageInfo.fromPlatform()).version;
+    appName = (await PackageInfo.fromPlatform()).appName;
 
     var listOfVideos = box.get("video");
     selectedDirectory.value = box.get("savePath");
@@ -139,7 +141,7 @@ class Logic extends GetxController {
 
   (double, String) formatBytes(int bytes) {
     if (bytes <= 0) return (0, "B");
-    const suffixes = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+    const suffixes = ["B", "KB", "MB", "GB"];
     var i = (log(bytes) / log(1024)).floor();
     return (((bytes / pow(1024, i))), suffixes[i]);
   }
@@ -154,7 +156,7 @@ class Logic extends GetxController {
       return;
     }
 
-    foundVideo.value = false; 
+    foundVideo.value = false;
 
     var response = await getURL(context);
 

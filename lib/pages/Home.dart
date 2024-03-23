@@ -87,7 +87,7 @@ class Home extends GetView<Logic> {
           child: GetBuilder(
             init: controller,
             builder: (controller) => Scaffold(
-              drawer: const myDrawer(),
+              drawer: const MyDrawer(),
               appBar: AppBar(
                 title: const Text(
                   "Kick Downloader VOD",

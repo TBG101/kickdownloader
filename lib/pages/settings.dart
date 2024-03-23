@@ -22,7 +22,7 @@ class Settings extends GetView<Logic> {
           centerTitle: true,
           leading: Builder(
             builder: (context) => IconButton(
-              icon: const Icon(Icons.arrow_left),
+              icon: const Icon(Icons.arrow_back_ios_new_rounded),
               onPressed: () => Get.back(),
             ),
           ),

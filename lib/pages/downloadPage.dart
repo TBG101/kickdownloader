@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:get/get.dart';
 import 'package:kickdownloader/utilities/logic.dart';
 import 'package:kickdownloader/widgets/downloadPage/videoCard.dart';
@@ -26,26 +27,53 @@ class DownloadPage extends GetView<Logic> {
   void deleteVOD(int i, int animatedListIndex) async {
     var element = controller.completedVideos[i];
 
-    controller.animatedListKey.currentState!.removeItem(animatedListIndex,
-        duration: const Duration(milliseconds: 250), (context, animation) {
-      return SizeTransition(
-        axisAlignment: -1,
-        sizeFactor: CurvedAnimation(
-            parent: animation, curve: const FlippedCurve(Curves.decelerate)),
-        child: FadeTransition(
-          opacity: CurvedAnimation(
-              parent: animation, curve: const FlippedCurve(Curves.decelerate)),
-          child: VideoCard(
-            title: "${element["streamer"]} - ${element["title"]}",
-            image: element["image"],
-            subtitle: "Downloaded",
-            download: false,
-            deleteVOD: null,
-          ),
-        ),
-      );
-    });
-    controller.deleteFileDropdown(i);
+    controller.animatedListKey.currentState!.removeItem(
+      animatedListIndex,
+      (context, animation) {
+        return VideoCard(
+          title: "${element["streamer"]} - ${element["title"]}",
+          image: element["image"],
+          subtitle: "Downloaded",
+          download: false,
+          deleteVOD: null,
+        )
+            .animate()
+            .scaleY(
+              duration: const Duration(milliseconds: 250),
+              alignment: Alignment.topCenter,
+              curve: const FlippedCurve(Curves.ease),
+              begin: 1,
+              end: 0,
+            )
+            .fadeOut(
+              duration: const Duration(milliseconds: 230),
+              curve: const FlippedCurve(Curves.easeIn),
+            );
+
+        // return SizeTransition(
+        //   axisAlignment: -1,
+        //   sizeFactor: CurvedAnimation(
+        //       parent: animation, curve: const FlippedCurve(Curves.decelerate)),
+        //   child: FadeTransition(
+        //     opacity: CurvedAnimation(
+        //         parent: animation,
+        //         curve: const FlippedCurve(Curves.decelerate)),
+        //     child: VideoCard(
+        //       title: "${element["streamer"]} - ${element["title"]}",
+        //       image: element["image"],
+        //       subtitle: "Downloaded",
+        //       download: false,
+        //       deleteVOD: null,
+        //     ),
+        //   ),
+        // );
+      },
+    );
+
+    await Future.delayed(const Duration(milliseconds: 300));
+    // THIS IS FOR TESTING
+    // controller.animatedListKey.currentState!.insertItem(i);
+    // controller.deleteFileDropdown(i);
   }
 
   void cancelDownload(int index) {
@@ -82,14 +110,14 @@ class DownloadPage extends GetView<Logic> {
     return Obx(() {
       if (controller.queeVideoDownload.isEmpty &&
           controller.completedVideos.isEmpty) {
-        return const Center(
-            child: Text(
+        return Center(
+            child: const Text(
           "You have no videos",
           style: TextStyle(
             fontSize: 20,
             color: Colors.white,
           ),
-        ));
+        ).animate().fadeIn(duration: const Duration(milliseconds: 250)));
       }
       return AnimatedList(
         key: controller.animatedListKey,

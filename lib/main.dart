@@ -16,15 +16,14 @@ void main() async {
       [
         NotificationChannel(
             channelKey: 'channel',
-            channelName: 'Basic notifications',
-            channelDescription: 'Notification channel for basic tests',
+            channelName: 'Notification download notifier',
+            channelDescription: 'Notification channel for download notifier',
             defaultColor: const Color(0xFF9D50DD),
             playSound: true,
             locked: true,
             ledColor: Colors.white)
       ],
-      // Channel groups are only visual and are not required
-      debug: false);
+      debug: true);
   runApp(const MyApp());
 }
 
@@ -43,19 +42,13 @@ class MyApp extends StatelessWidget {
         brightness: Brightness.dark,
         scaffoldBackgroundColor: MyColors.background,
         primaryColor: MyColors.green,
+        textTheme:
+            const TextTheme(titleLarge: TextStyle(fontFamily: "SpaceGrotesk")),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ButtonStyle(
             backgroundColor: MaterialStateProperty.all(MyColors.green),
             elevation: MaterialStateProperty.all(2),
           ),
-        ),
-        dialogTheme: const DialogTheme(
-          titleTextStyle: TextStyle(fontSize: 1),
-        ),
-        textTheme: const TextTheme().apply(
-          fontFamily: "SpaceGrotesk",
-          bodyColor: MyColors.white,
-          displayColor: MyColors.white,
         ),
       ),
       home: const Home(),

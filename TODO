@@ -5,6 +5,7 @@ GENERAL:
   - Add ADS
   - add upgrade to premium
   
+  -when the downloded finished it get removed from the quee list if lenght !=1 then it gets reinserted 
 TimeSelector:
   - turn both into 1 widget
   - fix the time in timewidget
