@@ -73,7 +73,7 @@ class DownloadPage extends GetView<Logic> {
     await Future.delayed(const Duration(milliseconds: 300));
     // THIS IS FOR TESTING
     // controller.animatedListKey.currentState!.insertItem(i);
-    // controller.deleteFileDropdown(i);
+    controller.deleteFileDropdown(i);
   }
 
   void cancelDownload(int index) {
