@@ -24,61 +24,51 @@ class DownloadPage extends GetView<Logic> {
     }
   }
 
-  void deleteVOD(int i, int animatedListIndex) async {
+  void deleteVOD(int i, int animatedListIndex, int length) async {
     var element = controller.completedVideos[i];
+
+    if (length != 1) {
+      await controller.deleteFileDropdown(i);
+    }
 
     controller.animatedListKey.currentState!.removeItem(
       animatedListIndex,
+      duration: const Duration(milliseconds: 400),
       (context, animation) {
-        return VideoCard(
-          title: "${element["streamer"]} - ${element["title"]}",
-          image: element["image"],
-          subtitle: "Downloaded",
-          download: false,
-          deleteVOD: null,
-        )
-            .animate()
-            .scaleY(
-              duration: const Duration(milliseconds: 250),
-              alignment: Alignment.topCenter,
-              curve: const FlippedCurve(Curves.ease),
-              begin: 1,
-              end: 0,
+        return SizeTransition(
+            axis: Axis.vertical,
+            axisAlignment: -1,
+            sizeFactor:
+                CurvedAnimation(curve: Curves.easeIn, parent: animation),
+            child: VideoCard(
+              title: "${element["streamer"]} - ${element["title"]}",
+              image: element["image"],
+              subtitle: "Downloaded",
+              download: false,
+              deleteVOD: null,
             )
-            .fadeOut(
-              duration: const Duration(milliseconds: 230),
-              curve: const FlippedCurve(Curves.easeIn),
-            );
-
-        // return SizeTransition(
-        //   axisAlignment: -1,
-        //   sizeFactor: CurvedAnimation(
-        //       parent: animation, curve: const FlippedCurve(Curves.decelerate)),
-        //   child: FadeTransition(
-        //     opacity: CurvedAnimation(
-        //         parent: animation,
-        //         curve: const FlippedCurve(Curves.decelerate)),
-        //     child: VideoCard(
-        //       title: "${element["streamer"]} - ${element["title"]}",
-        //       image: element["image"],
-        //       subtitle: "Downloaded",
-        //       download: false,
-        //       deleteVOD: null,
-        //     ),
-        //   ),
-        // );
+                .animate()
+                .fadeOut(
+                    duration: const Duration(milliseconds: 150),
+                    curve: Curves.easeIn)
+                .scaleY(
+                    begin: 1,
+                    end: 0,
+                    alignment: Alignment.topCenter,
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeIn));
       },
     );
 
-    await Future.delayed(const Duration(milliseconds: 300));
-    // THIS IS FOR TESTING
-    // controller.animatedListKey.currentState!.insertItem(i);
-    controller.deleteFileDropdown(i);
+    if (length == 1) {
+      await Future.delayed(const Duration(milliseconds: 400))
+          .then((value) => controller.deleteFileDropdown(i));
+    }
   }
 
   void cancelDownload(int index) {
     var name =
-        "${controller.queeVideoDownload[index]["data"]["livestream"]["channel"]["user"]["username"]} - ${controller.queeVideoDownload[index]["data"]["livestream"]["session_title"]}";
+        "${controller.queeVideoDownload[index]["username"]} - ${controller.queeVideoDownload[index]["title"]}";
     var img = controller.queeVideoDownload[index]["image"];
     var sub = textSelector(index);
     var download = index == 0 ? true : false;
@@ -120,6 +110,7 @@ class DownloadPage extends GetView<Logic> {
         ).animate().fadeIn(duration: const Duration(milliseconds: 250)));
       }
       return AnimatedList(
+        physics: const BouncingScrollPhysics(),
         key: controller.animatedListKey,
         initialItemCount: controller.queeVideoDownload.length +
             controller.completedVideos.length,
@@ -128,7 +119,7 @@ class DownloadPage extends GetView<Logic> {
             return Obx(() {
               return VideoCard(
                 title:
-                    "${controller.queeVideoDownload[index]["data"]["livestream"]["channel"]["user"]["username"]} - ${controller.queeVideoDownload[index]["data"]["livestream"]["session_title"]}",
+                    "${controller.queeVideoDownload[index]["username"]} - ${controller.queeVideoDownload[index]["title"]}",
                 image: controller.queeVideoDownload[index]["image"],
                 subtitle: textSelector(index),
                 download: index == 0 ? true : false,
@@ -144,28 +135,41 @@ class DownloadPage extends GetView<Logic> {
           }
 
           var i = index - (controller.queeVideoDownload.length);
-          return Obx(() {
-            return VideoCard(
-              title:
-                  "${controller.completedVideos[i]["streamer"]} - ${controller.completedVideos[i]["title"]}",
-              image: controller.completedVideos[i]["image"],
-              subtitle: "Downloaded",
-              download: false,
-              deleteVOD: () {
-                deleteVOD(i, index);
-              },
-              cancelDownload: null,
-              copyLink: () {
-                controller.copyLinkToClipboard(i, context);
-              },
-              vodData: () {
-                controller.showFileInfoDialog(i, context);
-              },
-              openPath: () {
-                controller.openDir(i);
-              },
-            );
-          });
+          return Obx(
+            () => SizeTransition(
+                key: UniqueKey(),
+                axis: Axis.vertical,
+                axisAlignment: -1,
+                sizeFactor:
+                    CurvedAnimation(parent: animation, curve: Curves.ease),
+                child: FadeTransition(
+                  opacity: Tween<double>(begin: 0, end: 1).animate(animation),
+                  child: VideoCard(
+                    title:
+                        "${controller.completedVideos[i]["streamer"]} - ${controller.completedVideos[i]["title"]}",
+                    image: controller.completedVideos[i]["image"],
+                    subtitle: "Downloaded",
+                    download: false,
+                    deleteVOD: () {
+                      deleteVOD(
+                          i,
+                          index,
+                          controller.queeVideoDownload.length +
+                              controller.completedVideos.length);
+                    },
+                    cancelDownload: null,
+                    copyLink: () {
+                      controller.copyLinkToClipboard(i, context);
+                    },
+                    vodData: () {
+                      controller.showFileInfoDialog(i, context);
+                    },
+                    openPath: () {
+                      controller.openDir(i);
+                    },
+                  ),
+                )),
+          );
         },
       );
     });

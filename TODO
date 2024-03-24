@@ -1,11 +1,11 @@
 GENERAL:
   - Add settings
-  - Add  license
   - fix the sorting problem with downloaded
   - Add ADS
   - add upgrade to premium
+  - when the downloded finished it get removed from the quee list if lenght !=1 then it gets reinserted
   
-  -when the downloded finished it get removed from the quee list if lenght !=1 then it gets reinserted 
+   
 TimeSelector:
   - turn both into 1 widget
   - fix the time in timewidget
@@ -22,7 +22,10 @@ Home:
 
 Logic:
   - check if the disclaimer works for API 30 AND BELOW
+
+  
 Done:
+  - Add  license
   - fix click on notification gets it deleted
   - create better UI
   - implement the hive logic

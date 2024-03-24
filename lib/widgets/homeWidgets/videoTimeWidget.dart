@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get/get.dart';
 import 'package:kickdownloader/myColors.dart';
 
 class VideoTimeWidget extends StatelessWidget {
@@ -27,18 +28,31 @@ class VideoTimeWidget extends StatelessWidget {
             controller: controller,
             keyboardType: TextInputType.number,
             inputFormatters: <TextInputFormatter>[
-              FilteringTextInputFormatter.digitsOnly
+              FilteringTextInputFormatter.digitsOnly,
+              if (text == "S" || text == "M")
+                TextInputFormatter.withFunction((oldValue, newValue) {
+                  if (newValue.text.isNotEmpty) {
+                    final int? newValueAsInt = int.tryParse(newValue.text);
+                    if (newValueAsInt == null) return oldValue;
+                    if (newValueAsInt > 60) {
+                      // Value exceeds maximum, limit it to maxValue
+                      if (!Get.isSnackbarOpen) {
+                        Get.snackbar("Notifier", "Value can't go over 60",
+                            backgroundColor: MyColors.background,
+                            isDismissible: true,
+                            barBlur: 0,
+                            overlayBlur: 0,
+                            margin: const EdgeInsets.symmetric(
+                                vertical: 10, horizontal: 10),
+                            snackPosition: SnackPosition.TOP);
+                      }
+                      return oldValue;
+                    }
+                  }
+                  return newValue;
+                })
             ],
             textInputAction: TextInputAction.next,
-            onChanged: (value) {
-              var time = int.tryParse(value);
-              if (time == null) return;
-              if (text == "S" || text == "M") {
-                if (time < 0 && time > 60) {
-                  value = "0";
-                }
-              }
-            },
             enabled: enable,
             textAlign: TextAlign.center,
             decoration: InputDecoration(

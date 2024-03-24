@@ -6,9 +6,11 @@ import 'package:ffmpeg_kit_flutter_min_gpl/ffmpeg_kit.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:kickdownloader/utilities/MethodChannelHandler.dart';
 import 'package:kickdownloader/utilities/NotificationController.dart';
 import 'package:kickdownloader/utilities/PermissionHandler.dart';
+import 'package:kickdownloader/widgets/downloadPage/videoCard.dart';
 import 'package:media_scanner/media_scanner.dart';
 import 'package:get/get.dart' hide Response;
 import 'package:dio/dio.dart';
@@ -128,7 +130,13 @@ class Logic extends GetxController {
 
     if (listOfVideos != null) {
       completedVideos.value =
-          (listOfVideos as List).map((e) => e as Map).toList();
+          (listOfVideos as List).map((e) => e as Map<String, dynamic>).toList();
+
+      completedVideos.sort((a, b) {
+        return (DateTime.parse(a["hourDate"]))
+            .compareTo(DateTime.parse(b["hourDate"]));
+      });
+
       completedVideos.refresh();
     } else {
       box.put("video", <Map<dynamic, dynamic>>[]);
@@ -448,7 +456,8 @@ class Logic extends GetxController {
       String formattedDate = "${now.year}-${(now.month)}-${(now.day)}";
       if (path != null && downloading) {
         var fileSize = await getDownloadedSize(path);
-        completedVideos.add({
+
+        completedVideos.insert(0, {
           "streamDate": queeVideoDownload[0]["streamDate"],
           "streamer": queeVideoDownload[0]["username"],
           "title": queeVideoDownload[0]["title"],
@@ -457,9 +466,14 @@ class Logic extends GetxController {
           "image": queeVideoDownload[0]["image"],
           "DownloadDate": formattedDate,
           "resolution": slectedQuality,
-          "size": fileSize
+          "size": fileSize,
+          "hourDate": DateTime.now().toIso8601String()
         });
+
         completedVideos.refresh();
+        if (queeVideoDownload.length != 1) {
+          animatedListKey.currentState!.insertItem(queeVideoDownload.length);
+        }
         addVideoToHive();
       }
     } else {
@@ -467,12 +481,46 @@ class Logic extends GetxController {
         Directory(_selectedDirectory).deleteSync(recursive: true);
       } catch (e) {
         // IMPLEMENT ERROR
+        rethrow;
       }
       downloading = true;
       _notificationcontroller.dissmissNotification(notificationId);
     }
+    var temp = queeVideoDownload.removeAt(0);
+    queeVideoDownload.refresh();
+    if (queeVideoDownload.isNotEmpty) {
+      animatedListKey.currentState!.removeItem(
+        0,
+        duration: const Duration(milliseconds: 250),
+        (context, animation) => SizeTransition(
+            axis: Axis.vertical,
+            axisAlignment: -1,
+            sizeFactor:
+                CurvedAnimation(curve: Curves.easeIn, parent: animation),
+            child: VideoCard(
+              title: "${temp["username"]} - ${temp["title"]}",
+              image: temp["image"],
+              subtitle: "Completed",
+              download: true,
+              cancelDownload: () {},
+              copyLink: null,
+              vodData: null,
+              deleteVOD: null,
+              openPath: null,
+            )
+                .animate()
+                .fadeOut(
+                    duration: const Duration(milliseconds: 150),
+                    curve: Curves.easeIn)
+                .scaleY(
+                    begin: 1,
+                    end: 0,
+                    alignment: Alignment.topCenter,
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeIn)),
+      );
+    }
 
-    queeVideoDownload.removeAt(0);
     if (queeVideoDownload.isNotEmpty && downloading) {
       downloadVOD();
     } else {
