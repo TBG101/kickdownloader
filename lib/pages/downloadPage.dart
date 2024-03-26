@@ -72,6 +72,7 @@ class DownloadPage extends GetView<Logic> {
     var img = controller.queeVideoDownload[index]["image"];
     var sub = textSelector(index);
     var download = index == 0 ? true : false;
+    
     controller.cancelDownload();
     controller.animatedListKey.currentState!.removeItem(
       index,

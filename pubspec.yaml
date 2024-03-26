@@ -49,6 +49,8 @@ dependencies:
   dart_code_metrics: ^4.19.2
   package_info_plus: ^5.0.1
   flutter_animate: ^4.5.0
+  async: ^2.11.0
+
 
 dev_dependencies:
   flutter_test:

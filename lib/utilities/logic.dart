@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:math';
+import 'package:async/async.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:ffmpeg_kit_flutter_min_gpl/ffmpeg_kit.dart';
 import 'package:file_picker/file_picker.dart';
@@ -130,7 +132,7 @@ class Logic extends GetxController {
 
     if (listOfVideos != null) {
       completedVideos.value =
-          (listOfVideos as List).map((e) => e as Map<String, dynamic>).toList();
+          (listOfVideos as List).map((e) => e as Map).toList();
 
       completedVideos.sort((a, b) {
         return (DateTime.parse(a["hourDate"]))
@@ -144,6 +146,7 @@ class Logic extends GetxController {
 
     _notificationcontroller.startListener();
 
+    queeVideoDownload.listen((p0) {});
     super.onReady();
   }
 
@@ -232,7 +235,7 @@ class Logic extends GetxController {
     }
   }
 
-  thumbnailLink() {
+  String thumbnailLink() {
     var x = (videoData!["source"] as String).split("\/");
     return "https://images.kick.com/video_thumbnails/${x[6]}/${x[12]}/480.webp";
   }
@@ -255,19 +258,26 @@ class Logic extends GetxController {
     resolutions.refresh();
   }
 
-  Future<void> checkTSfiles(String path, String downloadPath) async {
+  Future<bool> checkTSfiles(
+      String path, String downloadPath, Function myCallback) async {
     // IMPLEMENT CHECK TS FILES
     File file = File("$path/generated.txt");
-    file
+    var x = await file
         .openRead()
         .transform(utf8.decoder)
         .transform(const LineSplitter())
-        .forEach((element) async {
-      if (!File("$path/$element").existsSync()) {
-        var r = await downloadTS(downloadPath, element, cancel);
-        await saveTS(path, r?.data, "$element.ts");
+        .toList();
+    for (var element in x) {
+      if (myCallback()) {
+        return false;
       }
-    });
+
+      if (!File("$path/$element").existsSync()) {
+        await downloadTS(downloadPath, element, cancel, path);
+      }
+    }
+
+    return true;
   }
 
   Future<(int?, int?)> writeGeneratedText(String savepath,
@@ -335,11 +345,138 @@ class Logic extends GetxController {
     }
   }
 
-  Future<void> downloadVOD() async {
+  Future<void> deleteDir(String path) async {
+    await Directory(path).delete(recursive: true);
+  }
+
+  Future<String?> downloadVod(String myPath, List<String> playlist, int endTime,
+      int startTime, int tsFileSize, List queeList, String downloadURL) async {
+    int? nbOfTsFiles, overflowTime;
+    canceledLogic() {
+      deleteDir(myPath);
+    }
+
+    await _notificationcontroller.createDownloadNotifcation(
+        notificationId,
+        'Started downloading VOD',
+        "Streamer ${queeVideoDownload[0]["username"]}");
+
+    try {
+      (overflowTime, nbOfTsFiles) =
+          await writeGeneratedText(myPath, playlist, endTime, startTime);
+    } catch (e) {
+      // IMPLEMENT ERROR GENERATING TEXT FILE
+      canceledLogic();
+      throw "Couldn't write file : $e";
+    }
+
+    // Implement error
+    if (nbOfTsFiles == null) {
+      Get.snackbar("error", "Error occured");
+      canceledLogic();
+      throw "Number of ts files is null";
+    }
+    if (cancel.isCancelled) {
+      canceledLogic();
+      return null;
+    }
+    videoDownloadSizeBytes.value = (nbOfTsFiles * tsFileSize);
+
+    var (sizeVid, suffix) = formatBytes(videoDownloadSizeBytes.value);
+    playlist.clear();
+
+    var file = File("$myPath/generated.txt").readAsLinesSync();
+    for (String element in file) {
+      if (cancel.isCancelled) {
+        canceledLogic();
+        return null;
+      }
+      while (queeList.length >= 5 && downloading) {
+        var percentage = videoDownloadPercentage.value;
+        videoDownloadPercentage.value =
+            (videoDownloadParts / (file.length * 100)) * 100;
+
+        _notificationcontroller.updateNotification(
+            notificationId,
+            file,
+            'Downloading ${percentage.toStringAsFixed(0)}% ${(sizeVid * percentage / 100).toStringAsFixed(2)}/${sizeVid.toStringAsFixed(2)} $suffix',
+            "Streamer ${queeVideoDownload[0]["username"]}",
+            videoDownloadPercentage.value);
+
+        await waitTimer();
+        if (cancel.isCancelled) {
+          canceledLogic();
+          return null;
+        }
+      }
+      queeList.add(int.parse(element.replaceAll(".ts", "")));
+
+      try {
+        downloadTS(downloadURL, element, cancel, myPath).then((tsFile) {
+          queeList.remove(int.parse(element.replaceAll(".ts", "")));
+        });
+      } on DioException catch (_) {
+        print("error");
+      } catch (e) {
+        rethrow;
+      }
+    }
+
+    while (queeList.isNotEmpty) {
+      await waitTimer();
+      if (cancel.isCancelled) {
+        canceledLogic();
+        return null;
+      }
+      var percentage = videoDownloadPercentage.value;
+      videoDownloadPercentage.value =
+          (videoDownloadParts / (file.length * 100)) * 100;
+
+      _notificationcontroller.updateNotification(
+          notificationId,
+          file,
+          'Downloading ${percentage.toStringAsFixed(0)}% ${(sizeVid * percentage / 100).toStringAsFixed(2)}/${sizeVid.toStringAsFixed(2)} $suffix',
+          "Streamer ${queeVideoDownload[0]["username"]}",
+          videoDownloadPercentage.value);
+    }
+
+    var r = await checkTSfiles(myPath, downloadURL, () {
+      if (cancel.isCancelled) {
+        canceledLogic();
+        return true;
+      }
+    });
+    if (!r) return null;
+
+    await _notificationcontroller.updateNotificationEnd(
+        notificationId,
+        'Converting to MP4',
+        "Streamer ${queeVideoDownload[0]["username"]}",
+        true);
+
+    String? path;
+    if (endTime == -1) {
+      path = await mergeToMp4(myPath, overflowTime ?? 0, null);
+    } else {
+      path = await mergeToMp4(myPath, overflowTime ?? 0, (endTime - startTime));
+    }
+    if (path == null) {
+      return null;
+    }
+
+    await _notificationcontroller.updateNotificationEnd(
+        notificationId,
+        'Download Completed',
+        "Streamer ${queeVideoDownload[0]["username"]}",
+        false);
+    print("didint reach here");
+    return path;
+  }
+
+  Future<void> downloadFirstVODQueeList() async {
+    cancel = CancelToken();
     videoDownloadPercentage.value = 0;
     videoDownloadParts = 0;
-    int? overflowTime;
-    int? nbOfTsFiles;
     notificationId++;
     downloading = true;
     // ignore: no_leading_underscores_for_local_identifiers
@@ -352,143 +489,48 @@ class Logic extends GetxController {
         .replaceAll(RegExp(r'master\.[^/]*$'), "$slectedQuality/");
     List<String> playlist = await getPlaylist(downloadURL);
 
-    var tsFileSize = await getFileSize(downloadURL + "1.ts");
+    var tsFileSize = await getFileSize(downloadURL + "0.ts");
 
     queeVideoDownload[0]["downloading"] = true;
-    cancel = CancelToken();
-
-    await _notificationcontroller.createDownloadNotifcation(
-        notificationId,
-        'Started downloading VOD',
-        "Streamer ${queeVideoDownload[0]["username"]}");
+    String? path;
 
     try {
-      (overflowTime, nbOfTsFiles) = await writeGeneratedText(
-          _selectedDirectory, playlist, endTime, startTime);
+      path = await downloadVod(_selectedDirectory, playlist, endTime, startTime,
+          tsFileSize, queeList, downloadURL);
     } catch (e) {
-      // IMPLEMENT ERROR GENERATING TEXT FILE
-      queeVideoDownload.removeAt(0);
-      downloading = false;
-
-      return;
-    }
-
-    // Implement error
-    if (nbOfTsFiles == null) {
-      Get.snackbar("error", "Error occured");
-      return;
-    }
-
-    videoDownloadSizeBytes.value = (nbOfTsFiles * tsFileSize);
-
-    var (sizeVid, suffix) = formatBytes(videoDownloadSizeBytes.value);
-
-    playlist.clear();
-    var file = File("$_selectedDirectory/generated.txt").readAsLinesSync();
-
-    for (String element in file) {
-      while (queeList.length >= 5) {
-        var percentage = videoDownloadPercentage.value;
-        videoDownloadPercentage.value =
-            (videoDownloadParts / (file.length * 100)) * 100;
-
-        _notificationcontroller.updateNotification(
-            notificationId,
-            file,
-            'Downloading ${percentage.toStringAsFixed(0)}% ${(sizeVid * percentage / 100).toStringAsFixed(2)}/${sizeVid.toStringAsFixed(2)} $suffix',
-            "Streamer ${queeVideoDownload[0]["username"]}",
-            videoDownloadPercentage.value);
-
-        if (!downloading) {
-          break;
-        }
-        await waitTimer();
-      }
-      if (!downloading) {
-        cancel.cancel();
-        break;
-      }
-      queeList.add(int.parse(element.replaceAll(".ts", "")));
-      downloadTS(downloadURL, element, cancel).then((tsFile) {
-        queeList.remove(int.parse(element.replaceAll(".ts", "")));
-        saveTS("$_selectedDirectory/", tsFile?.data, element);
-      });
-    }
-
-    while (queeList.isNotEmpty) {
-      if (!downloading) {
-        cancel.cancel();
-        break;
-      }
-      await waitTimer();
-      var percentage = videoDownloadPercentage.value;
-      videoDownloadPercentage.value =
-          (videoDownloadParts / (file.length * 100)) * 100;
-
-      _notificationcontroller.updateNotification(
-          notificationId,
-          file,
-          'Downloading ${percentage.toStringAsFixed(0)}% ${(sizeVid * percentage / 100).toStringAsFixed(2)}/${sizeVid.toStringAsFixed(2)} $suffix',
-          "Streamer ${queeVideoDownload[0]["username"]}",
-          videoDownloadPercentage.value);
-    }
-    if (downloading) {
-      await checkTSfiles(_selectedDirectory, downloadURL);
-      await _notificationcontroller.updateNotificationEnd(
-          notificationId,
-          'Converting to MP4',
-          "Streamer ${queeVideoDownload[0]["username"]}",
-          true);
-      String? path;
-      if (endTime == -1) {
-        path = await mergeToMp4(_selectedDirectory, overflowTime ?? 0, null);
-      } else {
-        path = await mergeToMp4(
-            _selectedDirectory, overflowTime ?? 0, (endTime - startTime));
-      }
-      await _notificationcontroller.updateNotificationEnd(
-          notificationId,
-          'Download Completed',
-          "Streamer ${queeVideoDownload[0]["username"]}",
-          false);
-
-      DateTime now = DateTime.now();
-      String formattedDate = "${now.year}-${(now.month)}-${(now.day)}";
-      if (path != null && downloading) {
-        var fileSize = await getDownloadedSize(path);
-
-        completedVideos.insert(0, {
-          "streamDate": queeVideoDownload[0]["streamDate"],
-          "streamer": queeVideoDownload[0]["username"],
-          "title": queeVideoDownload[0]["title"],
-          "path": path,
-          "link": queeVideoDownload[0]["link"],
-          "image": queeVideoDownload[0]["image"],
-          "DownloadDate": formattedDate,
-          "resolution": slectedQuality,
-          "size": fileSize,
-          "hourDate": DateTime.now().toIso8601String()
-        });
-
-        completedVideos.refresh();
-        if (queeVideoDownload.length != 1) {
-          animatedListKey.currentState!.insertItem(queeVideoDownload.length);
-        }
-        addVideoToHive();
-      }
-    } else {
-      try {
-        Directory(_selectedDirectory).deleteSync(recursive: true);
-      } catch (e) {
-        // IMPLEMENT ERROR
-        rethrow;
-      }
-      downloading = true;
       _notificationcontroller.dissmissNotification(notificationId);
+      print("OUTER FUNCTION ERROR IS: $e");
     }
+
+    DateTime now = DateTime.now();
+    String formattedDate = "${now.year}-${(now.month)}-${(now.day)}";
+    print("not skipped ");
+    if (path != null && downloading && !cancel.isCancelled) {
+      var fileSize = await getDownloadedSize(path);
+
+      completedVideos.insert(0, {
+        "streamDate": queeVideoDownload[0]["streamDate"],
+        "streamer": queeVideoDownload[0]["username"],
+        "title": queeVideoDownload[0]["title"],
+        "path": path,
+        "link": queeVideoDownload[0]["link"],
+        "image": queeVideoDownload[0]["image"],
+        "DownloadDate": formattedDate,
+        "resolution": slectedQuality,
+        "size": fileSize,
+        "hourDate": DateTime.now().toIso8601String()
+      });
+
+      completedVideos.refresh();
+      if (queeVideoDownload.length != 1) {
+        animatedListKey.currentState!.insertItem(queeVideoDownload.length);
+      }
+      addVideoToHive();
+    }
+
     var temp = queeVideoDownload.removeAt(0);
     queeVideoDownload.refresh();
-    if (queeVideoDownload.isNotEmpty) {
+    if (queeVideoDownload.isNotEmpty && !cancel.isCancelled) {
       animatedListKey.currentState!.removeItem(
         0,
         duration: const Duration(milliseconds: 250),
@@ -520,12 +562,15 @@ class Logic extends GetxController {
                     curve: Curves.easeIn)),
       );
     }
+  }
 
-    if (queeVideoDownload.isNotEmpty && downloading) {
-      downloadVOD();
-    } else {
-      downloading = false;
+  Future<void> startQueeDownloadVOD() async {
+    downloading = true;
+    while (queeVideoDownload.isNotEmpty && downloading) {
+      await downloadFirstVODQueeList();
     }
+
+    downloading = false;
   }
 
   int convertToMillisecond(int h, int m, int s) {
@@ -634,7 +679,7 @@ class Logic extends GetxController {
     );
 
     if (queeVideoDownload[0]["downloading"] == false && downloading == false) {
-      downloadVOD();
+      startQueeDownloadVOD();
     }
   }
 
@@ -648,18 +693,21 @@ class Logic extends GetxController {
         .toList();
     tsFiles.sort((a, b) => a.path.compareTo(b.path));
     File outputFile = File('$path/all.ts');
+
     try {
       RandomAccessFile outputRandomAccessFile =
           outputFile.openSync(mode: FileMode.write);
 
       for (File tsFile in tsFiles) {
+        if (cancel.isCancelled) {
+          return null;
+        }
         RandomAccessFile inputRandomAccessFile =
             tsFile.openSync(mode: FileMode.read);
         outputRandomAccessFile.writeFromSync(
             inputRandomAccessFile.readSync(inputRandomAccessFile.lengthSync()));
         inputRandomAccessFile.closeSync();
       }
-
       await outputRandomAccessFile.close();
     } catch (e) {
       throw "Error during concatenation: $e";
@@ -676,27 +724,30 @@ class Logic extends GetxController {
     String filename =
         "$path/[${queeVideoDownload[0]["streamDate"]}] - ${queeVideoDownload[0]["username"]} ${(queeVideoDownload[0]["title"] as String).replaceAll(validFileName, '-')}.mp4";
 
-    // NEW
-
     String ffmpegCommand = '-y -i "$path/all.ts" $x -c copy "$filename"';
-    // OLD
-    // String ffmpegCommand =
-    //     '-y -i "$path/all.ts" $x -c:v libx264 -c:a copy "$filename"';
-    try {
-      await FFmpegKit.execute(ffmpegCommand); // convert the ts file into mp4
 
+    try {
+      var x =
+          FFmpegKit.executeAsync(ffmpegCommand); // convert the ts file into mp4
+
+      var stream = cancel.whenCancel.asStream().listen((event) {
+        if (event.type == DioExceptionType.cancel) FFmpegKit.cancel();
+      });
+
+      await x;
+      stream.cancel();
       await deleteTs(tsFiles, path);
       MediaScanner.loadMedia(path: filename);
-      return filename;
+      return cancel.isCancelled ? null : filename;
     } catch (e) {
       throw "error on converting to mp4 : $e";
     }
   }
 
-  Future downloadTS(String path, String tsFileNB, CancelToken cancel) async {
+  Future downloadTS(String path, String tsFileNB, CancelToken cancel,
+      String selectedDirectory) async {
     try {
       int lastCount = 0;
-
       var responseBytes = await _dio.get(
         path + tsFileNB,
         onReceiveProgress: (count, total) {
@@ -709,9 +760,12 @@ class Logic extends GetxController {
           followRedirects: false,
         ),
       );
-      return responseBytes;
-    } catch (e) {
-      // Implement error on download TS
+      saveTS(selectedDirectory, responseBytes.data, tsFileNB);
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.cancel) {
+      } else {
+        rethrow;
+      }
     }
   }
 
@@ -725,11 +779,11 @@ class Logic extends GetxController {
     await raf.writeFrom(data);
   }
 
-  getPlaylist(downloadURL) async {
+  Future<List<String>> getPlaylist(downloadURL) async {
     return (await _dio.get(downloadURL + "playlist.m3u8")).data.split("\n");
   }
 
-  deleteTs(List<File> tsFiles, path) async {
+  Future<void> deleteTs(List<File> tsFiles, path) async {
     for (var file in tsFiles) {
       if (file.existsSync()) {
         try {
@@ -767,8 +821,9 @@ class Logic extends GetxController {
     return formattedTime;
   }
 
-  void cancelDownload() {
-    downloading = false;
+  void cancelDownload() async {
+    cancel.cancel();
+    // IMPLEMENT REMOVE QUEE
   }
 
   Future<void> deleteFileDropdown(int index) async {
