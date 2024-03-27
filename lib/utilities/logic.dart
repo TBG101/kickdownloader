@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 import 'dart:math';
-import 'package:async/async.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:ffmpeg_kit_flutter_min_gpl/ffmpeg_kit.dart';
+import 'package:ffmpeg_kit_flutter_min_gpl/ffmpeg_session_complete_callback.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -134,7 +134,7 @@ class Logic extends GetxController {
       completedVideos.value =
           (listOfVideos as List).map((e) => e as Map).toList();
 
-      completedVideos.sort((a, b) {
+      completedVideos.sort((b, a) {
         return (DateTime.parse(a["hourDate"]))
             .compareTo(DateTime.parse(b["hourDate"]));
       });
@@ -280,6 +280,47 @@ class Logic extends GetxController {
     return true;
   }
 
+  static void heavyComputeWriteGen(List args) {
+    List<String> myPlaylist = args[0];
+    var endTime = args[1] as int;
+    var startTime = args[2] as int;
+    var savepath = args[3] as String;
+    var mySendPort = args[4] as SendPort;
+
+    int? overflowTime;
+    var nbOfTsFiles = 0;
+    var timeMilliseconds = 0;
+    var generatedFile = File("$savepath/generated.txt");
+
+    for (int i = 0; i < myPlaylist.length; i++) {
+      if (myPlaylist[i].contains("#EXTINF:") == false) {
+        continue;
+      }
+      if (timeMilliseconds >= endTime && endTime != -1) {
+        break;
+      }
+      var line = myPlaylist[i];
+      line = line.replaceAll("#EXTINF:", "");
+      line = line.replaceAll(",", "");
+      if (timeMilliseconds >= startTime ||
+          timeMilliseconds + double.parse(line) * 1000 > startTime) {
+        overflowTime ??= startTime - timeMilliseconds;
+        generatedFile.writeAsStringSync("${myPlaylist[i + 1]}\n",
+            mode: FileMode.append);
+
+        print(myPlaylist[i + 1]);
+        nbOfTsFiles++;
+      }
+      timeMilliseconds = timeMilliseconds + (double.parse(line) * 1000).toInt();
+    }
+
+    mySendPort.send({
+      "nbOfTsFiles": nbOfTsFiles,
+      "overflowTime": overflowTime,
+      "timeMilliseconds": timeMilliseconds
+    });
+  }
+
   Future<(int?, int?)> writeGeneratedText(String savepath,
       List<String> playlist, int endTime, int startTime) async {
     try {
@@ -287,36 +328,28 @@ class Logic extends GetxController {
     } catch (e) {
       throw ("Got error on generating text file $e");
     }
-    var timeMilliseconds = 0;
-    int? overflowTime;
-    int nbOfTsFiles = 0;
 
     if (endTime == -1) {
       playlist[playlist.length - 2];
     }
 
-    for (int i = 0; i < playlist.length; i++) {
-      if (playlist[i].contains("#EXTINF:") == false) {
-        continue;
-      }
+    var receiverPort = ReceivePort();
 
-      if (timeMilliseconds >= endTime && endTime != -1) {
-        break;
-      }
-      var line = playlist[i];
-      line = line.replaceAll("#EXTINF:", "");
-      line = line.replaceAll(",", "");
-      if (timeMilliseconds >= startTime ||
-          timeMilliseconds + double.parse(line) * 1000 > startTime) {
-        overflowTime ??= startTime - timeMilliseconds;
-        await File("$savepath/generated.txt")
-            .writeAsString("${playlist[i + 1]}\n", mode: FileMode.append);
-        nbOfTsFiles++;
-      }
-      timeMilliseconds = timeMilliseconds + (double.parse(line) * 1000).toInt();
-    }
+    var myIsolate = await Isolate.spawn(heavyComputeWriteGen,
+        [playlist, endTime, startTime, savepath, receiverPort.sendPort]);
+    cancel.whenCancel.asStream().listen((event) {
+      myIsolate.kill(priority: Isolate.immediate);
+      receiverPort.sendPort.send(null);
+    });
+    var result = await receiverPort.first as Map<String, int?>?;
+    myIsolate.kill();
+    receiverPort.close();
+    if (result == null) return (null, null);
     // Meaning that we are going to download the whole stream if endtime == -1
-    return (endTime == -1 ? -1 : overflowTime, nbOfTsFiles);
+    return (
+      (endTime == -1 ? -1 : result["overflowTime"]),
+      result["nbOfTsFiles"]
+    );
   }
 
   Future<int> getFileSize(String url) async {
@@ -346,7 +379,9 @@ class Logic extends GetxController {
   }
 
   Future<void> deleteDir(String path) async {
-    await Directory(path).delete(recursive: true);
+    try {
+      await Directory(path).delete(recursive: true);
+    } catch (_) {}
   }
 
   Future<String?> downloadVod(String myPath, List<String> playlist, int endTime,
@@ -354,6 +389,9 @@ class Logic extends GetxController {
     int? nbOfTsFiles, overflowTime;
     canceledLogic() {
       deleteDir(myPath);
+      if (!cancel.isCancelled) {
+        cancel.cancel();
+      }
     }
 
     await _notificationcontroller.createDownloadNotifcation(
@@ -369,6 +407,11 @@ class Logic extends GetxController {
       canceledLogic();
       throw "Couldn't write file : $e";
     }
+    // Implemetn canceled error
+    if (overflowTime == null) {
+      canceledLogic();
+      return null;
+    }
 
     // Implement error
     if (nbOfTsFiles == null) {
@@ -376,16 +419,19 @@ class Logic extends GetxController {
       canceledLogic();
       throw "Number of ts files is null";
     }
+
     if (cancel.isCancelled) {
       canceledLogic();
       return null;
     }
+
     videoDownloadSizeBytes.value = (nbOfTsFiles * tsFileSize);
 
     var (sizeVid, suffix) = formatBytes(videoDownloadSizeBytes.value);
     playlist.clear();
 
     var file = File("$myPath/generated.txt").readAsLinesSync();
+
     for (String element in file) {
       if (cancel.isCancelled) {
         canceledLogic();
@@ -415,8 +461,9 @@ class Logic extends GetxController {
         downloadTS(downloadURL, element, cancel, myPath).then((tsFile) {
           queeList.remove(int.parse(element.replaceAll(".ts", "")));
         });
-      } on DioException catch (_) {
-        print("error");
+      } on DioException catch (e) {
+        print("canceled: $e");
+        throw "canceled";
       } catch (e) {
         rethrow;
       }
@@ -455,12 +502,19 @@ class Logic extends GetxController {
         true);
 
     String? path;
-    if (endTime == -1) {
-      path = await mergeToMp4(myPath, overflowTime ?? 0, null);
-    } else {
-      path = await mergeToMp4(myPath, overflowTime ?? 0, (endTime - startTime));
+    try {
+      if (endTime == -1) {
+        path = await mergeToMp4(myPath, overflowTime, null);
+      } else {
+        path = await mergeToMp4(myPath, overflowTime, (endTime - startTime));
+      }
+    } catch (e) {
+      canceledLogic();
+      return null;
     }
     if (path == null) {
+      // IMPELMENT ERROR IF THE PATH HAS NOT BEEN RETURNED MEANING THAT THE
+      canceledLogic();
       return null;
     }
 
@@ -469,7 +523,6 @@ class Logic extends GetxController {
         'Download Completed',
         "Streamer ${queeVideoDownload[0]["username"]}",
         false);
-    print("didint reach here");
     return path;
   }
 
@@ -492,45 +545,50 @@ class Logic extends GetxController {
     var tsFileSize = await getFileSize(downloadURL + "0.ts");
 
     queeVideoDownload[0]["downloading"] = true;
-    String? path;
 
     try {
-      path = await downloadVod(_selectedDirectory, playlist, endTime, startTime,
-          tsFileSize, queeList, downloadURL);
+      await downloadVod(_selectedDirectory, playlist, endTime, startTime,
+              tsFileSize, queeList, downloadURL)
+          .then((path) async {
+        if (path != null && downloading && !cancel.isCancelled) {
+          DateTime now = DateTime.now();
+          String formattedDate = "${now.year}-${(now.month)}-${(now.day)}";
+          var fileSize = await getDownloadedSize(path);
+
+          completedVideos.insert(0, {
+            "streamDate": queeVideoDownload[0]["streamDate"],
+            "streamer": queeVideoDownload[0]["username"],
+            "title": queeVideoDownload[0]["title"],
+            "path": path,
+            "link": queeVideoDownload[0]["link"],
+            "image": queeVideoDownload[0]["image"],
+            "DownloadDate": formattedDate,
+            "resolution": slectedQuality,
+            "size": fileSize,
+            "hourDate": DateTime.now().toIso8601String()
+          });
+
+          completedVideos.refresh();
+          if (queeVideoDownload.length != 1) {
+            animatedListKey.currentState!.insertItem(queeVideoDownload.length);
+          }
+          addVideoToHive();
+        } else {
+          _notificationcontroller.dissmissNotification(notificationId);
+        }
+      });
     } catch (e) {
       _notificationcontroller.dissmissNotification(notificationId);
       print("OUTER FUNCTION ERROR IS: $e");
-    }
-
-    DateTime now = DateTime.now();
-    String formattedDate = "${now.year}-${(now.month)}-${(now.day)}";
-    print("not skipped ");
-    if (path != null && downloading && !cancel.isCancelled) {
-      var fileSize = await getDownloadedSize(path);
-
-      completedVideos.insert(0, {
-        "streamDate": queeVideoDownload[0]["streamDate"],
-        "streamer": queeVideoDownload[0]["username"],
-        "title": queeVideoDownload[0]["title"],
-        "path": path,
-        "link": queeVideoDownload[0]["link"],
-        "image": queeVideoDownload[0]["image"],
-        "DownloadDate": formattedDate,
-        "resolution": slectedQuality,
-        "size": fileSize,
-        "hourDate": DateTime.now().toIso8601String()
-      });
-
-      completedVideos.refresh();
-      if (queeVideoDownload.length != 1) {
-        animatedListKey.currentState!.insertItem(queeVideoDownload.length);
+      deleteDir(_selectedDirectory);
+      if (!cancel.isCancelled) {
+        cancel.cancel();
       }
-      addVideoToHive();
     }
 
-    var temp = queeVideoDownload.removeAt(0);
-    queeVideoDownload.refresh();
     if (queeVideoDownload.isNotEmpty && !cancel.isCancelled) {
+      var temp = queeVideoDownload.removeAt(0);
+      queeVideoDownload.refresh();
       animatedListKey.currentState!.removeItem(
         0,
         duration: const Duration(milliseconds: 250),
@@ -686,6 +744,7 @@ class Logic extends GetxController {
   Future<String?> mergeToMp4(
       String path, int overflowStart, int? overflowEnd) async {
     var directory = Directory(path);
+
     List<File> tsFiles = directory
         .listSync()
         .where((file) => file.path.endsWith('.ts'))
@@ -697,11 +756,11 @@ class Logic extends GetxController {
     try {
       RandomAccessFile outputRandomAccessFile =
           outputFile.openSync(mode: FileMode.write);
-
       for (File tsFile in tsFiles) {
         if (cancel.isCancelled) {
           return null;
         }
+
         RandomAccessFile inputRandomAccessFile =
             tsFile.openSync(mode: FileMode.read);
         outputRandomAccessFile.writeFromSync(
@@ -727,17 +786,34 @@ class Logic extends GetxController {
     String ffmpegCommand = '-y -i "$path/all.ts" $x -c copy "$filename"';
 
     try {
-      var x =
-          FFmpegKit.executeAsync(ffmpegCommand); // convert the ts file into mp4
+      var complete = Completer<bool>();
+
+      FFmpegKit.executeAsync(
+        ffmpegCommand,
+        (session) async {
+          var returnCode = await session.getReturnCode();
+          if (returnCode == null) return;
+          if (returnCode.isValueSuccess()) {
+            complete.complete(true);
+          } else if (returnCode.isValueCancel()) {
+            complete.complete(false);
+          }
+        },
+      ); // convert the ts file into mp4
 
       var stream = cancel.whenCancel.asStream().listen((event) {
         if (event.type == DioExceptionType.cancel) FFmpegKit.cancel();
       });
 
-      await x;
+      var returnValue = await complete.future;
       stream.cancel();
+
+      if (returnValue == false) {
+        throw "canceled";
+      }
       await deleteTs(tsFiles, path);
       MediaScanner.loadMedia(path: filename);
+
       return cancel.isCancelled ? null : filename;
     } catch (e) {
       throw "error on converting to mp4 : $e";
@@ -746,6 +822,7 @@ class Logic extends GetxController {
 
   Future downloadTS(String path, String tsFileNB, CancelToken cancel,
       String selectedDirectory) async {
+    print(tsFileNB);
     try {
       int lastCount = 0;
       var responseBytes = await _dio.get(
@@ -763,8 +840,9 @@ class Logic extends GetxController {
       saveTS(selectedDirectory, responseBytes.data, tsFileNB);
     } on DioException catch (e) {
       if (e.type == DioExceptionType.cancel) {
+        throw "canceled";
       } else {
-        rethrow;
+        throw "error";
       }
     }
   }
@@ -779,8 +857,8 @@ class Logic extends GetxController {
     await raf.writeFrom(data);
   }
 
-  Future<List<String>> getPlaylist(downloadURL) async {
-    return (await _dio.get(downloadURL + "playlist.m3u8")).data.split("\n");
+  Future<List<String>> getPlaylist(String downloadURL) async {
+    return (await _dio.get("${downloadURL}playlist.m3u8")).data.split("\n");
   }
 
   Future<void> deleteTs(List<File> tsFiles, path) async {

@@ -72,7 +72,7 @@ class DownloadPage extends GetView<Logic> {
     var img = controller.queeVideoDownload[index]["image"];
     var sub = textSelector(index);
     var download = index == 0 ? true : false;
-    
+    controller.queeVideoDownload.removeAt(0);
     controller.cancelDownload();
     controller.animatedListKey.currentState!.removeItem(
       index,
@@ -111,11 +111,22 @@ class DownloadPage extends GetView<Logic> {
         ).animate().fadeIn(duration: const Duration(milliseconds: 250)));
       }
       return AnimatedList(
-        physics: const BouncingScrollPhysics(),
+        physics: const BouncingScrollPhysics(
+            decelerationRate: ScrollDecelerationRate.fast,
+            parent: BouncingScrollPhysics()),
         key: controller.animatedListKey,
         initialItemCount: controller.queeVideoDownload.length +
             controller.completedVideos.length,
         itemBuilder: (animatedListContext, index, animation) {
+          if ((controller.queeVideoDownload.length +
+                  controller.completedVideos.length -
+                  1) ==
+              index) {
+            return const SizedBox(
+              height: 50,
+            );
+          }
+
           if (index < controller.queeVideoDownload.length) {
             return Obx(() {
               return VideoCard(
