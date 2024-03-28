@@ -1,15 +1,11 @@
 GENERAL:
   - Add settings
-  - fix the sorting problem with downloaded
   - Add ADS
   - add upgrade to premium
-  - when the downloded finished it get removed from the quee list if lenght !=1 then it gets reinserted
   
    
 TimeSelector:
   - turn both into 1 widget
-  - fix the time in timewidget
-  - add sorted time selection ie:: when the users taps on enter he goes to the next time +
   
 downloadPage:
 
@@ -36,6 +32,10 @@ Done:
   - implement no internet error
   - change the path package to use a simple dir finder with logic code
   - add the file info  
+  - fix the sorting problem with downloaded
+  - when the downloded finished it get removed from the quee list if lenght !=1 then it gets reinserted
+  - fix the time in timewidget
+  - add sorted time selection ie:: when the users taps on enter he goes to the next time +
 
   GENERAL:
     - create a permission handler class

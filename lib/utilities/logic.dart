@@ -4,21 +4,19 @@ import 'dart:isolate';
 import 'dart:math';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:ffmpeg_kit_flutter_min_gpl/ffmpeg_kit.dart';
-import 'package:ffmpeg_kit_flutter_min_gpl/ffmpeg_session_complete_callback.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:kickdownloader/utilities/HiveLogic.dart';
 import 'package:kickdownloader/utilities/MethodChannelHandler.dart';
 import 'package:kickdownloader/utilities/NotificationController.dart';
 import 'package:kickdownloader/utilities/PermissionHandler.dart';
+import 'package:kickdownloader/utilities/settingsLogic.dart';
 import 'package:kickdownloader/widgets/downloadPage/videoCard.dart';
 import 'package:media_scanner/media_scanner.dart';
 import 'package:get/get.dart' hide Response;
 import 'package:dio/dio.dart';
 import 'dart:async';
-import 'package:hive/hive.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -49,8 +47,8 @@ class Logic extends GetxController {
   RxDouble gradientOpacity = 0.4.obs;
   RxBool startValue = false.obs;
   RxBool endValue = false.obs;
-  var valueSelected = Rxn<String>();
-  Rx<String?> selectedDirectory = Rxn<String>();
+
+  var qualitySelector = Rxn<String>();
 
   // text controllers
   var startHour = TextEditingController().obs;
@@ -72,11 +70,10 @@ class Logic extends GetxController {
   late final String appVersion;
   late final String appName;
 
-  // Open Hive
-  late Box box;
-
   final GlobalKey<AnimatedListState> animatedListKey =
       GlobalKey<AnimatedListState>();
+
+  var settingsController = SettingsController().obs;
 
   void checkNetwork() async {
     await Connectivity().checkConnectivity().then(
@@ -93,12 +90,8 @@ class Logic extends GetxController {
     });
   }
 
-  Future<void> initHive() async {
-    box = Hive.box("video");
-  }
-
   void addVideoToHive() {
-    box.put("video", completedVideos);
+    HiveLogic.setStoreCompletedVideos(completedVideos);
   }
 
   void resetAll() {
@@ -121,28 +114,16 @@ class Logic extends GetxController {
   @override
   void onReady() async {
     // TODO: implement onReady
-    await initHive();
+    settingsController.update((val) {
+      val!.setSavedDir(HiveLogic.getSavePath);
+    });
+    
+
     appVersion = (await PackageInfo.fromPlatform()).version;
     appName = (await PackageInfo.fromPlatform()).appName;
 
-    var listOfVideos = box.get("video");
-    selectedDirectory.value = box.get("savePath");
-
     checkNetwork();
-
-    if (listOfVideos != null) {
-      completedVideos.value =
-          (listOfVideos as List).map((e) => e as Map).toList();
-
-      completedVideos.sort((b, a) {
-        return (DateTime.parse(a["hourDate"]))
-            .compareTo(DateTime.parse(b["hourDate"]));
-      });
-
-      completedVideos.refresh();
-    } else {
-      box.put("video", <Map<dynamic, dynamic>>[]);
-    }
+    completedVideos.addAll(await HiveLogic.getStoreCompletedVideos());
 
     _notificationcontroller.startListener();
 
@@ -188,7 +169,7 @@ class Logic extends GetxController {
     streamLength.value = duration.toString().split('.')[0];
 
     link.value = thumbnailLink();
-    valueSelected.value = resolutions.first;
+    qualitySelector.value = resolutions.first;
     foundVideo.value = true;
   }
 
@@ -533,7 +514,7 @@ class Logic extends GetxController {
     notificationId++;
     downloading = true;
     // ignore: no_leading_underscores_for_local_identifiers
-    String _selectedDirectory = queeVideoDownload[0]["savePath"];
+    String saveDir = queeVideoDownload[0]["savePath"];
     List<int> queeList = [];
     var slectedQuality = queeVideoDownload[0]["quality"];
     int startTime = queeVideoDownload[0]["start"];
@@ -547,8 +528,8 @@ class Logic extends GetxController {
     queeVideoDownload[0]["downloading"] = true;
 
     try {
-      await downloadVod(_selectedDirectory, playlist, endTime, startTime,
-              tsFileSize, queeList, downloadURL)
+      await downloadVod(saveDir, playlist, endTime, startTime, tsFileSize,
+              queeList, downloadURL)
           .then((path) async {
         if (path != null && downloading && !cancel.isCancelled) {
           DateTime now = DateTime.now();
@@ -580,7 +561,7 @@ class Logic extends GetxController {
     } catch (e) {
       _notificationcontroller.dissmissNotification(notificationId);
       print("OUTER FUNCTION ERROR IS: $e");
-      deleteDir(_selectedDirectory);
+      deleteDir(saveDir);
       if (!cancel.isCancelled) {
         cancel.cancel();
       }
@@ -635,59 +616,24 @@ class Logic extends GetxController {
     return (h * 60 * 60 + m * 60 + s) * 1000;
   }
 
-  Future<bool> savePathSelector() async {
-    if (selectedDirectory.value != null) {
-      return true; // early Return if we already have a working path
-    }
-
-    var savePath = await FilePicker.platform.getDirectoryPath();
-
-    if (savePath != "/" && savePath != null) {
-      selectedDirectory.value = savePath;
-      box.put("savePath", selectedDirectory.value);
-      return true;
-    } else {
-      PermissionHandler.storagePathNotAvailable();
-      return false;
-    }
-  }
-
   void downloadVodDataBtn(BuildContext context) async {
     if (!hasInternet) {
       // IMPLEMENT NO INTERNET
       showToast("No internet Connection", context, 50);
       return;
     }
+
     if (!foundVideo.value) return;
 
     // NOTIFICATION PERMISSION
     // IMPLEMENT NOTIFICATION DISCLAIMER
-
-    if (await PermissionHandler.getNotificationStatus() == false) {
-      if (await PermissionHandler.showNotificationInfo()) {
-        await PermissionHandler.requestNotificationPermission();
-      } else {
-        PermissionHandler.showNotificationPermaRefused();
-      }
-    }
+    await PermissionHandler.notificationFullImplementation();
 
     // STORAGE PERMISSION
-    var status = await PermissionHandler.getStorageStatus();
-    if (status == false) {
-      var result = await PermissionHandler.showStorageInfo();
-      if (!result) {
-        PermissionHandler.storagePermissionRefused();
-        return;
-      }
-      await PermissionHandler.requestStoragePermission();
-      if (await PermissionHandler.getStorageStatus() == false) {
-        PermissionHandler.storagePermissionRefused();
-        return;
-      }
-    }
+    if (!await PermissionHandler.storageFullImplementation()) return;
 
-    if (!await savePathSelector()) return;
-
+    if (!await settingsController.value.savePathSelector()) return;
+    settingsController.refresh();
     int? starttime;
     int? endtime;
 
@@ -723,7 +669,7 @@ class Logic extends GetxController {
         "downloading": false,
         "streamDate": (videoData!["livestream"]["created_at"].split(" ")[0]),
         "image": link.value,
-        "quality": valueSelected.value,
+        "quality": qualitySelector.value,
         "start": starttime ?? 0,
         "end": endtime ?? -1,
         "data": videoData,
@@ -732,7 +678,7 @@ class Logic extends GetxController {
         "downloadURL": videoData!["source"],
         "username": videoData!["livestream"]["channel"]["user"]["username"],
         "savePath":
-            "${selectedDirectory.value!}/[${videoData!["livestream"]["created_at"].split(" ")[0]} - ${DateTime.now().hour}h ${DateTime.now().minute}m ${DateTime.now().second}s] ${videoData!["livestream"]["channel"]["user"]["username"]}",
+            "${settingsController.value.getSavedDir!}/[${videoData!["livestream"]["created_at"].split(" ")[0]} - ${DateTime.now().hour}h ${DateTime.now().minute}m ${DateTime.now().second}s] ${videoData!["livestream"]["channel"]["user"]["username"]}",
       },
     );
 

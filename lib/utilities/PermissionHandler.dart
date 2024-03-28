@@ -5,6 +5,7 @@ import 'package:kickdownloader/utilities/MethodChannelHandler.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class PermissionHandler {
+  // STORAGE
   static Future<void> requestStoragePermission() async {
     var ver = await MethodChannelHandler.getDeviceVersion();
     if (ver >= 30) {
@@ -18,6 +19,7 @@ class PermissionHandler {
     await Permission.notification.request();
   }
 
+// STATUS
   static Future<bool?> getNotificationStatus() async {
     var st = await Permission.notification.status;
     if (st.isGranted) {
@@ -52,6 +54,7 @@ class PermissionHandler {
     }
   }
 
+// INFO
   static Future<bool> showStorageInfo() async {
     var value = await Get.dialog(
       AlertDialog(
@@ -87,27 +90,6 @@ class PermissionHandler {
     } else {
       return false;
     }
-  }
-
-  static void storagePermissionRefused() {
-    // IMPLEMENT FOR LOW THAN SPECIFIC API
-    Get.dialog(const AlertDialog(
-      title: Text("Disclaimer", style: TextStyle(fontFamily: "SpaceGrotesk")),
-      content: Text("The app will not work without Storage Permission ",
-          style: TextStyle(
-              color: MyColors.white, fontSize: 16, fontFamily: "SpaceGrotesk")),
-    ));
-  }
-
-  static void storagePathNotAvailable() {
-    Get.dialog(
-      const AlertDialog(
-        title: Text("Path is not available",
-            style: TextStyle(fontFamily: "SpaceGrotesk")),
-        content: Text(
-            "The save path selected is not a valid path. Please not the some device might restrict some folders, so to be safe create a new folder and use it as your save path"),
-      ),
-    );
   }
 
   static Future<bool> showNotificationInfo() async {
@@ -159,6 +141,7 @@ class PermissionHandler {
     return x ?? false;
   }
 
+  // RESUSED INFO
   static void showNotificationPermaRefused() {
     Get.dialog(
       AlertDialog(
@@ -204,5 +187,57 @@ class PermissionHandler {
         ],
       ),
     );
+  }
+
+  static void storagePermissionRefused() {
+    // IMPLEMENT FOR LOW THAN SPECIFIC API
+    Get.dialog(const AlertDialog(
+      title: Text("Disclaimer", style: TextStyle(fontFamily: "SpaceGrotesk")),
+      content: Text("The app will not work without Storage Permission ",
+          style: TextStyle(
+              color: MyColors.white, fontSize: 16, fontFamily: "SpaceGrotesk")),
+    ));
+  }
+
+  // STORAGE ONLY
+  static void storagePathNotAvailable() {
+    Get.dialog(
+      const AlertDialog(
+        title: Text("Path is not available",
+            style: TextStyle(fontFamily: "SpaceGrotesk")),
+        content: Text(
+            "The save path selected is not a valid path. Please not the some device might restrict some folders, so to be safe create a new folder and use it as your save path"),
+      ),
+    );
+  }
+
+  // Check storage full implementation
+  static Future<bool> storageFullImplementation() async {
+    // STORAGE PERMISSION
+    var status = await getStorageStatus();
+    if (status == false) {
+      var result = await showStorageInfo();
+      if (!result) {
+        storagePermissionRefused();
+        return false;
+      }
+      await requestStoragePermission();
+      if (await getStorageStatus() == false) {
+        storagePermissionRefused();
+        return false;
+      }
+    }
+    return false;
+  }
+
+  // Check notifciation full implemenetaiton
+  static Future<void> notificationFullImplementation() async {
+    if (await getNotificationStatus() == false) {
+      if (await showNotificationInfo()) {
+        await requestNotificationPermission();
+      } else {
+        showNotificationPermaRefused();
+      }
+    }
   }
 }

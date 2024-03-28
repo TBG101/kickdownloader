@@ -11,7 +11,7 @@ class NotificationController {
     if (await PermissionHandler.getNotificationStatus() != true) {
       return; // early return if permission is not granted
     }
-    AwesomeNotifications().createNotification(
+    _notification.createNotification(
         content: NotificationContent(
       id: id,
       autoDismissible: false,
@@ -30,7 +30,7 @@ class NotificationController {
     if (await PermissionHandler.getNotificationStatus() != true) {
       return; // early return if permission is not granted
     }
-    await AwesomeNotifications().createNotification(
+    await _notification.createNotification(
         content: NotificationContent(
             id: id,
             channelKey: "channel",
@@ -47,7 +47,7 @@ class NotificationController {
     if (await PermissionHandler.getNotificationStatus() != true) {
       return; // early return if permission is not granted
     }
-    AwesomeNotifications().createNotification(
+    _notification.createNotification(
         content: NotificationContent(
             id: id,
             channelKey: "channel",
@@ -61,13 +61,7 @@ class NotificationController {
   }
 
   void dissmissNotification(int id) {
-    AwesomeNotifications().dismiss(id);
-  }
-
-  static Future<void> onActionReceived(ReceivedAction action) async {
-    final Logic controller = Get.find();
-    if (controller.pageSelector.value != 1) controller.pageSelector.value = 1;
-    controller.update();
+    _notification.dismiss(id);
   }
 
   void startListener() async {
@@ -77,5 +71,13 @@ class NotificationController {
         onActionReceivedMethod: NotificationController.onActionReceived,
       );
     }
+  }
+
+  static Future<void> onActionReceived(ReceivedAction action) async {
+    try {
+      final Logic controller = Get.find<Logic>();
+      if (controller.pageSelector.value != 1) controller.pageSelector.value = 1;
+      controller.update();
+    } catch (e) {}
   }
 }

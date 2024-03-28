@@ -9,6 +9,7 @@ import 'package:kickdownloader/utilities/logic.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   Get.put(Logic(), permanent: true);
+  
   await Hive.initFlutter();
   await Hive.openBox("video");
   await AwesomeNotifications().initialize(

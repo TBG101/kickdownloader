@@ -36,8 +36,8 @@ class Settings extends GetView<Logic> {
             const Divider(),
             ListTile(
               title: const Text("Save path"),
-              subtitle:
-                  Text(controller.selectedDirectory.value ?? "No save path"),
+              subtitle: Text(controller.settingsController.value.getSavedDir ??
+                  "No save path"),
               onTap: () {},
             ),
             ListTile(

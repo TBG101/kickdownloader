@@ -34,7 +34,7 @@ class DropdownSelector extends GetView<Logic> {
             child: DropdownButton<String>(
               elevation: 2,
               disabledHint: const Text("Video Quality"),
-              value: controller.valueSelected.value,
+              value: controller.qualitySelector.value,
               iconEnabledColor: Colors.white,
               isExpanded: true, //make true to take width of parent widget
               underline: const SizedBox.shrink(), //empty line
@@ -46,7 +46,7 @@ class DropdownSelector extends GetView<Logic> {
                   fontWeight: FontWeight.w600),
               items: listitemButton(),
               onChanged: (Object? value) {
-                controller.valueSelected.value = value as String;
+                controller.qualitySelector.value = value as String;
               },
             ),
           ),
