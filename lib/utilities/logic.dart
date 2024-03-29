@@ -7,7 +7,7 @@ import 'package:ffmpeg_kit_flutter_min_gpl/ffmpeg_kit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:kickdownloader/utilities/HiveLogic.dart';
+import 'package:kickdownloader/utilities/hive_logic.dart';
 import 'package:kickdownloader/utilities/MethodChannelHandler.dart';
 import 'package:kickdownloader/utilities/NotificationController.dart';
 import 'package:kickdownloader/utilities/PermissionHandler.dart';
@@ -114,16 +114,15 @@ class Logic extends GetxController {
   @override
   void onReady() async {
     // TODO: implement onReady
-    settingsController.update((val) {
-      val!.setSavedDir(HiveLogic.getSavePath);
-    });
-    
+    settingsController.value
+        .initSettings()
+        .then((value) => settingsController.refresh());
 
     appVersion = (await PackageInfo.fromPlatform()).version;
     appName = (await PackageInfo.fromPlatform()).appName;
 
     checkNetwork();
-    completedVideos.addAll(await HiveLogic.getStoreCompletedVideos());
+    completedVideos.addAll(await HiveLogic.getStoreCompletedVideos);
 
     _notificationcontroller.startListener();
 
@@ -628,21 +627,32 @@ class Logic extends GetxController {
     // NOTIFICATION PERMISSION
     // IMPLEMENT NOTIFICATION DISCLAIMER
     await PermissionHandler.notificationFullImplementation();
-
     // STORAGE PERMISSION
-    if (!await PermissionHandler.storageFullImplementation()) return;
+    var value = !await PermissionHandler.storageFullImplementation();
+
+    settingsController.update((val) async {
+      val!.storagePermission = value;
+      val.notificationEnable =
+          await PermissionHandler.getNotificationStatus() ?? false;
+    });
+
+    if (value) return;
 
     if (!await settingsController.value.savePathSelector()) return;
     settingsController.refresh();
     int? starttime;
     int? endtime;
-
-    if (startHour.value.text.isNotEmpty &&
+    bool startCondition() =>
+        startHour.value.text.isNotEmpty &&
         startMinute.value.text.isNotEmpty &&
-        startSecond.value.text.isNotEmpty &&
+        startSecond.value.text.isNotEmpty;
+
+    bool endCondition() =>
         endHour.value.text.isNotEmpty &&
         endMinute.value.text.isNotEmpty &&
-        endSecond.value.text.isNotEmpty) {
+        endSecond.value.text.isNotEmpty;
+
+    if (startCondition() && endCondition()) {
       // turn all time to milliseconds
       starttime = convertToMillisecond(int.parse(startHour.value.text),
           int.parse(startMinute.value.text), int.parse(startSecond.value.text));
@@ -653,14 +663,10 @@ class Logic extends GetxController {
         //  Impelment error
         return;
       }
-    } else if (startHour.value.text.isNotEmpty &&
-        startMinute.value.text.isNotEmpty &&
-        startSecond.value.text.isNotEmpty) {
+    } else if (startCondition()) {
       starttime = convertToMillisecond(int.parse(startHour.value.text),
           int.parse(startMinute.value.text), int.parse(startSecond.value.text));
-    } else if (endHour.value.text.isNotEmpty &&
-        endMinute.value.text.isNotEmpty &&
-        endSecond.value.text.isNotEmpty) {
+    } else if (endCondition()) {
       endtime = convertToMillisecond(int.parse(endHour.value.text),
           int.parse(endMinute.value.text), int.parse(endSecond.value.text));
     }
@@ -678,7 +684,7 @@ class Logic extends GetxController {
         "downloadURL": videoData!["source"],
         "username": videoData!["livestream"]["channel"]["user"]["username"],
         "savePath":
-            "${settingsController.value.getSavedDir!}/[${videoData!["livestream"]["created_at"].split(" ")[0]} - ${DateTime.now().hour}h ${DateTime.now().minute}m ${DateTime.now().second}s] ${videoData!["livestream"]["channel"]["user"]["username"]}",
+            "${settingsController.value.savedDir!}/[${videoData!["livestream"]["created_at"].split(" ")[0]} - ${DateTime.now().hour}h ${DateTime.now().minute}m ${DateTime.now().second}s] ${videoData!["livestream"]["channel"]["user"]["username"]}",
       },
     );
 

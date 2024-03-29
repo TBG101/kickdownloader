@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:kickdownloader/myColors.dart';
+import 'package:kickdownloader/utilities/PermissionHandler.dart';
 import 'package:kickdownloader/utilities/logic.dart';
 
 class Settings extends GetView<Logic> {
@@ -36,9 +37,13 @@ class Settings extends GetView<Logic> {
             const Divider(),
             ListTile(
               title: const Text("Save path"),
-              subtitle: Text(controller.settingsController.value.getSavedDir ??
+              subtitle: Text(controller.settingsController.value.savedDir ??
                   "No save path"),
-              onTap: () {},
+              onTap: () async {
+                await controller.settingsController.value.savePathSelector();
+                controller.settingsController.refresh();
+                controller.settingsController.value.saveToHive();
+              },
             ),
             ListTile(
                 title: const Text("Ask Download Folder"),
@@ -46,40 +51,74 @@ class Settings extends GetView<Logic> {
                     "Ask where to download everytime you download a new VOD"),
                 trailing: Switch(
                   activeColor: MyColors.greenDownloadPage,
-                  value: false,
-                  onChanged: (_) {},
+                  value: controller.settingsController.value.askDownloadAlways,
+                  onChanged: (_) async {
+                    await controller.settingsController.value
+                        .savePathSelector();
+                    controller.settingsController.refresh();
+                    controller.settingsController.value.saveToHive();
+                  },
                 )),
-            ListTile(
-              title: const Text("Ask storage permission"),
-              onTap: () {},
-            ),
+            if (controller.settingsController.value.askDownloadAlways == false)
+              ListTile(
+                title: const Text("Ask storage permission"),
+                onTap: () async {
+                  await PermissionHandler.storageFullImplementation();
+                  await controller.settingsController.value.initSettings();
+                  controller.settingsController.refresh();
+                  controller.settingsController.value.saveToHive();
+                },
+              ),
             const Divider(),
             ListTile(
-                title: const Text("Notifications"),
-                subtitle: const Text("Enable or disable notifications"),
-                trailing: Switch(
-                  activeColor: MyColors.greenDownloadPage,
-                  value: true,
-                  onChanged: (_) {},
-                )),
+              title: const Text("Notifications"),
+              subtitle: const Text("Enable or disable notifications"),
+              trailing: Switch(
+                activeColor: MyColors.greenDownloadPage,
+                value: controller.settingsController.value.notificationEnable,
+                onChanged: (_) {
+                  controller.settingsController.value.switchAskDownloadAlways();
+                  controller.settingsController.refresh();
+                  controller.settingsController.value.saveToHive();
+                },
+              ),
+            ),
             ListTile(
                 title: const Text("Notifications notify on complete"),
                 trailing: Switch(
                   activeColor: MyColors.greenDownloadPage,
-                  value: true,
-                  onChanged: (_) {},
+                  value:
+                      controller.settingsController.value.notificationComplete,
+                  onChanged: (_) {
+                    controller.settingsController.value
+                        .switchNotificationComplete();
+                    controller.settingsController.refresh();
+                    controller.settingsController.value.saveToHive();
+                  },
                 )),
             ListTile(
                 title: const Text("Notifications notify on failure"),
                 trailing: Switch(
                   activeColor: MyColors.greenDownloadPage,
-                  value: true,
-                  onChanged: (_) {},
+                  value:
+                      controller.settingsController.value.notificationFailure,
+                  onChanged: (_) {
+                    controller.settingsController.value
+                        .switchNotificationFailure();
+                    controller.settingsController.refresh();
+                    controller.settingsController.value.saveToHive();
+                  },
                 )),
-            ListTile(
-              title: const Text("Ask notification permission"),
-              onTap: () {},
-            ),
+            if (controller.settingsController.value.notificationEnable == false)
+              ListTile(
+                title: const Text("Ask notification permission"),
+                onTap: () async {
+                  await PermissionHandler.notificationFullImplementation();
+                  await controller.settingsController.value.initSettings();
+                  controller.settingsController.refresh();
+                  controller.settingsController.value.saveToHive();
+                },
+              ),
           ],
         ),
       ),

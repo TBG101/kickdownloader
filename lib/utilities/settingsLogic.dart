@@ -1,25 +1,59 @@
 import 'package:file_picker/file_picker.dart';
-import 'package:kickdownloader/utilities/HiveLogic.dart';
+import 'package:kickdownloader/utilities/hive_logic.dart';
 import 'package:kickdownloader/utilities/PermissionHandler.dart';
 
 class SettingsController {
-  String? _savedDir;
+  String? savedDir;
 
-  void setSavedDir(String? path) {
-    _savedDir = path;
+  bool storagePermission = false;
+  bool askDownloadAlways = false;
+
+  bool notificationPermission = false;
+  bool notificationComplete = true;
+  bool notificationFailure = true;
+  bool notificationEnable = false;
+
+  void saveToHive() {
+    HiveLogic.setStoreAskDownloadAlways(askDownloadAlways);
+    HiveLogic.setStoreNotificationComplete(notificationComplete);
+    HiveLogic.setStoreNotificationFailure(notificationFailure);
+    HiveLogic.setStoreAskDownloadAlways(askDownloadAlways);
   }
 
-  String? get getSavedDir => _savedDir;
+  Future<void> initSettings() async {
+    savedDir = HiveLogic.getSavePath;
+    askDownloadAlways = HiveLogic.getStoreAskDownloadAlways;
+    notificationEnable = HiveLogic.getStoreNotificationEnable;
+    notificationComplete = HiveLogic.getStoreNotificationComplete;
+    notificationFailure = HiveLogic.getStoreNotificationFailure;
+    storagePermission = await PermissionHandler.getStorageStatus() ?? false;
+    notificationPermission =
+        await PermissionHandler.getNotificationStatus() ?? false;
+  }
 
+  void switchNotificationFailure() {
+    notificationFailure = !notificationFailure;
+  }
+
+  void switchNotificationComplete() {
+    notificationComplete = !notificationComplete;
+  }
+
+// __askDownloadAlways METHODS
+  void switchAskDownloadAlways() {
+    askDownloadAlways = !askDownloadAlways;
+  }
+
+// change the save directory
   Future<bool> savePathSelector() async {
-    if (_savedDir != null) {
+    if (savedDir != null && !askDownloadAlways) {
       return true; // early Return if we already have a working path
     }
 
     var savePath = await FilePicker.platform.getDirectoryPath();
 
     if (savePath != "/" && savePath != null) {
-      _savedDir = savePath;
+      savedDir = savePath;
       HiveLogic.setStoreSavePath(savePath);
       return true;
     } else {

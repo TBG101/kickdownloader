@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:kickdownloader/myColors.dart';
 import 'package:kickdownloader/pages/settings.dart';
@@ -100,9 +99,11 @@ class MyDrawer extends GetView<Logic> {
           ),
           ListTile(
             leading: const Icon(Icons.settings_outlined),
-            onTap: () {
+            onTap: () async {
+              await controller.settingsController.value.initSettings();
+              controller.settingsController.refresh();
               Get.to(const Settings());
-              Scaffold.of(context).closeDrawer();
+              if (context.mounted) Scaffold.of(context).closeDrawer();
             },
             title: const Text("Settings"),
           ),
