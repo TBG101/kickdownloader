@@ -19,8 +19,8 @@ class Home extends GetView<Logic> {
   List<Widget> homeView(size, BuildContext context) {
     return [
       // STREAM THUMBNAIL
-
       const StreamThumbnail(),
+
       // TEXT FOR STREAM FIELDS
       Padding(
           padding: const EdgeInsets.only(top: 10),
@@ -77,61 +77,61 @@ class Home extends GetView<Logic> {
     var size = MediaQuery.of(context).size;
     return SafeArea(
       child: PopScope(
-          canPop: false,
-          onPopInvoked: (_) async {
-            if (controller.pageSelector.value == 1) {
-              controller.pageSelector.value = 0;
-              controller.update();
-            }
-          },
-          child: GetBuilder(
-            init: controller,
-            builder: (controller) => Scaffold(
-              drawer: const MyDrawer(),
-              appBar: AppBar(
-                title: const Text(
-                  "Kick Downloader VOD",
-                  style: TextStyle(fontWeight: FontWeight.w700),
-                ),
-                flexibleSpace: Container(
-                  decoration: const BoxDecoration(gradient: MyColors.gradient),
-                ),
-                backgroundColor: const Color(0x00000000),
-                centerTitle: true,
-                leading: Builder(
-                  builder: (context) => IconButton(
-                    icon: const Icon(Icons.menu_rounded),
-                    onPressed: () => Scaffold.of(context).openDrawer(),
-                  ),
-                ),
-                actions: [
-                  IconButton(
-                    onPressed: () {
-                      controller.pageSelector.value = 1;
-                      controller.update();
-                    },
-                    icon: Obx(() {
-                      return Badge(
-                          backgroundColor: Colors.redAccent,
-                          alignment: Alignment.topRight,
-                          offset: const Offset(5, -7),
-                          isLabelVisible:
-                              controller.queeVideoDownload.isNotEmpty,
-                          label: Text(
-                              controller.queeVideoDownload.length.toString(),
-                              style: const TextStyle(color: Colors.white)),
-                          child: const Icon(Icons.download_rounded));
-                    }),
-                  )
-                ],
+        canPop: false,
+        onPopInvoked: (_) async {
+          if (controller.pageSelector.value == 1) {
+            controller.pageSelector.value = 0;
+            controller.update();
+          }
+        },
+        child: GetBuilder(
+          init: controller,
+          builder: (controller) => Scaffold(
+            drawer: const MyDrawer(),
+            appBar: AppBar(
+              title: const Text(
+                "Kick Downloader VOD",
+                style: TextStyle(fontWeight: FontWeight.w700),
               ),
-              body: controller.pageSelector.value == 0
-                  ? ListView(
-                      padding: const EdgeInsets.all(10),
-                      children: homeView(size, context))
-                  : const DownloadPage(),
+              flexibleSpace: Container(
+                decoration: const BoxDecoration(gradient: MyColors.gradient),
+              ),
+              backgroundColor: const Color(0x00000000),
+              centerTitle: true,
+              leading: Builder(
+                builder: (context) => IconButton(
+                  icon: const Icon(Icons.menu_rounded),
+                  onPressed: () => Scaffold.of(context).openDrawer(),
+                ),
+              ),
+              actions: [
+                IconButton(
+                  onPressed: () {
+                    controller.pageSelector.value = 1;
+                    controller.update();
+                  },
+                  icon: Obx(() {
+                    return Badge(
+                        backgroundColor: Colors.redAccent,
+                        alignment: Alignment.topRight,
+                        offset: const Offset(5, -7),
+                        isLabelVisible: controller.queeVideoDownload.isNotEmpty,
+                        label: Text(
+                            controller.queeVideoDownload.length.toString(),
+                            style: const TextStyle(color: Colors.white)),
+                        child: const Icon(Icons.download_rounded));
+                  }),
+                )
+              ],
             ),
-          )),
+            body: controller.pageSelector.value == 0
+                ? ListView(
+                    padding: const EdgeInsets.all(10),
+                    children: homeView(size, context))
+                : const DownloadPage(),
+          ),
+        ),
+      ),
     );
   }
 }

@@ -364,20 +364,29 @@ class Logic extends GetxController {
     } catch (_) {}
   }
 
-  Future<String?> downloadVod(String myPath, List<String> playlist, int endTime,
-      int startTime, int tsFileSize, List queeList, String downloadURL) async {
+  Future<String?> downloadVod(
+      String myPath,
+      List<String> playlist,
+      int endTime,
+      int startTime,
+      int tsFileSize,
+      List queeList,
+      String downloadURL,
+      bool notificationEnabled) async {
     int? nbOfTsFiles, overflowTime;
     canceledLogic() {
-      deleteDir(myPath);
       if (!cancel.isCancelled) {
         cancel.cancel();
       }
+      deleteDir(myPath);
     }
 
-    await _notificationcontroller.createDownloadNotifcation(
-        notificationId,
-        'Started downloading VOD',
-        "Streamer ${queeVideoDownload[0]["username"]}");
+    if (notificationEnabled) {
+      await _notificationcontroller.createDownloadNotifcation(
+          notificationId,
+          'Started downloading VOD',
+          "Streamer ${queeVideoDownload[0]["username"]}");
+    }
 
     try {
       (overflowTime, nbOfTsFiles) =
@@ -422,12 +431,14 @@ class Logic extends GetxController {
         videoDownloadPercentage.value =
             (videoDownloadParts / (file.length * 100)) * 100;
 
-        _notificationcontroller.updateNotification(
-            notificationId,
-            file,
-            'Downloading ${percentage.toStringAsFixed(0)}% ${(sizeVid * percentage / 100).toStringAsFixed(2)}/${sizeVid.toStringAsFixed(2)} $suffix',
-            "Streamer ${queeVideoDownload[0]["username"]}",
-            videoDownloadPercentage.value);
+        if (notificationEnabled) {
+          _notificationcontroller.updateNotification(
+              notificationId,
+              file,
+              'Downloading ${percentage.toStringAsFixed(0)}% ${(sizeVid * percentage / 100).toStringAsFixed(2)}/${sizeVid.toStringAsFixed(2)} $suffix',
+              "Streamer ${queeVideoDownload[0]["username"]}",
+              videoDownloadPercentage.value);
+        }
 
         await waitTimer();
         if (cancel.isCancelled) {
@@ -459,12 +470,14 @@ class Logic extends GetxController {
       videoDownloadPercentage.value =
           (videoDownloadParts / (file.length * 100)) * 100;
 
-      _notificationcontroller.updateNotification(
-          notificationId,
-          file,
-          'Downloading ${percentage.toStringAsFixed(0)}% ${(sizeVid * percentage / 100).toStringAsFixed(2)}/${sizeVid.toStringAsFixed(2)} $suffix',
-          "Streamer ${queeVideoDownload[0]["username"]}",
-          videoDownloadPercentage.value);
+      if (notificationEnabled) {
+        _notificationcontroller.updateNotification(
+            notificationId,
+            file,
+            'Downloading ${percentage.toStringAsFixed(0)}% ${(sizeVid * percentage / 100).toStringAsFixed(2)}/${sizeVid.toStringAsFixed(2)} $suffix',
+            "Streamer ${queeVideoDownload[0]["username"]}",
+            videoDownloadPercentage.value);
+      }
     }
 
     var r = await checkTSfiles(myPath, downloadURL, () {
@@ -474,12 +487,13 @@ class Logic extends GetxController {
       }
     });
     if (!r) return null;
-
-    await _notificationcontroller.updateNotificationEnd(
-        notificationId,
-        'Converting to MP4',
-        "Streamer ${queeVideoDownload[0]["username"]}",
-        true);
+    if (notificationEnabled) {
+      await _notificationcontroller.updateNotificationEnd(
+          notificationId,
+          'Converting to MP4',
+          "Streamer ${queeVideoDownload[0]["username"]}",
+          true);
+    }
 
     String? path;
     try {
@@ -497,12 +511,15 @@ class Logic extends GetxController {
       canceledLogic();
       return null;
     }
-
-    await _notificationcontroller.updateNotificationEnd(
-        notificationId,
-        'Download Completed',
-        "Streamer ${queeVideoDownload[0]["username"]}",
-        false);
+    if (notificationEnabled) {
+      settingsController.value.notificationComplete
+          ? await _notificationcontroller.updateNotificationEnd(
+              notificationId,
+              'Download Completed',
+              "Streamer ${queeVideoDownload[0]["username"]}",
+              false)
+          : _notificationcontroller.dissmissNotification(notificationId);
+    }
     return path;
   }
 
@@ -527,8 +544,15 @@ class Logic extends GetxController {
     queeVideoDownload[0]["downloading"] = true;
 
     try {
-      await downloadVod(saveDir, playlist, endTime, startTime, tsFileSize,
-              queeList, downloadURL)
+      await downloadVod(
+              saveDir,
+              playlist,
+              endTime,
+              startTime,
+              tsFileSize,
+              queeList,
+              downloadURL,
+              settingsController.value.notificationEnable)
           .then((path) async {
         if (path != null && downloading && !cancel.isCancelled) {
           DateTime now = DateTime.now();
@@ -554,11 +578,13 @@ class Logic extends GetxController {
           }
           addVideoToHive();
         } else {
-          _notificationcontroller.dissmissNotification(notificationId);
+          _notificationcontroller.failedDownloadNotification(
+              notificationId, "Failed to download", "Download canceled");
         }
       });
     } catch (e) {
-      _notificationcontroller.dissmissNotification(notificationId);
+      _notificationcontroller.failedDownloadNotification(
+          notificationId, "Failed to download", "Unhandled exception");
       print("OUTER FUNCTION ERROR IS: $e");
       deleteDir(saveDir);
       if (!cancel.isCancelled) {
@@ -632,13 +658,17 @@ class Logic extends GetxController {
 
     settingsController.update((val) async {
       val!.storagePermission = value;
-      val.notificationEnable =
+      val.notificationPermission =
           await PermissionHandler.getNotificationStatus() ?? false;
     });
 
-    if (value) return;
+    if (!value) return;
 
-    if (!await settingsController.value.savePathSelector()) return;
+    if (!await settingsController.value.savePathSelector(
+        selectNew: settingsController.value.askDownloadAlways)) {
+      // Implement error downloading
+      return;
+    }
     settingsController.refresh();
     int? starttime;
     int? endtime;

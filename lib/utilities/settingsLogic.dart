@@ -16,8 +16,8 @@ class SettingsController {
   void saveToHive() {
     HiveLogic.setStoreAskDownloadAlways(askDownloadAlways);
     HiveLogic.setStoreNotificationComplete(notificationComplete);
+    HiveLogic.setStoreNotificationFailure(notificationEnable);
     HiveLogic.setStoreNotificationFailure(notificationFailure);
-    HiveLogic.setStoreAskDownloadAlways(askDownloadAlways);
   }
 
   Future<void> initSettings() async {
@@ -29,6 +29,11 @@ class SettingsController {
     storagePermission = await PermissionHandler.getStorageStatus() ?? false;
     notificationPermission =
         await PermissionHandler.getNotificationStatus() ?? false;
+  }
+
+  // Switch Values
+  void switchNotificationEnable() {
+    notificationEnable = !notificationEnable;
   }
 
   void switchNotificationFailure() {
@@ -45,8 +50,8 @@ class SettingsController {
   }
 
 // change the save directory
-  Future<bool> savePathSelector() async {
-    if (savedDir != null && !askDownloadAlways) {
+  Future<bool> savePathSelector({bool selectNew = false}) async {
+    if (savedDir != null && !askDownloadAlways && !selectNew) {
       return true; // early Return if we already have a working path
     }
 

@@ -60,6 +60,22 @@ class NotificationController {
             autoDismissible: false));
   }
 
+  Future<void> failedDownloadNotification(
+      int id, String title, String body) async {
+    if (await PermissionHandler.getNotificationStatus() != true) {
+      return; // early return if permission is not granted
+    }
+    _notification.createNotification(
+        content: NotificationContent(
+            id: id,
+            channelKey: "channel",
+            title: title,
+            body: body,
+            category: NotificationCategory.Status,
+            notificationLayout: NotificationLayout.Default,
+            locked: false));
+  }
+
   void dissmissNotification(int id) {
     _notification.dismiss(id);
   }

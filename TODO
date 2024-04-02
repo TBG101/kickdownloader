@@ -1,7 +1,8 @@
 GENERAL:
-  - Add settings
   - Add ADS
   - add upgrade to premium
+  - add a pause button
+
   
    
 TimeSelector:
@@ -21,6 +22,7 @@ Logic:
 
   
 Done:
+  - Add settings
   - Add  license
   - fix click on notification gets it deleted
   - create better UI
