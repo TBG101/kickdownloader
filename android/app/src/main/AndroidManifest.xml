@@ -1,11 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 	<uses-permission android:name="android.permission.INTERNET" />
 
-     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
-     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29"/>
-     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"/>
+	<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+		android:maxSdkVersion="29" />
+	<uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
 
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+	<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 	<uses-permission android:name="android.permission.VIBRATE" />
 	<application android:label="kickdownloader" android:name="${applicationName}"
 		android:icon="@mipmap/ic_launcher"
@@ -22,6 +23,7 @@
 			-->
 			<meta-data android:name="io.flutter.embedding.android.NormalTheme"
 				android:resource="@style/NormalTheme" />
+	
 			<intent-filter>
 				<action android:name="android.intent.action.MAIN" />
 				<category android:name="android.intent.category.LAUNCHER" />
@@ -32,5 +34,8 @@
 		This is used by the Flutter tool to generate GeneratedPluginRegistrant.java
 		-->
 		<meta-data android:name="flutterEmbedding" android:value="2" />
+		<meta-data
+		android:name="com.google.android.gms.ads.APPLICATION_ID"
+		android:value="ca-app-pub-3324760520771594~3169933053" />
 	</application>
 </manifest>

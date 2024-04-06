@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:get/get.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:kickdownloader/utilities/logic.dart';
 import 'package:kickdownloader/widgets/downloadPage/videoCard.dart';
 
@@ -116,18 +117,37 @@ class DownloadPage extends GetView<Logic> {
             parent: BouncingScrollPhysics()),
         key: controller.animatedListKey,
         initialItemCount: controller.queeVideoDownload.length +
-            controller.completedVideos.length,
+            controller.completedVideos.length +
+            1,
         itemBuilder: (animatedListContext, index, animation) {
+          if (index == 0) {
+            if (controller.adState.loadedBannerAd) {
+              print("here");
+              return SizedBox(
+                height: 100,
+                child: AdWidget(
+                  ad: controller.adState.myBanner!,
+                ),
+              );
+            } else {
+              const SizedBox.shrink();
+            }
+          }
+
           if ((controller.queeVideoDownload.length +
-                  controller.completedVideos.length -
-                  1) ==
+                  controller.completedVideos.length +
+                  1 -
+                  (controller.queeVideoDownload.isNotEmpty ||
+                          controller.queeVideoDownload.isNotEmpty
+                      ? 2
+                      : 1)) ==
               index) {
             return const SizedBox(
               height: 50,
             );
           }
-
-          if (index < controller.queeVideoDownload.length) {
+          print("index is $index");
+          if (index + 1 < controller.queeVideoDownload.length) {
             return Obx(() {
               return VideoCard(
                 title:
@@ -146,7 +166,8 @@ class DownloadPage extends GetView<Logic> {
             });
           }
 
-          var i = index - (controller.queeVideoDownload.length);
+          var i = (index - (controller.queeVideoDownload.length));
+          print("i is $i");
           return Obx(
             () => SizeTransition(
                 key: UniqueKey(),

@@ -1,6 +1,7 @@
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:hive_flutter/adapters.dart';
 import 'package:kickdownloader/myColors.dart';
 import 'package:kickdownloader/pages/Home.dart';
@@ -8,11 +9,10 @@ import 'package:kickdownloader/utilities/logic.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  Get.put(Logic(), permanent: true);
-  
+  final initFuture = MobileAds.instance.initialize();
   await Hive.initFlutter();
   await Hive.openBox("video");
-  await AwesomeNotifications().initialize(
+  AwesomeNotifications().initialize(
       null,
       [
         NotificationChannel(
@@ -25,6 +25,7 @@ void main() async {
             ledColor: Colors.white)
       ],
       debug: true);
+  Get.put(Logic(initFuture), permanent: true);
   runApp(const MyApp());
 }
 

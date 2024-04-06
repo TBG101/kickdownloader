@@ -18,7 +18,12 @@ class Home extends GetView<Logic> {
 
   List<Widget> homeView(size, BuildContext context) {
     return [
-      // STREAM THUMBNAIL
+      // STREAM THUMBNAIL.
+      ElevatedButton(
+          onPressed: () {
+            controller.adState.showInterAd();
+          },
+          child: Text("data")),
       const StreamThumbnail(),
 
       // TEXT FOR STREAM FIELDS

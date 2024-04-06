@@ -7,6 +7,8 @@ import 'package:ffmpeg_kit_flutter_min_gpl/ffmpeg_kit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:kickdownloader/utilities/ad_state.dart';
 import 'package:kickdownloader/utilities/hive_logic.dart';
 import 'package:kickdownloader/utilities/MethodChannelHandler.dart';
 import 'package:kickdownloader/utilities/NotificationController.dart';
@@ -21,6 +23,11 @@ import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 
 class Logic extends GetxController {
+  // Logic(this.adState);
+  AdState adState;
+  Logic(Future<InitializationStatus> initialization)
+      : adState = AdState(initialization);
+
   final navigatorKey = GlobalKey<NavigatorState>();
 
   final NotificationController _notificationcontroller =
@@ -60,7 +67,6 @@ class Logic extends GetxController {
   var queeVideoDownload = [].obs;
   int notificationId = 0;
   RxList<Map> completedVideos = <Map>[].obs;
-
   bool hasInternet = true;
 
   final _dio = Dio();
@@ -125,8 +131,8 @@ class Logic extends GetxController {
     completedVideos.addAll(await HiveLogic.getStoreCompletedVideos);
 
     _notificationcontroller.startListener();
-
-    queeVideoDownload.listen((p0) {});
+    adState.loadInterAd();
+    adState.loadBannerAd();
     super.onReady();
   }
 
@@ -649,6 +655,8 @@ class Logic extends GetxController {
     }
 
     if (!foundVideo.value) return;
+
+    adState.showInterAd();
 
     // NOTIFICATION PERMISSION
     // IMPLEMENT NOTIFICATION DISCLAIMER
