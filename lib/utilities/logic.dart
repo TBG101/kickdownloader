@@ -21,6 +21,7 @@ import 'package:dio/dio.dart';
 import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 
 class Logic extends GetxController {
   AdState adState;
@@ -32,17 +33,17 @@ class Logic extends GetxController {
   final NotificationController _notificationcontroller =
       NotificationController();
 
-  var url = TextEditingController().obs;
+  final url = TextEditingController().obs;
   String apiURL = "";
   String lastVideoLink = "";
-  RxBool foundVideo = false.obs;
+  final RxBool foundVideo = false.obs;
   var downloading = false;
   Map<String, dynamic>? videoData;
-  var resolutions = <String>[].obs;
+  final resolutions = <String>[].obs;
 
-  RxDouble videoDownloadPercentage = 0.0.obs;
+  final RxDouble videoDownloadPercentage = 0.0.obs;
   var videoDownloadParts = 0.0;
-  RxInt videoDownloadSizeBytes = 0.obs;
+  final RxInt videoDownloadSizeBytes = 0.obs;
 
   var link = "".obs;
   RxInt pageSelector = 0.obs;
@@ -54,16 +55,16 @@ class Logic extends GetxController {
   RxBool startValue = false.obs;
   RxBool endValue = false.obs;
 
-  var qualitySelector = Rxn<String>();
+  final qualitySelector = Rxn<String>();
 
   // text controllers
-  var startHour = TextEditingController().obs;
-  var startMinute = TextEditingController().obs;
-  var startSecond = TextEditingController().obs;
-  var endHour = TextEditingController().obs;
-  var endMinute = TextEditingController().obs;
-  var endSecond = TextEditingController().obs;
-  var queeVideoDownload = [].obs;
+  final startHour = TextEditingController().obs;
+  final startMinute = TextEditingController().obs;
+  final startSecond = TextEditingController().obs;
+  final endHour = TextEditingController().obs;
+  final endMinute = TextEditingController().obs;
+  final endSecond = TextEditingController().obs;
+  final queeVideoDownload = [].obs;
   int notificationId = 0;
   RxList<Map> completedVideos = <Map>[].obs;
   bool hasInternet = true;
@@ -86,6 +87,7 @@ class Logic extends GetxController {
         if (value == ConnectivityResult.none) hasInternet = false;
       },
     );
+
     Connectivity().onConnectivityChanged.listen((ConnectivityResult result) {
       if (result == ConnectivityResult.none) {
         hasInternet = false;
@@ -116,13 +118,25 @@ class Logic extends GetxController {
     apiURL = "";
   }
 
+  void _getIntent() {
+    // Get the media sharing coming from outside the app while the app is closed.
+    ReceiveSharingIntent.instance.getMediaStream().listen((value) {
+      print(value.first.path);
+      url.value.text = value.first.path.split(" ").last;
+
+      ReceiveSharingIntent.instance.reset();
+    });
+    ReceiveSharingIntent.instance.getMediaStream().listen((value) {
+      print(value);
+      ReceiveSharingIntent.instance.reset();
+    });
+  }
+
   @override
   void onReady() async {
     // TODO: implement onReady
-    settingsController.value
-        .initSettings()
-        .then((value) => settingsController.refresh());
 
+    _getIntent();
     final myList = await Future.wait([
       PackageInfo.fromPlatform(),
       (PackageInfo.fromPlatform()),
@@ -139,19 +153,14 @@ class Logic extends GetxController {
     adState.loadBannerAd();
     adState.loadAppOpenAd();
     AppLifecycleListener(
-      onShow: () => print('show'),
-      onHide: () => print('hide'),
-      onDetach: () => print('detach'),
       onInactive: () {
         adState.clickedOnMyAppOpenAd = true;
         print('inactive');
       },
       onPause: () {
         adState.clickedOnMyAppOpenAd = false;
-        print('pause');
       },
       onResume: () {
-        print("azefazefaze");
         if (adState.clickedOnMyAppOpenAd == false) {
           adState.showAppOpenAd();
         } else {
@@ -165,7 +174,7 @@ class Logic extends GetxController {
   (double, String) formatBytes(int bytes) {
     if (bytes <= 0) return (0, "B");
     const suffixes = ["B", "KB", "MB", "GB"];
-    var i = (log(bytes) / log(1024)).floor();
+    final i = (log(bytes) / log(1024)).floor();
     return (((bytes / pow(1024, i))), suffixes[i]);
   }
 
@@ -181,14 +190,14 @@ class Logic extends GetxController {
 
     foundVideo.value = false;
 
-    var response = await getURL(context);
+    final response = await getURL(context);
 
     if (response != 200) {
       return; // early reaturn if the response is diffrenet than 200
     }
     lastVideoLink = url.value.text;
     await getVidQuality();
-    var duration = Duration(
+    final duration = Duration(
         hours: 0,
         seconds: 0,
         minutes: 0,
@@ -248,12 +257,12 @@ class Logic extends GetxController {
   }
 
   String thumbnailLink() {
-    var x = (videoData!["source"] as String).split("\/");
+    final x = (videoData!["source"] as String).split("\/");
     return "https://images.kick.com/video_thumbnails/${x[6]}/${x[12]}/480.webp";
   }
 
   Future<void> getVidQuality() async {
-    var response = await _dio.get(
+    final response = await _dio.get(
       videoData!["source"],
     );
     extractResolutionsFromMaster(response.data);
@@ -274,12 +283,12 @@ class Logic extends GetxController {
       String path, String downloadPath, Function myCallback) async {
     // IMPLEMENT CHECK TS FILES
     File file = File("$path/generated.txt");
-    var x = await file
+    final generatedFile = await file
         .openRead()
         .transform(utf8.decoder)
         .transform(const LineSplitter())
         .toList();
-    for (var element in x) {
+    for (var element in generatedFile) {
       if (myCallback()) {
         return false;
       }
@@ -294,16 +303,16 @@ class Logic extends GetxController {
 
   static void heavyComputeWriteGen(List args) {
     List<String> myPlaylist = args[0];
-    var endTime = args[1] as int;
-    var startTime = args[2] as int;
-    var savepath = args[3] as String;
-    var mySendPort = args[4] as SendPort;
+    final endTime = args[1] as int;
+    final startTime = args[2] as int;
+    final savepath = args[3] as String;
+    final mySendPort = args[4] as SendPort;
 
     int? overflowTime;
     var nbOfTsFiles = 0;
     var timeMilliseconds = 0;
-    var generatedFile = File("$savepath/generated.txt");
-
+    final generatedFile = File("$savepath/generated.txt");
+    late String line;
     for (int i = 0; i < myPlaylist.length; i++) {
       if (myPlaylist[i].contains("#EXTINF:") == false) {
         continue;
@@ -311,7 +320,7 @@ class Logic extends GetxController {
       if (timeMilliseconds >= endTime && endTime != -1) {
         break;
       }
-      var line = myPlaylist[i];
+      line = myPlaylist[i];
       line = line.replaceAll("#EXTINF:", "");
       line = line.replaceAll(",", "");
       if (timeMilliseconds >= startTime ||
@@ -345,15 +354,15 @@ class Logic extends GetxController {
       playlist[playlist.length - 2];
     }
 
-    var receiverPort = ReceivePort();
+    final receiverPort = ReceivePort();
 
-    var myIsolate = await Isolate.spawn(heavyComputeWriteGen,
+    final myIsolate = await Isolate.spawn(heavyComputeWriteGen,
         [playlist, endTime, startTime, savepath, receiverPort.sendPort]);
     cancel.whenCancel.asStream().listen((event) {
       myIsolate.kill(priority: Isolate.immediate);
       receiverPort.sendPort.send(null);
     });
-    var result = await receiverPort.first as Map<String, int?>?;
+    final result = await receiverPort.first as Map<String, int?>?;
     myIsolate.kill();
     receiverPort.close();
     if (result == null) return (null, null);
@@ -383,7 +392,7 @@ class Logic extends GetxController {
     try {
       File file = File(path);
       int fileSizeInBytes = await file.length();
-      var (size, suffix) = formatBytes(fileSizeInBytes);
+      final (size, suffix) = formatBytes(fileSizeInBytes);
       return "${size.toStringAsFixed(2)} $suffix";
     } catch (e) {
       return "Couldn't get file size";
@@ -451,7 +460,7 @@ class Logic extends GetxController {
     var (sizeVid, suffix) = formatBytes(videoDownloadSizeBytes.value);
     playlist.clear();
 
-    var file = File("$myPath/generated.txt").readAsLinesSync();
+    final file = File("$myPath/generated.txt").readAsLinesSync();
 
     for (String element in file) {
       if (cancel.isCancelled) {
@@ -459,7 +468,7 @@ class Logic extends GetxController {
         return null;
       }
       while (queeList.length >= 5 && downloading) {
-        var percentage = videoDownloadPercentage.value;
+        final percentage = videoDownloadPercentage.value;
         videoDownloadPercentage.value =
             (videoDownloadParts / (file.length * 100)) * 100;
 
@@ -498,7 +507,7 @@ class Logic extends GetxController {
         canceledLogic();
         return null;
       }
-      var percentage = videoDownloadPercentage.value;
+      final percentage = videoDownloadPercentage.value;
       videoDownloadPercentage.value =
           (videoDownloadParts / (file.length * 100)) * 100;
 
@@ -512,7 +521,7 @@ class Logic extends GetxController {
       }
     }
 
-    var r = await checkTSfiles(myPath, downloadURL, () {
+    final r = await checkTSfiles(myPath, downloadURL, () {
       if (cancel.isCancelled) {
         canceledLogic();
         return true;
@@ -562,16 +571,16 @@ class Logic extends GetxController {
     notificationId++;
     downloading = true;
     // ignore: no_leading_underscores_for_local_identifiers
-    String saveDir = queeVideoDownload[0]["savePath"];
-    List<int> queeList = [];
-    var slectedQuality = queeVideoDownload[0]["quality"];
-    int startTime = queeVideoDownload[0]["start"];
-    int endTime = queeVideoDownload[0]["end"];
-    var downloadURL = queeVideoDownload[0]["downloadURL"]
+    final String saveDir = queeVideoDownload[0]["savePath"];
+    final List<int> queeList = [];
+    final slectedQuality = queeVideoDownload[0]["quality"];
+    final int startTime = queeVideoDownload[0]["start"];
+    final int endTime = queeVideoDownload[0]["end"];
+    final String downloadURL = queeVideoDownload[0]["downloadURL"]
         .replaceAll(RegExp(r'master\.[^/]*$'), "$slectedQuality/");
     List<String> playlist = await getPlaylist(downloadURL);
 
-    var tsFileSize = await getFileSize(downloadURL + "0.ts");
+    final tsFileSize = await getFileSize("${downloadURL}0.ts");
 
     queeVideoDownload[0]["downloading"] = true;
 
@@ -625,7 +634,7 @@ class Logic extends GetxController {
     }
 
     if (queeVideoDownload.isNotEmpty && !cancel.isCancelled) {
-      var temp = queeVideoDownload.removeAt(0);
+      final temp = queeVideoDownload.removeAt(0);
       queeVideoDownload.refresh();
       animatedListKey.currentState!.removeItem(
         0,
@@ -688,7 +697,7 @@ class Logic extends GetxController {
     // IMPLEMENT NOTIFICATION DISCLAIMER
     await PermissionHandler.notificationFullImplementation();
     // STORAGE PERMISSION
-    var value = !await PermissionHandler.storageFullImplementation();
+    final value = !await PermissionHandler.storageFullImplementation();
 
     settingsController.update((val) async {
       val!.storagePermission = value;
@@ -807,7 +816,7 @@ class Logic extends GetxController {
       FFmpegKit.executeAsync(
         ffmpegCommand,
         (session) async {
-          var returnCode = await session.getReturnCode();
+          final returnCode = await session.getReturnCode();
           if (returnCode == null) return;
           if (returnCode.isValueSuccess()) {
             complete.complete(true);
@@ -817,11 +826,11 @@ class Logic extends GetxController {
         },
       ); // convert the ts file into mp4
 
-      var stream = cancel.whenCancel.asStream().listen((event) {
+      final stream = cancel.whenCancel.asStream().listen((event) {
         if (event.type == DioExceptionType.cancel) FFmpegKit.cancel();
       });
 
-      var returnValue = await complete.future;
+      final returnValue = await complete.future;
       stream.cancel();
 
       if (returnValue == false) {
@@ -841,7 +850,7 @@ class Logic extends GetxController {
     print(tsFileNB);
     try {
       int lastCount = 0;
-      var responseBytes = await _dio.get(
+      final responseBytes = await _dio.get(
         path + tsFileNB,
         onReceiveProgress: (count, total) {
           videoDownloadParts += ((count - lastCount) / total) * 100;
@@ -869,7 +878,7 @@ class Logic extends GetxController {
       return;
     }
     File file = File(savePath + tsFileName);
-    var raf = file.openSync(mode: FileMode.write);
+    final raf = file.openSync(mode: FileMode.write);
     await raf.writeFrom(data);
   }
 
@@ -901,13 +910,13 @@ class Logic extends GetxController {
 
   String formatMilliseconds(int milliseconds) {
     // Calculate hours, minutes, seconds, and remaining milliseconds
-    int hours = (milliseconds ~/ (1000 * 60 * 60)) % 24;
-    int minutes = (milliseconds ~/ (1000 * 60)) % 60;
-    int seconds = (milliseconds ~/ 1000) % 60;
-    int remainingMilliseconds = milliseconds % 1000;
+    final int hours = (milliseconds ~/ (1000 * 60 * 60)) % 24;
+    final int minutes = (milliseconds ~/ (1000 * 60)) % 60;
+    final int seconds = (milliseconds ~/ 1000) % 60;
+    final int remainingMilliseconds = milliseconds % 1000;
 
     // Format the result as "HOURS:MM:SS.MILLISECONDS"
-    String formattedTime = '$hours:'
+    final String formattedTime = '$hours:'
         '${minutes.toString().padLeft(2, '0')}:'
         '${seconds.toString().padLeft(2, '0')}.'
         '${remainingMilliseconds.toString().padLeft(3, '0')}';
@@ -955,13 +964,13 @@ class Logic extends GetxController {
   }
 
   String getDir(String path) {
-    var x = path.split("/");
+    final x = path.split("/");
     x.removeLast();
     return "${x.join("/")}/";
   }
 
   void showFileInfoDialog(int index, BuildContext context) async {
-    var textStyle = const TextStyle(fontFamily: "SpaceGrotesk");
+    const textStyle = TextStyle(fontFamily: "SpaceGrotesk");
     showModalBottomSheet(
         constraints: const BoxConstraints.expand(),
         elevation: 5,

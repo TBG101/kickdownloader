@@ -19,7 +19,7 @@ void main() async {
             channelKey: 'channel',
             channelName: 'Notification download notifier',
             channelDescription: 'Notification channel for download notifier',
-            defaultColor: const Color(0xFF9D50DD),
+            defaultColor: const Color.fromARGB(255, 9, 255, 0),
             playSound: true,
             locked: true,
             ledColor: Colors.white)

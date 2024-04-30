@@ -50,6 +50,8 @@ dependencies:
   package_info_plus: ^5.0.1
   flutter_animate: ^4.5.0
   google_mobile_ads: ^5.0.0
+  receive_sharing_intent: ^1.8.0
+
 
 
 dev_dependencies:
