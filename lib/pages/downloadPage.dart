@@ -99,112 +99,111 @@ class DownloadPage extends GetView<Logic> {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() {
-      if (controller.queeVideoDownload.isEmpty &&
-          controller.completedVideos.isEmpty) {
-        return Center(
-            child: const Text(
-          "You have no videos",
-          style: TextStyle(
-            fontSize: 20,
-            color: Colors.white,
-          ),
-        ).animate().fadeIn(duration: const Duration(milliseconds: 250)));
-      }
-      return AnimatedList(
-        physics: const BouncingScrollPhysics(
-            decelerationRate: ScrollDecelerationRate.fast,
-            parent: BouncingScrollPhysics()),
-        key: controller.animatedListKey,
-        initialItemCount: controller.queeVideoDownload.length +
-            controller.completedVideos.length +
-            1,
-        itemBuilder: (animatedListContext, index, animation) {
-          if (index == 0) {
-            if (controller.adState.loadedBannerAd) {
-              print("here");
-              return SizedBox(
-                height: 100,
-                child: AdWidget(
-                  ad: controller.adState.myBanner!,
-                ),
-              );
-            } else {
-              const SizedBox.shrink();
-            }
+    return Stack(
+      children: [
+        Obx(() {
+          if (controller.queeVideoDownload.isEmpty &&
+              controller.completedVideos.isEmpty) {
+            return Center(
+                child: const Text(
+              "You have no videos",
+              style: TextStyle(
+                fontSize: 20,
+                color: Colors.white,
+              ),
+            ).animate().fadeIn(duration: const Duration(milliseconds: 250)));
           }
-
-          if ((controller.queeVideoDownload.length +
-                  controller.completedVideos.length +
-                  1 -
-                  (controller.queeVideoDownload.isNotEmpty ||
-                          controller.queeVideoDownload.isNotEmpty
-                      ? 2
-                      : 1)) ==
-              index) {
-            return const SizedBox(
-              height: 50,
-            );
-          }
-          print("index is $index");
-          if (index + 1 < controller.queeVideoDownload.length) {
-            return Obx(() {
-              return VideoCard(
-                title:
-                    "${controller.queeVideoDownload[index]["username"]} - ${controller.queeVideoDownload[index]["title"]}",
-                image: controller.queeVideoDownload[index]["image"],
-                subtitle: textSelector(index),
-                download: index == 0 ? true : false,
-                cancelDownload: () {
-                  cancelDownload(index);
-                },
-                copyLink: null,
-                vodData: null,
-                deleteVOD: null,
-                openPath: null,
-              );
-            });
-          }
-
-          var i = (index - (controller.queeVideoDownload.length));
-          print("i is $i");
-          return Obx(
-            () => SizeTransition(
-                key: UniqueKey(),
-                axis: Axis.vertical,
-                axisAlignment: -1,
-                sizeFactor:
-                    CurvedAnimation(parent: animation, curve: Curves.ease),
-                child: FadeTransition(
-                  opacity: Tween<double>(begin: 0, end: 1).animate(animation),
-                  child: VideoCard(
+          return AnimatedList(
+            physics: const BouncingScrollPhysics(
+                decelerationRate: ScrollDecelerationRate.fast,
+                parent: BouncingScrollPhysics()),
+            key: controller.animatedListKey,
+            initialItemCount: controller.queeVideoDownload.length +
+                controller.completedVideos.length,
+            itemBuilder: (animatedListContext, index, animation) {
+              if ((controller.queeVideoDownload.length +
+                      controller.completedVideos.length -
+                      (controller.queeVideoDownload.isNotEmpty &&
+                              controller.queeVideoDownload.isNotEmpty
+                          ? 2
+                          : 1)) ==
+                  index) {
+                return const SizedBox(
+                  height: 50,
+                );
+              }
+              print("index is $index");
+              if (index < controller.queeVideoDownload.length) {
+                return Obx(() {
+                  return VideoCard(
                     title:
-                        "${controller.completedVideos[i]["streamer"]} - ${controller.completedVideos[i]["title"]}",
-                    image: controller.completedVideos[i]["image"],
-                    subtitle: "Downloaded",
-                    download: false,
-                    deleteVOD: () {
-                      deleteVOD(
-                          i,
-                          index,
-                          controller.queeVideoDownload.length +
-                              controller.completedVideos.length);
+                        "${controller.queeVideoDownload[index]["username"]} - ${controller.queeVideoDownload[index]["title"]}",
+                    image: controller.queeVideoDownload[index]["image"],
+                    subtitle: textSelector(index),
+                    download: index == 0 ? true : false,
+                    cancelDownload: () {
+                      cancelDownload(index);
                     },
-                    cancelDownload: null,
-                    copyLink: () {
-                      controller.copyLinkToClipboard(i, context);
-                    },
-                    vodData: () {
-                      controller.showFileInfoDialog(i, context);
-                    },
-                    openPath: () {
-                      controller.openDir(i);
-                    },
-                  ),
-                )),
+                    copyLink: null,
+                    vodData: null,
+                    deleteVOD: null,
+                    openPath: null,
+                  );
+                });
+              }
+
+              var i = (index - (controller.queeVideoDownload.length));
+              print("i is $i");
+              return Obx(
+                () => SizeTransition(
+                    key: UniqueKey(),
+                    axis: Axis.vertical,
+                    axisAlignment: -1,
+                    sizeFactor:
+                        CurvedAnimation(parent: animation, curve: Curves.ease),
+                    child: FadeTransition(
+                      opacity:
+                          Tween<double>(begin: 0, end: 1).animate(animation),
+                      child: VideoCard(
+                        title:
+                            "${controller.completedVideos[i]["streamer"]} - ${controller.completedVideos[i]["title"]}",
+                        image: controller.completedVideos[i]["image"],
+                        subtitle: "Downloaded",
+                        download: false,
+                        deleteVOD: () {
+                          deleteVOD(
+                              i,
+                              index,
+                              controller.queeVideoDownload.length +
+                                  controller.completedVideos.length);
+                        },
+                        cancelDownload: null,
+                        copyLink: () {
+                          controller.copyLinkToClipboard(i, context);
+                        },
+                        vodData: () {
+                          controller.showFileInfoDialog(i, context);
+                        },
+                        openPath: () {
+                          controller.openDir(i);
+                        },
+                      ),
+                    )),
+              );
+            },
           );
-        },
-      );
-    });
+        }),
+        if (controller.adState.loadedBannerAd)
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: AspectRatio(
+              aspectRatio: 468 / 60,
+              child: AdWidget(
+                ad: controller.adState.myBanner!,
+              ),
+            ),
+          ),
+      ],
+    );
   }
 }

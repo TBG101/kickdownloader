@@ -23,7 +23,6 @@ import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 
 class Logic extends GetxController {
-  // Logic(this.adState);
   AdState adState;
   Logic(Future<InitializationStatus> initialization)
       : adState = AdState(initialization);
@@ -81,7 +80,7 @@ class Logic extends GetxController {
 
   var settingsController = SettingsController().obs;
 
-  void checkNetwork() async {
+  Future<void> checkNetwork() async {
     await Connectivity().checkConnectivity().then(
       (value) {
         if (value == ConnectivityResult.none) hasInternet = false;
@@ -124,15 +123,42 @@ class Logic extends GetxController {
         .initSettings()
         .then((value) => settingsController.refresh());
 
-    appVersion = (await PackageInfo.fromPlatform()).version;
-    appName = (await PackageInfo.fromPlatform()).appName;
+    final myList = await Future.wait([
+      PackageInfo.fromPlatform(),
+      (PackageInfo.fromPlatform()),
+      HiveLogic.getStoreCompletedVideos
+    ]);
+
+    appVersion = (myList[0] as PackageInfo).version;
+    appName = (myList[1] as PackageInfo).appName;
+    completedVideos.addAll(myList[2] as List<Map<dynamic, dynamic>>);
 
     checkNetwork();
-    completedVideos.addAll(await HiveLogic.getStoreCompletedVideos);
-
     _notificationcontroller.startListener();
     adState.loadInterAd();
     adState.loadBannerAd();
+    adState.loadAppOpenAd();
+    AppLifecycleListener(
+      onShow: () => print('show'),
+      onHide: () => print('hide'),
+      onDetach: () => print('detach'),
+      onInactive: () {
+        adState.clickedOnMyAppOpenAd = true;
+        print('inactive');
+      },
+      onPause: () {
+        adState.clickedOnMyAppOpenAd = false;
+        print('pause');
+      },
+      onResume: () {
+        print("azefazefaze");
+        if (adState.clickedOnMyAppOpenAd == false) {
+          adState.showAppOpenAd();
+        } else {
+          adState.clickedOnMyAppOpenAd = false;
+        }
+      },
+    );
     super.onReady();
   }
 

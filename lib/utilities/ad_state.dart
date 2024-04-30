@@ -2,20 +2,64 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 class AdState {
   Future<InitializationStatus> initialization;
-  bool loaded = false;
-  bool loadedBannerAd = false;
-  InterstitialAd? myAd;
-  BannerAd? myBanner;
 
   AdState(this.initialization);
 
+  bool loaded = false;
+  InterstitialAd? myAd;
+
+  BannerAd? myBanner;
+  bool loadedBannerAd = false;
+
+  AppOpenAd? myAppOpenAd;
+  bool loadedMyAppOpenAd = false;
+  bool clickedOnMyAppOpenAd = false;
+
   String get bannerAdUnitId => "ca-app-pub-3940256099942544/6300978111";
   String get interstitialAdUnitId => "ca-app-pub-3940256099942544/8691691433";
+  String get appOpenAd => "ca-app-pub-3940256099942544/9257395921";
+
+  // open app ad
+  Future<void> showAppOpenAd() async {
+    if (myAppOpenAd == null || loadedMyAppOpenAd == false) return;
+
+    myAppOpenAd!.fullScreenContentCallback = FullScreenContentCallback(
+      onAdDismissedFullScreenContent: (ad) {
+        myAppOpenAd!.dispose();
+        loadAppOpenAd();
+      },
+      onAdClicked: (ad) {
+        clickedOnMyAppOpenAd = true;
+        myAppOpenAd!.dispose();
+        loadAppOpenAd();
+      },
+    );
+    myAppOpenAd!.show();
+  }
+
+  Future<void> loadAppOpenAd() async {
+    initialization.then((value) {
+      AppOpenAd.load(
+          adUnitId: appOpenAd,
+          request: const AdRequest(),
+          adLoadCallback: AppOpenAdLoadCallback(
+            onAdLoaded: (ad) {
+              myAppOpenAd = ad;
+              loadedMyAppOpenAd = true;
+            },
+            onAdFailedToLoad: (error) {
+              loadedMyAppOpenAd = false;
+              myAppOpenAd = null;
+            },
+          ));
+    });
+  }
 
   // adaptive banner
-  void loadBannerAd() {
-    initialization.then((value) {
-      if (myBanner != null) myBanner!.dispose();
+  Future<void> loadBannerAd() async {
+    initialization.then((value) async {
+      if (myBanner != null) await myBanner!.dispose();
+
       myBanner = BannerAd(
           size: AdSize.fullBanner,
           adUnitId: bannerAdUnitId,
@@ -35,7 +79,7 @@ class AdState {
   }
 
   // interstitual
-  void loadInterAd() {
+  Future<void> loadInterAd() async {
     initialization.then((value) {
       InterstitialAd.load(
           adUnitId: interstitialAdUnitId,
@@ -43,6 +87,10 @@ class AdState {
           adLoadCallback: InterstitialAdLoadCallback(
             onAdLoaded: (ad) {
               ad.fullScreenContentCallback = FullScreenContentCallback(
+                onAdFailedToShowFullScreenContent: (ad, error) {
+                  myAd!.dispose();
+                  myAd = null;
+                },
                 onAdDismissedFullScreenContent: (ad) {
                   ad.dispose();
                   loadInterAd();
@@ -60,8 +108,8 @@ class AdState {
     });
   }
 
-  void showInterAd() async {
-    if (myAd == null) return;
+  Future<void> showInterAd() async {
+    if (myAd == null || loaded == false) return;
     initialization.then((value) async => await myAd!.show());
   }
 }

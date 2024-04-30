@@ -1,18 +1,15 @@
 # NAME MyKick VOD Downloader
-
 GENERAL:
-  - Add ADS
-  - add upgrade to premium
   - add a pause button
+  - add upgrade to premium
  
 TimeSelector:
-  - turn both into 1 widget
   
 downloadPage:
 
 
 clipDownloader:
-  - add a clip downloader page (or make it in the same page) (probabaly not gonna add it since i couldnt find a  way tot fethc the vod)
+
 
 Home:
   - make animation for download button (could have)
@@ -21,6 +18,12 @@ Logic:
   - check if the disclaimer works for API 30 AND BELOW
 
   
+Future update: 
+  - use Update( ID) for the banner ad
+  - add a clip downloader page (or make it in the same page) (probabaly not gonna add it since i couldnt find a  way tot fethc the vod)
+  - turn both into 1 widget
+
+
 Done:
   - Add settings
   - Add  license

@@ -80,7 +80,7 @@ class NotificationController {
     _notification.dismiss(id);
   }
 
-  void startListener() async {
+  Future<void> startListener() async {
     var status = await PermissionHandler.getNotificationStatus();
     if (status == true) {
       _notification.setListeners(
