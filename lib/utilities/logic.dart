@@ -123,7 +123,7 @@ class Logic extends GetxController {
     ReceiveSharingIntent.instance.getMediaStream().listen((value) {
       print(value.first.path);
       url.value.text = value.first.path.split(" ").last;
-
+      print(url.value.text);
       ReceiveSharingIntent.instance.reset();
     });
     ReceiveSharingIntent.instance.getMediaStream().listen((value) {

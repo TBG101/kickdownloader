@@ -13,7 +13,6 @@ import 'package:kickdownloader/widgets/homeWidgets/timeSelectorStart.dart';
 import 'package:kickdownloader/widgets/homeWidgets/timeSelectorend.dart';
 import 'package:kickdownloader/widgets/homeWidgets/streamFields.dart';
 
-
 class Home extends GetView<Logic> {
   const Home({super.key});
 
@@ -73,6 +72,47 @@ class Home extends GetView<Logic> {
     ];
   }
 
+  AppBar myAppBar() {
+    return AppBar(
+      title: const Text(
+        "Kick Downloader VOD",
+        style: TextStyle(fontWeight: FontWeight.w700),
+      ),
+      flexibleSpace: Container(
+        decoration: const BoxDecoration(gradient: MyColors.gradient),
+      ),
+      backgroundColor: const Color(0x00000000),
+      centerTitle: true,
+      leading: Builder(
+        builder: (context) => IconButton(
+          icon: const Icon(Icons.menu_rounded),
+          onPressed: () => Scaffold.of(context).openDrawer(),
+        ),
+      ),
+      actions: [
+        if (controller.pageSelector.value == 0)
+          IconButton(
+            onPressed: () {
+              controller.pageSelector.value = 1;
+              controller.update();
+            },
+            icon: Obx(() {
+              return Badge(
+                  backgroundColor: Colors.redAccent,
+                  alignment: Alignment.topRight,
+                  offset: const Offset(5, -7),
+                  isLabelVisible: controller.queeVideoDownload.isNotEmpty,
+                  label: Text(controller.queeVideoDownload.length.toString(),
+                      style: const TextStyle(color: Colors.white)),
+                  child: const Icon(Icons.download_rounded));
+            }),
+          )
+        else
+          IconButton(onPressed: () {}, icon: const Icon(Icons.pause))
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     var size = MediaQuery.of(context).size;
@@ -89,42 +129,7 @@ class Home extends GetView<Logic> {
           init: controller,
           builder: (controller) => Scaffold(
             drawer: const MyDrawer(),
-            appBar: AppBar(
-              title: const Text(
-                "Kick Downloader VOD",
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
-              flexibleSpace: Container(
-                decoration: const BoxDecoration(gradient: MyColors.gradient),
-              ),
-              backgroundColor: const Color(0x00000000),
-              centerTitle: true,
-              leading: Builder(
-                builder: (context) => IconButton(
-                  icon: const Icon(Icons.menu_rounded),
-                  onPressed: () => Scaffold.of(context).openDrawer(),
-                ),
-              ),
-              actions: [
-                IconButton(
-                  onPressed: () {
-                    controller.pageSelector.value = 1;
-                    controller.update();
-                  },
-                  icon: Obx(() {
-                    return Badge(
-                        backgroundColor: Colors.redAccent,
-                        alignment: Alignment.topRight,
-                        offset: const Offset(5, -7),
-                        isLabelVisible: controller.queeVideoDownload.isNotEmpty,
-                        label: Text(
-                            controller.queeVideoDownload.length.toString(),
-                            style: const TextStyle(color: Colors.white)),
-                        child: const Icon(Icons.download_rounded));
-                  }),
-                )
-              ],
-            ),
+            appBar: myAppBar(),
             body: controller.pageSelector.value == 0
                 ? ListView(
                     padding: const EdgeInsets.all(10),
