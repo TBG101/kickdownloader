@@ -1,7 +1,7 @@
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 class AdState {
-  Future<InitializationStatus> initialization;
+  late final Future<InitializationStatus> initialization;
 
   AdState(this.initialization);
 
@@ -18,10 +18,15 @@ class AdState {
   String get bannerAdUnitId => "ca-app-pub-3940256099942544/6300978111";
   String get interstitialAdUnitId => "ca-app-pub-3940256099942544/8691691433";
   String get appOpenAd => "ca-app-pub-3940256099942544/9257395921";
+  int timeSinceLastAdShow = 0;
 
   // open app ad
   Future<void> showAppOpenAd() async {
-    if (myAppOpenAd == null || loadedMyAppOpenAd == false) return;
+    if (myAppOpenAd == null ||
+        loadedMyAppOpenAd == false ||
+        timeSinceLastAdShow == 0 ||
+        DateTime.timestamp().millisecondsSinceEpoch >
+            timeSinceLastAdShow + 180000) return;
 
     myAppOpenAd!.fullScreenContentCallback = FullScreenContentCallback(
       onAdDismissedFullScreenContent: (ad) {
@@ -35,6 +40,7 @@ class AdState {
       },
     );
     myAppOpenAd!.show();
+    timeSinceLastAdShow = DateTime.timestamp().millisecondsSinceEpoch;
   }
 
   Future<void> loadAppOpenAd() async {
