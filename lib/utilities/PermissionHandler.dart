@@ -240,4 +240,10 @@ class PermissionHandler {
       }
     }
   }
+
+  static ignoreBatteryOptimizations() {
+    Permission.ignoreBatteryOptimizations.request();
+  }
+
+  
 }

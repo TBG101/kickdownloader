@@ -2,12 +2,10 @@ package com.example.kickdownloader
 
 import android.content.Intent
 import android.net.Uri
-import android.util.Log
 import androidx.annotation.NonNull
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
-import java.io.File
 
 
 class MainActivity : FlutterActivity() {
@@ -19,6 +17,18 @@ class MainActivity : FlutterActivity() {
             flutterEngine.dartExecutor.binaryMessenger, CHANNEL
         ).setMethodCallHandler { call, result ->
             when (call.method) {
+                "startService" -> {
+                    val intent =
+                        Intent(this, MyService::class.java) // Build the intent for the service
+                    startService(intent)
+                    result.success(null)
+                }
+                "stopService" -> {
+                    val intent =
+                        Intent(this, MyService::class.java) // Build the intent for the service
+                    stopService(intent)
+                    result.success(null)
+                }
 
                 "openDir" -> {
                     val path = call.argument<String>("path")
@@ -32,6 +42,7 @@ class MainActivity : FlutterActivity() {
                     result.success(android.os.Build.VERSION.SDK_INT)
 
                 }
+
                 else -> {
                     result.notImplemented()
 

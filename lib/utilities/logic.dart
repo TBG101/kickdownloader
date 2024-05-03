@@ -65,7 +65,7 @@ class Logic extends GetxController {
   final endMinute = TextEditingController().obs;
   final endSecond = TextEditingController().obs;
   final queeVideoDownload = [].obs;
-  int notificationId = 0;
+  int notificationId = 1;
   RxList<Map> completedVideos = <Map>[].obs;
   bool hasInternet = true;
 
@@ -670,11 +670,12 @@ class Logic extends GetxController {
   }
 
   Future<void> startQueeDownloadVOD() async {
+    MethodChannelHandler.startService();
     downloading = true;
     while (queeVideoDownload.isNotEmpty && downloading) {
       await downloadFirstVODQueeList();
     }
-
+    MethodChannelHandler.stopService();
     downloading = false;
   }
 
