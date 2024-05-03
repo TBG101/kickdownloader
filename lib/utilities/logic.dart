@@ -3,7 +3,7 @@ import 'dart:io';
 import 'dart:isolate';
 import 'dart:math';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:ffmpeg_kit_flutter_min_gpl/ffmpeg_kit.dart';
+import 'package:ffmpeg_kit_flutter_min/ffmpeg_kit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -46,14 +46,14 @@ class Logic extends GetxController {
   final RxInt videoDownloadSizeBytes = 0.obs;
 
   var link = "".obs;
-  RxInt pageSelector = 0.obs;
-  RxString streamer = "".obs;
-  RxString title = "".obs;
-  RxString stramDate = "".obs;
-  RxString streamLength = "".obs;
-  RxDouble gradientOpacity = 0.4.obs;
-  RxBool startValue = false.obs;
-  RxBool endValue = false.obs;
+  final RxInt pageSelector = 0.obs;
+  final RxString streamer = "".obs;
+  final RxString title = "".obs;
+  final RxString stramDate = "".obs;
+  final RxString streamLength = "".obs;
+  final RxDouble gradientOpacity = 0.4.obs;
+  final RxBool startValue = false.obs;
+  final RxBool endValue = false.obs;
 
   final qualitySelector = Rxn<String>();
 

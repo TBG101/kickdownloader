@@ -5,7 +5,7 @@ import 'package:kickdownloader/utilities/logic.dart';
 
 class NotificationController {
   final _notification = AwesomeNotifications();
-
+  int lastUpdateTime = 0;
   Future<void> createDownloadNotifcation(
       int id, String title, String body) async {
     if (await PermissionHandler.getNotificationStatus() != true) {
@@ -44,9 +44,11 @@ class NotificationController {
 
   Future<void> updateNotification(int id, List file, String title, String body,
       double videoPercentage) async {
-    if (await PermissionHandler.getNotificationStatus() != true) {
+    if (await PermissionHandler.getNotificationStatus() != true &&
+        lastUpdateTime > (lastUpdateTime + 500)) {
       return; // early return if permission is not granted
     }
+
     _notification.createNotification(
         content: NotificationContent(
             id: id,
@@ -58,6 +60,7 @@ class NotificationController {
             progress: videoPercentage,
             locked: true,
             autoDismissible: false));
+    lastUpdateTime = DateTime.timestamp().millisecondsSinceEpoch;
   }
 
   Future<void> failedDownloadNotification(
