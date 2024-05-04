@@ -48,6 +48,7 @@ class NotificationController {
         lastUpdateTime > (lastUpdateTime + 500)) {
       return; // early return if permission is not granted
     }
+
     _notification.createNotification(
         content: NotificationContent(
             id: id,
