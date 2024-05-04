@@ -176,6 +176,7 @@ class Logic extends GetxController {
   void onClose() {
     super.onClose();
     __notificationcontroller.removeNotification();
+    MethodChannelHandler.stopService();
   }
 
   (double, String) formatBytes(int bytes) {
@@ -495,7 +496,6 @@ class Logic extends GetxController {
         }
       }
       queeList.add(int.parse(element.replaceAll(".ts", "")));
-
       try {
         downloadTS(downloadURL, element, cancel, myPath).then((tsFile) {
           queeList.remove(int.parse(element.replaceAll(".ts", "")));
@@ -935,7 +935,7 @@ class Logic extends GetxController {
   }
 
   void cancelDownload() async {
-    cancel.cancel();
+    if (downloading == true) cancel.cancel();
     // IMPLEMENT REMOVE QUEE
   }
 

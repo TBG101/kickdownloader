@@ -21,7 +21,11 @@ class DownloadPage extends GetView<Logic> {
 
       return "${controller.videoDownloadPercentage.value.toStringAsFixed(0)}% - $videoDownloadSizeMb";
     } else {
-      return "Waiting for quee";
+      if (controller.downloading == true) {
+        return "Waiting for quee";
+      } else {
+        return "Downloading is paused";
+      }
     }
   }
 
