@@ -37,7 +37,7 @@ class Logic extends GetxController {
   String apiURL = "";
   String lastVideoLink = "";
   final RxBool foundVideo = false.obs;
-  var downloading = false;
+  var downloading = false.obs;
   Map<String, dynamic>? videoData;
   final resolutions = <String>[].obs;
 
@@ -176,6 +176,7 @@ class Logic extends GetxController {
   void onClose() {
     super.onClose();
     __notificationcontroller.removeNotification();
+    HiveLogic.setQueeVideos(queeVideoDownload);
     MethodChannelHandler.stopService();
   }
 
@@ -419,7 +420,6 @@ class Logic extends GetxController {
       int endTime,
       int startTime,
       int tsFileSize,
-      List queeList,
       String downloadURL,
       bool notificationEnabled) async {
     int? nbOfTsFiles, overflowTime;
@@ -430,6 +430,7 @@ class Logic extends GetxController {
       deleteDir(myPath);
     }
 
+    final List<int> queeList = [];
     if (notificationEnabled) {
       await __notificationcontroller.createDownloadNotifcation(
           notificationId,
@@ -470,12 +471,22 @@ class Logic extends GetxController {
 
     final file = File("$myPath/generated.txt").readAsLinesSync();
 
+    // GET the last downloaded parts if it has downloaded before else don't
+    videoDownloadParts =
+        (queeVideoDownload[0]["downloadParts"] as double?) ?? 0;
+    // LOOP ALL TS FILES
     for (String element in file) {
+      final tsNB = int.parse(element.replaceAll(".ts", ""));
+      // check if has been canceled
       if (cancel.isCancelled) {
         canceledLogic();
         return null;
       }
-      while (queeList.length >= 5 && downloading) {
+      if ((queeVideoDownload[0]["downloadedTS"] as Set).contains(tsNB)) {
+        continue;
+      }
+
+      while (queeList.length >= 5 && downloading.value) {
         final percentage = videoDownloadPercentage.value;
         videoDownloadPercentage.value =
             (videoDownloadParts / (file.length * 100)) * 100;
@@ -495,10 +506,14 @@ class Logic extends GetxController {
           return null;
         }
       }
-      queeList.add(int.parse(element.replaceAll(".ts", "")));
+      final tsFileNb = int.parse(element.replaceAll(".ts", ""));
+      queeList.add(tsFileNb);
       try {
         downloadTS(downloadURL, element, cancel, myPath).then((tsFile) {
-          queeList.remove(int.parse(element.replaceAll(".ts", "")));
+          queeList.remove(tsFileNb);
+          (queeVideoDownload[0]["downloadedTS"] as Set).add(tsFileNb);
+          queeVideoDownload[0]["downloadParts"] = videoDownloadParts;
+          queeVideoDownload.refresh();
         });
       } on DioException catch (e) {
         print("canceled: $e");
@@ -576,10 +591,9 @@ class Logic extends GetxController {
     videoDownloadPercentage.value = 0;
     videoDownloadParts = 0;
     notificationId++;
-    downloading = true;
+    downloading.value = true;
     // ignore: no_leading_underscores_for_local_identifiers
     final String saveDir = queeVideoDownload[0]["savePath"];
-    final List<int> queeList = [];
     final slectedQuality = queeVideoDownload[0]["quality"];
     final int startTime = queeVideoDownload[0]["start"];
     final int endTime = queeVideoDownload[0]["end"];
@@ -592,17 +606,10 @@ class Logic extends GetxController {
     queeVideoDownload[0]["downloading"] = true;
 
     try {
-      await downloadVod(
-              saveDir,
-              playlist,
-              endTime,
-              startTime,
-              tsFileSize,
-              queeList,
-              downloadURL,
-              settingsController.value.notificationEnable)
+      await downloadVod(saveDir, playlist, endTime, startTime, tsFileSize,
+              downloadURL, settingsController.value.notificationEnable)
           .then((path) async {
-        if (path != null && downloading && !cancel.isCancelled) {
+        if (path != null && downloading.value && !cancel.isCancelled) {
           DateTime now = DateTime.now();
           String formattedDate = "${now.year}-${(now.month)}-${(now.day)}";
           var fileSize = await getDownloadedSize(path);
@@ -678,13 +685,13 @@ class Logic extends GetxController {
 
   Future<void> startQueeDownloadVOD() async {
     MethodChannelHandler.startService();
-    downloading = true;
-    while (queeVideoDownload.isNotEmpty && downloading) {
+    downloading.value = true;
+    while (queeVideoDownload.isNotEmpty && downloading.value) {
       await downloadFirstVODQueeList();
       HiveLogic.setQueeVideos(queeVideoDownload);
     }
     MethodChannelHandler.stopService();
-    downloading = false;
+    downloading.value = false;
   }
 
   int convertToMillisecond(int h, int m, int s) {
@@ -699,7 +706,6 @@ class Logic extends GetxController {
     }
 
     if (!foundVideo.value) return;
-
     adState.showInterAd();
 
     // NOTIFICATION PERMISSION
@@ -752,6 +758,7 @@ class Logic extends GetxController {
       endtime = convertToMillisecond(int.parse(endHour.value.text),
           int.parse(endMinute.value.text), int.parse(endSecond.value.text));
     }
+    Set<int> tempSet = {};
     queeVideoDownload.add(
       {
         "downloading": false,
@@ -767,11 +774,13 @@ class Logic extends GetxController {
         "username": videoData!["livestream"]["channel"]["user"]["username"],
         "savePath":
             "${settingsController.value.savedDir!}/[${videoData!["livestream"]["created_at"].split(" ")[0]} - ${DateTime.now().hour}h ${DateTime.now().minute}m ${DateTime.now().second}s] ${videoData!["livestream"]["channel"]["user"]["username"]}",
+        "downloadedTS": tempSet,
       },
     );
 
     HiveLogic.setQueeVideos(queeVideoDownload);
-    if (queeVideoDownload[0]["downloading"] == false && downloading == false) {
+    if (queeVideoDownload[0]["downloading"] == false &&
+        downloading.value == false) {
       startQueeDownloadVOD();
     }
   }
@@ -855,7 +864,7 @@ class Logic extends GetxController {
     }
   }
 
-  Future downloadTS(String path, String tsFileNB, CancelToken cancel,
+  Future<String> downloadTS(String path, String tsFileNB, CancelToken cancel,
       String selectedDirectory) async {
     print(tsFileNB);
     try {
@@ -873,6 +882,7 @@ class Logic extends GetxController {
         ),
       );
       saveTS(selectedDirectory, responseBytes.data, tsFileNB);
+      return tsFileNB;
     } on DioException catch (e) {
       if (e.type == DioExceptionType.cancel) {
         throw "canceled";
@@ -935,7 +945,7 @@ class Logic extends GetxController {
   }
 
   void cancelDownload() async {
-    if (downloading == true) cancel.cancel();
+    if (downloading.value == true) cancel.cancel();
     // IMPLEMENT REMOVE QUEE
   }
 

@@ -25,10 +25,10 @@ class AdState {
     if (myAppOpenAd == null ||
         loadedMyAppOpenAd == false ||
         timeSinceLastAdShow == 0 ||
-        DateTime.timestamp().millisecondsSinceEpoch >
+        DateTime.timestamp().millisecondsSinceEpoch <
             timeSinceLastAdShow + 180000) return;
     // shows only if time passed since last ad is greater than 3 mintes == 180000 ms
-
+    print("here");
     myAppOpenAd!.fullScreenContentCallback = FullScreenContentCallback(
       onAdDismissedFullScreenContent: (ad) {
         myAppOpenAd!.dispose();

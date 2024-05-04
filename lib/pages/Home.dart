@@ -108,7 +108,22 @@ class Home extends GetView<Logic> {
             }),
           )
         else
-          IconButton(onPressed: () {}, icon: const Icon(Icons.pause))
+          Obx(() {
+            return IconButton(
+                onPressed: () {
+                  if (controller.queeVideoDownload.isNotEmpty &&
+                      controller.downloading.value == false) {
+                    controller.downloading.value = true;
+                    controller.startQueeDownloadVOD();
+                  } else {
+                    // Implement pause button 
+                    // controller.downloading.value = false;
+                  }
+                },
+                icon: Icon(controller.downloading.value
+                    ? Icons.pause_rounded
+                    : Icons.play_arrow_rounded));
+          })
       ],
     );
   }
