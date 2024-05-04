@@ -30,7 +30,7 @@ class Logic extends GetxController {
 
   final navigatorKey = GlobalKey<NavigatorState>();
 
-  final NotificationController _notificationcontroller =
+  final NotificationController __notificationcontroller =
       NotificationController();
 
   final url = TextEditingController().obs;
@@ -119,7 +119,6 @@ class Logic extends GetxController {
   }
 
   void _getIntent() {
-    // Get the media sharing coming from outside the app while the app is closed.
     ReceiveSharingIntent.instance.getMediaStream().listen((value) {
       print(value.first.path);
       url.value.text = value.first.path.split(" ").last;
@@ -135,7 +134,7 @@ class Logic extends GetxController {
   @override
   void onReady() async {
     // TODO: implement onReady
-
+    super.onReady();
     _getIntent();
     final myList = await Future.wait([
       PackageInfo.fromPlatform(),
@@ -150,7 +149,7 @@ class Logic extends GetxController {
     queeVideoDownload.addAll(myList[3] as List<Map<dynamic, dynamic>>);
 
     checkNetwork();
-    _notificationcontroller.startListener();
+    __notificationcontroller.startListener();
     adState.loadInterAd();
     adState.loadBannerAd();
     adState.loadAppOpenAd();
@@ -171,7 +170,12 @@ class Logic extends GetxController {
         }
       },
     );
-    super.onReady();
+  }
+
+  @override
+  void onClose() {
+    super.onClose();
+    __notificationcontroller.removeNotification();
   }
 
   (double, String) formatBytes(int bytes) {
@@ -426,7 +430,7 @@ class Logic extends GetxController {
     }
 
     if (notificationEnabled) {
-      await _notificationcontroller.createDownloadNotifcation(
+      await __notificationcontroller.createDownloadNotifcation(
           notificationId,
           'Started downloading VOD',
           "Streamer ${queeVideoDownload[0]["username"]}");
@@ -476,7 +480,7 @@ class Logic extends GetxController {
             (videoDownloadParts / (file.length * 100)) * 100;
 
         if (notificationEnabled) {
-          _notificationcontroller.updateNotification(
+          __notificationcontroller.updateNotification(
               notificationId,
               file,
               'Downloading ${percentage.toStringAsFixed(0)}% ${(sizeVid * percentage / 100).toStringAsFixed(2)}/${sizeVid.toStringAsFixed(2)} $suffix',
@@ -515,7 +519,7 @@ class Logic extends GetxController {
           (videoDownloadParts / (file.length * 100)) * 100;
 
       if (notificationEnabled) {
-        _notificationcontroller.updateNotification(
+        __notificationcontroller.updateNotification(
             notificationId,
             file,
             'Downloading ${percentage.toStringAsFixed(0)}% ${(sizeVid * percentage / 100).toStringAsFixed(2)}/${sizeVid.toStringAsFixed(2)} $suffix',
@@ -532,7 +536,7 @@ class Logic extends GetxController {
     });
     if (!r) return null;
     if (notificationEnabled) {
-      await _notificationcontroller.updateNotificationEnd(
+      await __notificationcontroller.updateNotificationEnd(
           notificationId,
           'Converting to MP4',
           "Streamer ${queeVideoDownload[0]["username"]}",
@@ -557,12 +561,12 @@ class Logic extends GetxController {
     }
     if (notificationEnabled) {
       settingsController.value.notificationComplete
-          ? await _notificationcontroller.updateNotificationEnd(
+          ? await __notificationcontroller.updateNotificationEnd(
               notificationId,
               'Download Completed',
               "Streamer ${queeVideoDownload[0]["username"]}",
               false)
-          : _notificationcontroller.dissmissNotification(notificationId);
+          : __notificationcontroller.dissmissNotification(notificationId);
     }
     return path;
   }
@@ -622,12 +626,12 @@ class Logic extends GetxController {
           }
           addVideoToHive();
         } else {
-          _notificationcontroller.failedDownloadNotification(
+          __notificationcontroller.failedDownloadNotification(
               notificationId, "Failed to download", "Download canceled");
         }
       });
     } catch (e) {
-      _notificationcontroller.failedDownloadNotification(
+      __notificationcontroller.failedDownloadNotification(
           notificationId, "Failed to download", "Unhandled exception");
       print("OUTER FUNCTION ERROR IS: $e");
       deleteDir(saveDir);

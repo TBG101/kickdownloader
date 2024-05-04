@@ -241,9 +241,7 @@ class PermissionHandler {
     }
   }
 
-  static ignoreBatteryOptimizations() {
+  static void ignoreBatteryOptimizations() {
     Permission.ignoreBatteryOptimizations.request();
   }
-
-  
 }

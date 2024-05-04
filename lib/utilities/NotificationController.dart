@@ -4,14 +4,14 @@ import 'package:kickdownloader/utilities/PermissionHandler.dart';
 import 'package:kickdownloader/utilities/logic.dart';
 
 class NotificationController {
-  final _notification = AwesomeNotifications();
+  final __notification = AwesomeNotifications();
   int lastUpdateTime = 0;
   Future<void> createDownloadNotifcation(
       int id, String title, String body) async {
     if (await PermissionHandler.getNotificationStatus() != true) {
       return; // early return if permission is not granted
     }
-    _notification.createNotification(
+    __notification.createNotification(
         content: NotificationContent(
       id: id,
       autoDismissible: false,
@@ -30,7 +30,7 @@ class NotificationController {
     if (await PermissionHandler.getNotificationStatus() != true) {
       return; // early return if permission is not granted
     }
-    await _notification.createNotification(
+    await __notification.createNotification(
         content: NotificationContent(
             id: id,
             channelKey: "channel",
@@ -45,11 +45,11 @@ class NotificationController {
   Future<void> updateNotification(int id, List file, String title, String body,
       double videoPercentage) async {
     if (await PermissionHandler.getNotificationStatus() != true &&
-        lastUpdateTime > (lastUpdateTime + 500)) {
+        lastUpdateTime > (lastUpdateTime + 1000)) {
       return; // early return if permission is not granted
     }
 
-    _notification.createNotification(
+    __notification.createNotification(
         content: NotificationContent(
             id: id,
             channelKey: "channel",
@@ -68,7 +68,7 @@ class NotificationController {
     if (await PermissionHandler.getNotificationStatus() != true) {
       return; // early return if permission is not granted
     }
-    _notification.createNotification(
+    __notification.createNotification(
         content: NotificationContent(
             id: id,
             channelKey: "channel",
@@ -80,16 +80,20 @@ class NotificationController {
   }
 
   void dissmissNotification(int id) {
-    _notification.dismiss(id);
+    __notification.dismiss(id);
   }
 
   Future<void> startListener() async {
     var status = await PermissionHandler.getNotificationStatus();
     if (status == true) {
-      _notification.setListeners(
+      __notification.setListeners(
         onActionReceivedMethod: NotificationController.onActionReceived,
       );
     }
+  }
+
+  void removeNotification() {
+    __notification.cancelAll();
   }
 
   static Future<void> onActionReceived(ReceivedAction action) async {
