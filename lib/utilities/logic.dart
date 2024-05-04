@@ -46,14 +46,14 @@ class Logic extends GetxController {
   final RxInt videoDownloadSizeBytes = 0.obs;
 
   var link = "".obs;
-  RxInt pageSelector = 0.obs;
-  RxString streamer = "".obs;
-  RxString title = "".obs;
-  RxString stramDate = "".obs;
-  RxString streamLength = "".obs;
-  RxDouble gradientOpacity = 0.4.obs;
-  RxBool startValue = false.obs;
-  RxBool endValue = false.obs;
+  final RxInt pageSelector = 0.obs;
+  final RxString streamer = "".obs;
+  final RxString title = "".obs;
+  final RxString stramDate = "".obs;
+  final RxString streamLength = "".obs;
+  final RxDouble gradientOpacity = 0.4.obs;
+  final RxBool startValue = false.obs;
+  final RxBool endValue = false.obs;
 
   final qualitySelector = Rxn<String>();
 
@@ -64,7 +64,7 @@ class Logic extends GetxController {
   final endHour = TextEditingController().obs;
   final endMinute = TextEditingController().obs;
   final endSecond = TextEditingController().obs;
-  final queeVideoDownload = [].obs;
+  final queeVideoDownload = <Map>[].obs;
   int notificationId = 1;
   RxList<Map> completedVideos = <Map>[].obs;
   bool hasInternet = true;
@@ -140,18 +140,21 @@ class Logic extends GetxController {
     final myList = await Future.wait([
       PackageInfo.fromPlatform(),
       (PackageInfo.fromPlatform()),
-      HiveLogic.getStoreCompletedVideos
+      HiveLogic.getStoreCompletedVideos,
+      HiveLogic.getStoreQueeVideos
     ]);
 
     appVersion = (myList[0] as PackageInfo).version;
     appName = (myList[1] as PackageInfo).appName;
     completedVideos.addAll(myList[2] as List<Map<dynamic, dynamic>>);
+    queeVideoDownload.addAll(myList[3] as List<Map<dynamic, dynamic>>);
 
     checkNetwork();
     _notificationcontroller.startListener();
     adState.loadInterAd();
     adState.loadBannerAd();
     adState.loadAppOpenAd();
+
     AppLifecycleListener(
       onInactive: () {
         adState.clickedOnMyAppOpenAd = true;
@@ -674,6 +677,7 @@ class Logic extends GetxController {
     downloading = true;
     while (queeVideoDownload.isNotEmpty && downloading) {
       await downloadFirstVODQueeList();
+      HiveLogic.setQueeVideos(queeVideoDownload);
     }
     MethodChannelHandler.stopService();
     downloading = false;
@@ -762,6 +766,7 @@ class Logic extends GetxController {
       },
     );
 
+    HiveLogic.setQueeVideos(queeVideoDownload);
     if (queeVideoDownload[0]["downloading"] == false && downloading == false) {
       startQueeDownloadVOD();
     }

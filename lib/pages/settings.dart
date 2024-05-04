@@ -83,9 +83,9 @@ class Settings extends GetView<Logic> {
                   activeColor: MyColors.greenDownloadPage,
                   value: controller.settingsController.value.notificationEnable,
                   onChanged: (_) {
+                    
                     controller.settingsController.value
                         .switchNotificationEnable();
-
                     controller.settingsController.refresh();
                     controller.settingsController.value.saveToHive();
                   },

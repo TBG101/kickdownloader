@@ -16,7 +16,7 @@ class SettingsController {
   void saveToHive() {
     HiveLogic.setStoreAskDownloadAlways(askDownloadAlways);
     HiveLogic.setStoreNotificationComplete(notificationComplete);
-    HiveLogic.setStoreNotificationFailure(notificationEnable);
+    HiveLogic.setStoreNotificationEnable(notificationEnable);
     HiveLogic.setStoreNotificationFailure(notificationFailure);
   }
 

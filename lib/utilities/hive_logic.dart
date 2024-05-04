@@ -60,4 +60,23 @@ class HiveLogic {
     });
     return video;
   }
+
+  static void setQueeVideos(List<Map> videos) {
+    __box.put("queeVideo", videos);
+  }
+
+  static Future<List<Map>> get getStoreQueeVideos async {
+    var videos =
+        __box.get("queeVideo", defaultValue: <Map<dynamic, dynamic>>[]);
+
+    var video = await Isolate.run(() {
+      videos = (videos as List).map((e) => e as Map).toList();
+      videos.sort((b, a) {
+        return (DateTime.parse(a["hourDate"]))
+            .compareTo(DateTime.parse(b["hourDate"]));
+      });
+      return videos as List<Map>;
+    });
+    return video;
+  }
 }
