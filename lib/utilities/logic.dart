@@ -474,6 +474,7 @@ class Logic extends GetxController {
     // GET the last downloaded parts if it has downloaded before else don't
     videoDownloadParts =
         (queeVideoDownload[0]["downloadParts"] as double?) ?? 0;
+
     // LOOP ALL TS FILES
     for (String element in file) {
       final tsNB = int.parse(element.replaceAll(".ts", ""));
