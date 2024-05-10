@@ -138,22 +138,21 @@ class Logic extends GetxController {
     _getIntent();
     final myList = await Future.wait([
       PackageInfo.fromPlatform(),
-      (PackageInfo.fromPlatform()),
       HiveLogic.getStoreCompletedVideos,
       HiveLogic.getStoreQueeVideos
     ]);
 
     appVersion = (myList[0] as PackageInfo).version;
-    appName = (myList[1] as PackageInfo).appName;
-    completedVideos.addAll(myList[2] as List<Map<dynamic, dynamic>>);
-    queeVideoDownload.addAll(myList[3] as List<Map<dynamic, dynamic>>);
+    appName = (myList[0] as PackageInfo).appName;
+    completedVideos.addAll(myList[1] as List<Map<dynamic, dynamic>>);
+    queeVideoDownload.addAll(myList[2] as List<Map<dynamic, dynamic>>);
 
     checkNetwork();
     __notificationcontroller.startListener();
     adState.loadInterAd();
     adState.loadBannerAd();
     adState.loadAppOpenAd();
-
+    print(queeVideoDownload);
     AppLifecycleListener(
       onInactive: () {
         adState.clickedOnMyAppOpenAd = true;
@@ -422,7 +421,8 @@ class Logic extends GetxController {
       int tsFileSize,
       String downloadURL,
       bool notificationEnabled) async {
-    int? nbOfTsFiles, overflowTime;
+    late final int? nbOfTsFiles, overflowTime;
+    double percentage;
     canceledLogic() {
       if (!cancel.isCancelled) {
         cancel.cancel();
@@ -430,7 +430,7 @@ class Logic extends GetxController {
       deleteDir(myPath);
     }
 
-    final List<int> queeList = [];
+    final Set<int> queeList = {};
     if (notificationEnabled) {
       await __notificationcontroller.createDownloadNotifcation(
           notificationId,
@@ -466,7 +466,7 @@ class Logic extends GetxController {
 
     videoDownloadSizeBytes.value = (nbOfTsFiles * tsFileSize);
 
-    var (sizeVid, suffix) = formatBytes(videoDownloadSizeBytes.value);
+    final (sizeVid, suffix) = formatBytes(videoDownloadSizeBytes.value);
     playlist.clear();
 
     final file = File("$myPath/generated.txt").readAsLinesSync();
@@ -487,8 +487,8 @@ class Logic extends GetxController {
         continue;
       }
 
-      while (queeList.length >= 5 && downloading.value) {
-        final percentage = videoDownloadPercentage.value;
+      while (queeList.length > 3 && downloading.value) {
+        percentage = videoDownloadPercentage.value;
         videoDownloadPercentage.value =
             (videoDownloadParts / (file.length * 100)) * 100;
 
@@ -518,7 +518,11 @@ class Logic extends GetxController {
         });
       } on DioException catch (e) {
         print("canceled: $e");
-        throw "canceled";
+        if (DioExceptionType.cancel == e.type) {
+          return null;
+        } else {
+          rethrow;
+        }
       } catch (e) {
         rethrow;
       }
@@ -600,7 +604,7 @@ class Logic extends GetxController {
     final int endTime = queeVideoDownload[0]["end"];
     final String downloadURL = queeVideoDownload[0]["downloadURL"]
         .replaceAll(RegExp(r'master\.[^/]*$'), "$slectedQuality/");
-    List<String> playlist = await getPlaylist(downloadURL);
+    final List<String> playlist = await getPlaylist(downloadURL);
 
     final tsFileSize = await getFileSize("${downloadURL}0.ts");
 
@@ -870,19 +874,20 @@ class Logic extends GetxController {
     print(tsFileNB);
     try {
       int lastCount = 0;
-      final responseBytes = await _dio.get(
+      final responseBytes = await _dio.download(
         path + tsFileNB,
+        selectedDirectory,
         onReceiveProgress: (count, total) {
           videoDownloadParts += ((count - lastCount) / total) * 100;
           lastCount = count;
         },
         cancelToken: cancel,
         options: Options(
-          responseType: ResponseType.bytes,
+          // responseType: ResponseType.bytes,
           followRedirects: false,
         ),
       );
-      saveTS(selectedDirectory, responseBytes.data, tsFileNB);
+      // saveTS(selectedDirectory, responseBytes.data, tsFileNB);
       return tsFileNB;
     } on DioException catch (e) {
       if (e.type == DioExceptionType.cancel) {
