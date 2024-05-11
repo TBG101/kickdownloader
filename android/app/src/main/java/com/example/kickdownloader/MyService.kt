@@ -22,8 +22,6 @@ class MyService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         // Create a notification with low priority
-        acquireWakeLock()
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             createNotificationChannel()
         }
@@ -32,13 +30,14 @@ class MyService : Service() {
             NotificationCompat.Builder(this, "channel_id").setContentTitle("Foreground Service")
                 .setContentText("This service is running in the background")
                 .setSmallIcon(R.drawable.offline_dialog_default_icon_42dp)
+
                 .setPriority(NotificationCompat.PRIORITY_MIN) // Set low priority
                 .build()
 
         // Start the service as foreground with the given notification
         acquireWifiLock()
+        acquireWakeLock()
         startForeground(1, notification)
-
         return START_NOT_STICKY
     }
 

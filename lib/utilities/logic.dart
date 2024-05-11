@@ -421,6 +421,7 @@ class Logic extends GetxController {
       int tsFileSize,
       String downloadURL,
       bool notificationEnabled) async {
+    var lastNotificationUpdateTime = DateTime.now();
     late final int? nbOfTsFiles, overflowTime;
     double percentage;
     canceledLogic() {
@@ -493,12 +494,17 @@ class Logic extends GetxController {
             (videoDownloadParts / (file.length * 100)) * 100;
 
         if (notificationEnabled) {
-          __notificationcontroller.updateNotification(
-              notificationId,
-              file,
-              'Downloading ${percentage.toStringAsFixed(0)}% ${(sizeVid * percentage / 100).toStringAsFixed(2)}/${sizeVid.toStringAsFixed(2)} $suffix',
-              "Streamer ${queeVideoDownload[0]["username"]}",
-              videoDownloadPercentage.value);
+          final timeNow = DateTime.now();
+          if (timeNow.isAfter(
+              lastNotificationUpdateTime.add(const Duration(seconds: 1)))) {
+            __notificationcontroller.updateNotification(
+                notificationId,
+                file,
+                'Downloading ${percentage.toStringAsFixed(0)}% ${(sizeVid * percentage / 100).toStringAsFixed(2)}/${sizeVid.toStringAsFixed(2)} $suffix',
+                "Streamer ${queeVideoDownload[0]["username"]}",
+                videoDownloadPercentage.value);
+            lastNotificationUpdateTime = timeNow;
+          }
         }
 
         await waitTimer();
@@ -699,10 +705,6 @@ class Logic extends GetxController {
     downloading.value = false;
   }
 
-  int convertToMillisecond(int h, int m, int s) {
-    return (h * 60 * 60 + m * 60 + s) * 1000;
-  }
-
   void downloadVodDataBtn(BuildContext context) async {
     if (!hasInternet) {
       // IMPLEMENT NO INTERNET
@@ -782,12 +784,15 @@ class Logic extends GetxController {
         "downloadedTS": tempSet,
       },
     );
-
     HiveLogic.setQueeVideos(queeVideoDownload);
     if (queeVideoDownload[0]["downloading"] == false &&
         downloading.value == false) {
       startQueeDownloadVOD();
     }
+  }
+
+  int convertToMillisecond(int h, int m, int s) {
+    return (h * 60 * 60 + m * 60 + s) * 1000;
   }
 
   Future<String?> mergeToMp4(
@@ -876,7 +881,7 @@ class Logic extends GetxController {
       int lastCount = 0;
       final responseBytes = await _dio.download(
         path + tsFileNB,
-        selectedDirectory,
+        selectedDirectory + tsFileNB,
         onReceiveProgress: (count, total) {
           videoDownloadParts += ((count - lastCount) / total) * 100;
           lastCount = count;

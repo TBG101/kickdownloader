@@ -20,6 +20,7 @@ class MainActivity : FlutterActivity() {
                 "startService" -> {
                     val intent =
                         Intent(this, MyService::class.java) // Build the intent for the service
+
                     startService(intent)
                     result.success(null)
                 }
@@ -40,7 +41,6 @@ class MainActivity : FlutterActivity() {
 
                 "deviceVersion" -> {
                     result.success(android.os.Build.VERSION.SDK_INT)
-
                 }
 
                 else -> {

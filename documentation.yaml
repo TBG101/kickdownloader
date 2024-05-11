@@ -1,0 +1,35 @@
+role: nativeSide
+Class: video
+Description: represents a video that can be downloaded
+
+Attributes:
+- apiUrl: string
+- title: string
+- streamer: string
+- path: string
+
+
+Methods:
+  1. startDownload()
+    Description: start the video download.
+    Parameters: None
+    Return Type: int
+    Behavior: Returns the ID of the customer.
+
+  3. downloadTs()
+    Description: start the video download.
+    Parameters: None
+    Return Type: int
+    Behavior: Returns the ID of the customer.
+    
+  2. checkFileExist()
+    Description: checkIfFileExists.
+    Parameters: None
+    Return Type: string
+    Behavior: Returns the name of the customer.
+
+  3. mergeInToMp4()
+    Description: checkIfFileExists.
+    Parameters: None
+    Return Type: string
+    Behavior: Returns the name of the customer.
