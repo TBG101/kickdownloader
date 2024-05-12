@@ -488,12 +488,12 @@ class Logic extends GetxController {
         continue;
       }
 
-      while (queeList.length > 3 && downloading.value) {
+      while (queeList.length > 3 && downloading.value && hasInternet) {
         percentage = videoDownloadPercentage.value;
         videoDownloadPercentage.value =
             (videoDownloadParts / (file.length * 100)) * 100;
 
-        if (notificationEnabled) {
+        if (notificationEnabled && hasInternet) {
           final timeNow = DateTime.now();
           if (timeNow.isAfter(
               lastNotificationUpdateTime.add(const Duration(seconds: 1)))) {
@@ -516,18 +516,20 @@ class Logic extends GetxController {
       final tsFileNb = int.parse(element.replaceAll(".ts", ""));
       queeList.add(tsFileNb);
       try {
-        downloadTS(downloadURL, element, cancel, myPath).then((tsFile) {
-          queeList.remove(tsFileNb);
-          (queeVideoDownload[0]["downloadedTS"] as Set).add(tsFileNb);
-          queeVideoDownload[0]["downloadParts"] = videoDownloadParts;
-          queeVideoDownload.refresh();
-        });
+        if (hasInternet == true) {
+          downloadTS(downloadURL, element, cancel, myPath).then((tsFile) {
+            queeList.remove(tsFileNb);
+            (queeVideoDownload[0]["downloadedTS"] as Set).add(tsFileNb);
+            queeVideoDownload[0]["downloadParts"] = videoDownloadParts;
+            queeVideoDownload.refresh();
+          });
+        } else {
+          throw "no internet";
+        }
       } on DioException catch (e) {
         print("canceled: $e");
         if (DioExceptionType.cancel == e.type) {
           return null;
-        } else if (DioExceptionType.connectionError == e.type) {
-          continue;
         } else {
           rethrow;
         }
@@ -650,13 +652,33 @@ class Logic extends GetxController {
               notificationId, "Failed to download", "Download canceled");
         }
       });
+    } on DioException catch (e) {
+      if (DioExceptionType.connectionError == e.type) {
+        __notificationcontroller.failedDownloadNotification(
+            notificationId, "Failed to download", "Internet Error");
+        if (!cancel.isCancelled) {
+          cancel.cancel();
+        }
+        return;
+      }
     } catch (e) {
-      __notificationcontroller.failedDownloadNotification(
-          notificationId, "Failed to download", "Unhandled exception");
-      print("OUTER FUNCTION ERROR IS: $e");
-      deleteDir(saveDir);
-      if (!cancel.isCancelled) {
-        cancel.cancel();
+      print(e);
+      if (e == "no internet") {
+        downloading.value = false;
+        __notificationcontroller.failedDownloadNotification(
+            notificationId, "Failed to download", "Internet Error");
+        if (!cancel.isCancelled) {
+          cancel.cancel();
+        }
+        return;
+      } else {
+        __notificationcontroller.failedDownloadNotification(
+            notificationId, "Failed to download", "Unhandled exception");
+        print("OUTER FUNCTION ERROR IS: $e");
+        deleteDir(saveDir);
+        if (!cancel.isCancelled) {
+          cancel.cancel();
+        }
       }
     }
 
@@ -699,7 +721,7 @@ class Logic extends GetxController {
   Future<void> startQueeDownloadVOD() async {
     MethodChannelHandler.startService();
     downloading.value = true;
-    while (queeVideoDownload.isNotEmpty && downloading.value) {
+    while (queeVideoDownload.isNotEmpty && downloading.value && hasInternet) {
       await downloadFirstVODQueeList();
       HiveLogic.setQueeVideos(queeVideoDownload);
     }
