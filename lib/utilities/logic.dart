@@ -526,6 +526,8 @@ class Logic extends GetxController {
         print("canceled: $e");
         if (DioExceptionType.cancel == e.type) {
           return null;
+        } else if (DioExceptionType.connectionError == e.type) {
+          continue;
         } else {
           rethrow;
         }
@@ -879,9 +881,9 @@ class Logic extends GetxController {
     print(tsFileNB);
     try {
       int lastCount = 0;
-      final responseBytes = await _dio.download(
+      await _dio.download(
         path + tsFileNB,
-        selectedDirectory + tsFileNB,
+        "$selectedDirectory/$tsFileNB",
         onReceiveProgress: (count, total) {
           videoDownloadParts += ((count - lastCount) / total) * 100;
           lastCount = count;
@@ -898,7 +900,7 @@ class Logic extends GetxController {
       if (e.type == DioExceptionType.cancel) {
         throw "canceled";
       } else {
-        throw "error";
+        rethrow;
       }
     }
   }
