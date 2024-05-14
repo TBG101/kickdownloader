@@ -117,7 +117,7 @@ class Home extends GetView<Logic> {
                     controller.startQueeDownloadVOD();
                   } else {
                     // Implement pause button 
-                    // controller.downloading.value = false;
+                    controller.downloading.value = false;
                   }
                 },
                 icon: Icon(controller.downloading.value

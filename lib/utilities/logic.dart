@@ -172,11 +172,17 @@ class Logic extends GetxController {
   }
 
   @override
+<<<<<<< HEAD
   void dispose() {
     // TODO: implement dispose
     super.dispose();
     print("closed ");
     __notificationcontroller.removeNotification();
+=======
+  void onClose() {
+    super.onClose();
+    __notificationcontroller.removeNotifications();
+>>>>>>> 072f6078aad9fb042e411bb9e6fe7daaca12e56d
     HiveLogic.setQueeVideos(queeVideoDownload);
     MethodChannelHandler.stopService();
   }
