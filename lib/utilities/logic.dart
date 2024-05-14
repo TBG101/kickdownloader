@@ -172,8 +172,10 @@ class Logic extends GetxController {
   }
 
   @override
-  void onClose() {
-    super.onClose();
+  void dispose() {
+    // TODO: implement dispose
+    super.dispose();
+    print("closed ");
     __notificationcontroller.removeNotification();
     HiveLogic.setQueeVideos(queeVideoDownload);
     MethodChannelHandler.stopService();
@@ -424,7 +426,7 @@ class Logic extends GetxController {
     var lastNotificationUpdateTime = DateTime.now();
     late final int? nbOfTsFiles, overflowTime;
     double percentage;
-    canceledLogic() {
+    Future<void> canceledLogic() async {
       if (!cancel.isCancelled) {
         cancel.cancel();
       }
