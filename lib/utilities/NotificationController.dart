@@ -6,8 +6,10 @@ import 'package:kickdownloader/utilities/logic.dart';
 class NotificationController {
   final __notification = AwesomeNotifications();
   int lastUpdateTime = 0;
+  final myNotifications = <int>{};
   Future<void> createDownloadNotifcation(
       int id, String title, String body) async {
+    myNotifications.add(id);
     if (await PermissionHandler.getNotificationStatus() != true) {
       return; // early return if permission is not granted
     }
@@ -79,8 +81,12 @@ class NotificationController {
             locked: false));
   }
 
-  void dissmissNotification(int id) {
-    __notification.dismiss(id);
+  void dissmissNotification(int id) {}
+
+  void removeNotifications() {
+    for (var id in myNotifications) {
+      __notification.dismiss(id);
+    }
   }
 
   Future<void> startListener() async {
@@ -90,10 +96,6 @@ class NotificationController {
         onActionReceivedMethod: NotificationController.onActionReceived,
       );
     }
-  }
-
-  void removeNotification() {
-    __notification.cancelAll();
   }
 
   static Future<void> onActionReceived(ReceivedAction action) async {

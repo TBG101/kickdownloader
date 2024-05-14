@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 import 'dart:math';
+import 'dart:ui';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:ffmpeg_kit_flutter_min/ffmpeg_kit.dart';
 import 'package:flutter/material.dart';
@@ -154,6 +155,11 @@ class Logic extends GetxController {
     adState.loadAppOpenAd();
     print(queeVideoDownload);
     AppLifecycleListener(
+      onExitRequested: () async {
+        onClose();
+        onDelete();
+        return AppExitResponse.exit;
+      },
       onInactive: () {
         adState.clickedOnMyAppOpenAd = true;
         print('inactive');
@@ -174,7 +180,7 @@ class Logic extends GetxController {
   @override
   void onClose() {
     super.onClose();
-    __notificationcontroller.removeNotification();
+    __notificationcontroller.removeNotifications();
     HiveLogic.setQueeVideos(queeVideoDownload);
     MethodChannelHandler.stopService();
   }
@@ -431,7 +437,7 @@ class Logic extends GetxController {
       deleteDir(myPath);
     }
 
-    final Set<int> queeList = {};
+    final List<int> queeList = [];
     if (notificationEnabled) {
       await __notificationcontroller.createDownloadNotifcation(
           notificationId,
@@ -480,11 +486,15 @@ class Logic extends GetxController {
     for (String element in file) {
       final tsNB = int.parse(element.replaceAll(".ts", ""));
       // check if has been canceled
+      if (downloading.isFalse) {
+        return "paused";
+      }
+
       if (cancel.isCancelled) {
         canceledLogic();
         return null;
       }
-      if ((queeVideoDownload[0]["downloadedTS"] as Set).contains(tsNB)) {
+      if ((queeVideoDownload[0]["downloadedTS"] as List).contains(tsNB)) {
         continue;
       }
 
@@ -519,7 +529,7 @@ class Logic extends GetxController {
         if (hasInternet == true) {
           downloadTS(downloadURL, element, cancel, myPath).then((tsFile) {
             queeList.remove(tsFileNb);
-            (queeVideoDownload[0]["downloadedTS"] as Set).add(tsFileNb);
+            (queeVideoDownload[0]["downloadedTS"] as List).add(tsFileNb);
             queeVideoDownload[0]["downloadParts"] = videoDownloadParts;
             queeVideoDownload.refresh();
           });
@@ -602,6 +612,7 @@ class Logic extends GetxController {
   }
 
   Future<void> downloadFirstVODQueeList() async {
+    settingsController.refresh();
     cancel = CancelToken();
     videoDownloadPercentage.value = 0;
     videoDownloadParts = 0;
@@ -615,43 +626,43 @@ class Logic extends GetxController {
     final String downloadURL = queeVideoDownload[0]["downloadURL"]
         .replaceAll(RegExp(r'master\.[^/]*$'), "$slectedQuality/");
     final List<String> playlist = await getPlaylist(downloadURL);
-
     final tsFileSize = await getFileSize("${downloadURL}0.ts");
-
     queeVideoDownload[0]["downloading"] = true;
 
     try {
-      await downloadVod(saveDir, playlist, endTime, startTime, tsFileSize,
-              downloadURL, settingsController.value.notificationEnable)
-          .then((path) async {
-        if (path != null && downloading.value && !cancel.isCancelled) {
-          DateTime now = DateTime.now();
-          String formattedDate = "${now.year}-${(now.month)}-${(now.day)}";
-          var fileSize = await getDownloadedSize(path);
+      final path = await downloadVod(saveDir, playlist, endTime, startTime,
+          tsFileSize, downloadURL, settingsController.value.notificationEnable);
+      if (path == "paused") {
+        HiveLogic.setQueeVideos(queeVideoDownload);
+        return;
+      } else if (path != null && downloading.value && !cancel.isCancelled) {
+        DateTime now = DateTime.now();
+        String formattedDate = "${now.year}-${(now.month)}-${(now.day)}";
+        var fileSize = await getDownloadedSize(path);
+        completedVideos.insert(0, {
+          "streamDate": queeVideoDownload[0]["streamDate"],
+          "streamer": queeVideoDownload[0]["username"],
+          "title": queeVideoDownload[0]["title"],
+          "path": path,
+          "link": queeVideoDownload[0]["link"],
+          "image": queeVideoDownload[0]["image"],
+          "DownloadDate": formattedDate,
+          "resolution": slectedQuality,
+          "size": fileSize,
+          "hourDate": DateTime.now().toIso8601String()
+        });
 
-          completedVideos.insert(0, {
-            "streamDate": queeVideoDownload[0]["streamDate"],
-            "streamer": queeVideoDownload[0]["username"],
-            "title": queeVideoDownload[0]["title"],
-            "path": path,
-            "link": queeVideoDownload[0]["link"],
-            "image": queeVideoDownload[0]["image"],
-            "DownloadDate": formattedDate,
-            "resolution": slectedQuality,
-            "size": fileSize,
-            "hourDate": DateTime.now().toIso8601String()
-          });
-
-          completedVideos.refresh();
-          if (queeVideoDownload.length != 1) {
-            animatedListKey.currentState!.insertItem(queeVideoDownload.length);
-          }
-          addVideoToHive();
-        } else {
+        completedVideos.refresh();
+        if (queeVideoDownload.length != 1) {
+          animatedListKey.currentState!.insertItem(queeVideoDownload.length);
+        }
+        addVideoToHive();
+      } else {
+        if (settingsController.value.notificationFailure) {
           __notificationcontroller.failedDownloadNotification(
               notificationId, "Failed to download", "Download canceled");
         }
-      });
+      }
     } on DioException catch (e) {
       if (DioExceptionType.connectionError == e.type) {
         __notificationcontroller.failedDownloadNotification(
@@ -722,7 +733,12 @@ class Logic extends GetxController {
     MethodChannelHandler.startService();
     downloading.value = true;
     while (queeVideoDownload.isNotEmpty && downloading.value && hasInternet) {
-      await downloadFirstVODQueeList();
+      try {
+        await downloadFirstVODQueeList();
+      } catch (e) {
+        downloading.value = false;
+        break;
+      }
       HiveLogic.setQueeVideos(queeVideoDownload);
     }
     MethodChannelHandler.stopService();
@@ -789,7 +805,6 @@ class Logic extends GetxController {
       endtime = convertToMillisecond(int.parse(endHour.value.text),
           int.parse(endMinute.value.text), int.parse(endSecond.value.text));
     }
-    Set<int> tempSet = {};
     queeVideoDownload.add(
       {
         "downloading": false,
@@ -805,7 +820,7 @@ class Logic extends GetxController {
         "username": videoData!["livestream"]["channel"]["user"]["username"],
         "savePath":
             "${settingsController.value.savedDir!}/[${videoData!["livestream"]["created_at"].split(" ")[0]} - ${DateTime.now().hour}h ${DateTime.now().minute}m ${DateTime.now().second}s] ${videoData!["livestream"]["channel"]["user"]["username"]}",
-        "downloadedTS": tempSet,
+        "downloadedTS": []
       },
     );
     HiveLogic.setQueeVideos(queeVideoDownload);
