@@ -538,9 +538,9 @@ class Logic extends GetxController {
         return null;
       }
       if (downloadedList.contains(element)) {
-        downloadedList.remove(element);
         continue;
       }
+      downloadedList.clear();
 
       while (queeList.length > 3 && downloading.value && hasInternet) {
         percentage = videoDownloadPercentage.value;
