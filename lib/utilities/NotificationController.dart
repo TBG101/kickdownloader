@@ -81,12 +81,15 @@ class NotificationController {
             locked: false));
   }
 
-  void dissmissNotification(int id) {}
+  void dissmissNotification(int id) {
+    __notification.dismiss(id);
+  }
 
   void removeNotifications() {
     for (var id in myNotifications) {
-      __notification.dismiss(id);
+      dissmissNotification(id);
     }
+    __notification.cancelAll();
   }
 
   Future<void> startListener() async {

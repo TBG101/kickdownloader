@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 import 'dart:math';
+import 'dart:ui';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:ffmpeg_kit_flutter_min/ffmpeg_kit.dart';
 import 'package:flutter/material.dart';
@@ -153,7 +154,11 @@ class Logic extends GetxController {
     adState.loadBannerAd();
     adState.loadAppOpenAd();
     print(queeVideoDownload);
+
     AppLifecycleListener(
+      onDetach: () {
+        print(("detatcheddd"));
+      },
       onInactive: () {
         adState.clickedOnMyAppOpenAd = true;
         print('inactive');
@@ -175,7 +180,7 @@ class Logic extends GetxController {
   void dispose() {
     // TODO: implement dispose
     super.dispose();
-    print("closed ");
+    print("Kic Vod Downloader exited ");
     __notificationcontroller.removeNotifications();
     HiveLogic.setQueeVideos(queeVideoDownload);
     MethodChannelHandler.stopService();
@@ -302,9 +307,15 @@ class Logic extends GetxController {
       if (myCallback()) {
         return false;
       }
-
-      if (!File("$path/$element").existsSync()) {
-        await downloadTS(downloadPath, element, cancel, path);
+      try {
+        if (!File("$path/$element").existsSync()) {
+          await downloadTS(downloadPath, element, cancel, path);
+        }
+      } on DioExceptionType {
+        // IMPLEMENT THIS
+        break;
+      } catch (e) {
+        break;
       }
     }
 
@@ -368,13 +379,15 @@ class Logic extends GetxController {
 
     final myIsolate = await Isolate.spawn(heavyComputeWriteGen,
         [playlist, endTime, startTime, savepath, receiverPort.sendPort]);
-    cancel.whenCancel.asStream().listen((event) {
+    final mystream = cancel.whenCancel.asStream().listen((event) {
       myIsolate.kill(priority: Isolate.immediate);
       receiverPort.sendPort.send(null);
     });
+
     final result = await receiverPort.first as Map<String, int?>?;
     myIsolate.kill();
     receiverPort.close();
+    mystream.cancel();
     if (result == null) return (null, null);
     // Meaning that we are going to download the whole stream if endtime == -1
     return (
@@ -415,6 +428,33 @@ class Logic extends GetxController {
     } catch (_) {}
   }
 
+  Future<List> getDownloadedSizeAndFiles(String path) async {
+    final receivePort = ReceivePort();
+
+    Isolate.spawn((message) {
+      final mySendPort = message[0] as SendPort;
+      final myStreamDir = Directory(message[1] as String);
+      if (myStreamDir.existsSync() == false) {
+        mySendPort.send([0, <int>{}]);
+        return;
+      }
+      var size = 0;
+      final tsFiles = <String>{};
+
+      myStreamDir.listSync().forEach((file) async {
+        if (file.uri.pathSegments.last == "generated.txt") {
+          return;
+        }
+        tsFiles.add(file.uri.pathSegments.last);
+        size += await file.stat().then((value) => value.size);
+      });
+
+      mySendPort.send([size, tsFiles]);
+    }, [receivePort.sendPort, path]);
+    final result = await receivePort.first;
+    return [result[0] as int, result[1] as Set<int>];
+  }
+
   Future<String?> downloadVod(
       String myPath,
       List<String> playlist,
@@ -426,6 +466,7 @@ class Logic extends GetxController {
     var lastNotificationUpdateTime = DateTime.now();
     late final int? nbOfTsFiles, overflowTime;
     double percentage;
+    videoDownloadParts = 0;
     Future<void> canceledLogic() async {
       if (!cancel.isCancelled) {
         cancel.cancel();
@@ -433,17 +474,25 @@ class Logic extends GetxController {
       deleteDir(myPath);
     }
 
-    final List<int> queeList = [];
+    final Set<String> downloadedList = {};
+    final Set<int> queeList = {};
     if (notificationEnabled) {
       await __notificationcontroller.createDownloadNotifcation(
           notificationId,
           'Started downloading VOD',
           "Streamer ${queeVideoDownload[0]["username"]}");
     }
+    await getDownloadedSizeAndFiles(myPath).then((value) {
+      videoDownloadParts = value[0];
+      print(videoDownloadParts);
+      downloadedList.addAll(value[1]);
+    });
 
     try {
-      (overflowTime, nbOfTsFiles) =
-          await writeGeneratedText(myPath, playlist, endTime, startTime);
+      if (videoDownloadParts == 0) {
+        (overflowTime, nbOfTsFiles) =
+            await writeGeneratedText(myPath, playlist, endTime, startTime);
+      }
     } catch (e) {
       // IMPLEMENT ERROR GENERATING TEXT FILE
       canceledLogic();
@@ -475,22 +524,21 @@ class Logic extends GetxController {
     final file = File("$myPath/generated.txt").readAsLinesSync();
 
     // GET the last downloaded parts if it has downloaded before else don't
-    videoDownloadParts =
-        (queeVideoDownload[0]["downloadParts"] as double?) ?? 0;
+
+    print(downloadedList);
 
     // LOOP ALL TS FILES
     for (String element in file) {
-      final tsNB = int.parse(element.replaceAll(".ts", ""));
       // check if has been canceled
       if (downloading.isFalse) {
         return "paused";
       }
-
       if (cancel.isCancelled) {
         canceledLogic();
         return null;
       }
-      if ((queeVideoDownload[0]["downloadedTS"] as List).contains(tsNB)) {
+      if (downloadedList.contains(element)) {
+        downloadedList.remove(element);
         continue;
       }
 
@@ -519,15 +567,13 @@ class Logic extends GetxController {
           return null;
         }
       }
+
       final tsFileNb = int.parse(element.replaceAll(".ts", ""));
       queeList.add(tsFileNb);
       try {
         if (hasInternet == true) {
           downloadTS(downloadURL, element, cancel, myPath).then((tsFile) {
             queeList.remove(tsFileNb);
-            (queeVideoDownload[0]["downloadedTS"] as List).add(tsFileNb);
-            queeVideoDownload[0]["downloadParts"] = videoDownloadParts;
-            queeVideoDownload.refresh();
           });
         } else {
           throw "no internet";

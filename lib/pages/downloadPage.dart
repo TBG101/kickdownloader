@@ -128,14 +128,11 @@ class DownloadPage extends GetView<Logic> {
                 parent: BouncingScrollPhysics()),
             key: controller.animatedListKey,
             initialItemCount: controller.queeVideoDownload.length +
-                controller.completedVideos.length,
+                controller.completedVideos.length +
+                1,
             itemBuilder: (animatedListContext, index, animation) {
               if ((controller.queeVideoDownload.length +
-                      controller.completedVideos.length -
-                      (controller.queeVideoDownload.isNotEmpty &&
-                              controller.queeVideoDownload.isNotEmpty
-                          ? 2
-                          : 1)) ==
+                      controller.completedVideos.length) ==
                   index) {
                 return const SizedBox(
                   height: 50,
