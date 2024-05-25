@@ -1,5 +1,7 @@
 package com.example.kickdownloader
 
+import android.app.NotificationManager
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.annotation.NonNull
@@ -20,10 +22,10 @@ class MainActivity : FlutterActivity() {
                 "startService" -> {
                     val intent =
                         Intent(this, MyService::class.java) // Build the intent for the service
-
                     startService(intent)
                     result.success(null)
                 }
+
                 "stopService" -> {
                     val intent =
                         Intent(this, MyService::class.java) // Build the intent for the service
@@ -45,11 +47,17 @@ class MainActivity : FlutterActivity() {
 
                 else -> {
                     result.notImplemented()
-
                 }
 
             }
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        dismissAllNotifications()
+        val intent = Intent(this, MyService::class.java) // Build the intent for the service
+        stopService(intent)
     }
 
     private fun playVideo(path: String) {
@@ -69,6 +77,15 @@ class MainActivity : FlutterActivity() {
         } else {
             // Handle the case where no app can handle the intent
         }
+    }
+
+
+    private fun dismissAllNotifications() {
+        // Get the NotificationManager system service
+        val notificationManager =
+            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        // Dismiss all notifications
+        notificationManager.cancelAll()
     }
 
 }

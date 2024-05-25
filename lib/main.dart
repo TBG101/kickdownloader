@@ -23,8 +23,7 @@ void main() async {
             playSound: true,
             locked: true,
             ledColor: Colors.white)
-      ],
-      debug: true);
+      ]);
   Get.put(Logic(initFuture), permanent: true);
   runApp(const MyApp());
 }

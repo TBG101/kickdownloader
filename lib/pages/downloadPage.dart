@@ -10,10 +10,12 @@ class DownloadPage extends GetView<Logic> {
 
   String textSelector(int index) {
     if (controller.videoDownloadPercentage.value >= 99 &&
+        controller.downloading.isTrue &&
         controller.queeVideoDownload[index]["downloading"] as bool) {
       return "Converting to mp4";
     } else if (controller.queeVideoDownload[index]["downloading"] as bool &&
-        controller.videoDownloadPercentage.value < 100) {
+        controller.videoDownloadPercentage.value < 100 &&
+        controller.downloading.isTrue) {
       var (size, suffix) =
           controller.formatBytes(controller.videoDownloadSizeBytes.value);
       var videoDownloadSizeMb =

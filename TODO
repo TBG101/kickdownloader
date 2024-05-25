@@ -14,19 +14,14 @@ GENERAL:
 TimeSelector:
   
 downloadPage:
+    
+clipDownloader: 
 
-
-clipDownloader:
-
-
-
-
-  
 Future update: 
   - use Update( ID) for the banner ad
   - add a clip downloader page (or make it in the same page) (probabaly not gonna add it since i couldnt find a  way tot fethc the vod)
   - turn both into 1 widget
-
+  - turn video into a solo class
 
 Done:
   - add timer since last appopenad

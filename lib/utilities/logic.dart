@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ffi';
 import 'dart:io';
 import 'dart:isolate';
 import 'dart:math';
@@ -80,7 +81,7 @@ class Logic extends GetxController {
   final GlobalKey<AnimatedListState> animatedListKey =
       GlobalKey<AnimatedListState>();
 
-  var settingsController = SettingsController().obs;
+  final settingsController = SettingsController().obs;
 
   Future<void> checkNetwork() async {
     await Connectivity().checkConnectivity().then(
@@ -142,6 +143,7 @@ class Logic extends GetxController {
       HiveLogic.getStoreCompletedVideos,
       HiveLogic.getStoreQueeVideos
     ]);
+    settingsController.value.initSettings();
 
     appVersion = (myList[0] as PackageInfo).version;
     appName = (myList[0] as PackageInfo).appName;
@@ -428,31 +430,35 @@ class Logic extends GetxController {
     } catch (_) {}
   }
 
-  Future<List> getDownloadedSizeAndFiles(String path) async {
+  Future<List> getDownloadedSizeAndFiles(
+      String path, List<String> downloadedList) async {
     final receivePort = ReceivePort();
 
-    Isolate.spawn((message) {
+    Isolate.spawn((message) async {
       final mySendPort = message[0] as SendPort;
       final myStreamDir = Directory(message[1] as String);
+      final downloadedTs = message[2] as List<String>;
       if (myStreamDir.existsSync() == false) {
-        mySendPort.send([0, <int>{}]);
+        mySendPort.send([0.0, <String>[]]);
         return;
       }
-      var size = 0;
-      final tsFiles = <String>{};
-
-      myStreamDir.listSync().forEach((file) async {
-        if (file.uri.pathSegments.last == "generated.txt") {
-          return;
+      double size = 0;
+      for (final ts in downloadedTs) {
+        final file = File("$path/$ts");
+        if (file.existsSync()) {
+          size += (await file.stat()).size;
+          print(size);
         }
-        tsFiles.add(file.uri.pathSegments.last);
-        size += await file.stat().then((value) => value.size);
-      });
+      }
 
-      mySendPort.send([size, tsFiles]);
-    }, [receivePort.sendPort, path]);
-    final result = await receivePort.first;
-    return [result[0] as int, result[1] as Set<int>];
+      mySendPort.send([
+        size,
+        downloadedTs,
+      ]);
+    }, [receivePort.sendPort, path, downloadedList]);
+    final result = (await receivePort.first) as List;
+    print(result);
+    return [result[0] as double, result[1] as List<String>];
   }
 
   Future<String?> downloadVod(
@@ -474,7 +480,13 @@ class Logic extends GetxController {
       deleteDir(myPath);
     }
 
-    final Set<String> downloadedList = {};
+    final List<String> downloadedList =
+        (queeVideoDownload[0]["downloadedList"] as List<String>?) ?? [];
+
+    if (queeVideoDownload[0]["downloadedList"] == null) {
+      queeVideoDownload[0]["downloadedList"] = <String>[];
+    }
+
     final Set<int> queeList = {};
     if (notificationEnabled) {
       await __notificationcontroller.createDownloadNotifcation(
@@ -482,10 +494,11 @@ class Logic extends GetxController {
           'Started downloading VOD',
           "Streamer ${queeVideoDownload[0]["username"]}");
     }
-    await getDownloadedSizeAndFiles(myPath).then((value) {
-      videoDownloadParts = value[0];
+    await getDownloadedSizeAndFiles(myPath, downloadedList).then((value) {
+      print("in value " + value.toString());
+      videoDownloadParts = value[0] as double;
       print(videoDownloadParts);
-      downloadedList.addAll(value[1]);
+      downloadedList.addAll(value[1] as List<String>);
     });
 
     try {
@@ -527,8 +540,11 @@ class Logic extends GetxController {
 
     print(downloadedList);
 
+    final timer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      HiveLogic.setQueeVideos(queeVideoDownload);
+    });
     // LOOP ALL TS FILES
-    for (String element in file) {
+    for (final element in file) {
       // check if has been canceled
       if (downloading.isFalse) {
         return "paused";
@@ -574,6 +590,10 @@ class Logic extends GetxController {
         if (hasInternet == true) {
           downloadTS(downloadURL, element, cancel, myPath).then((tsFile) {
             queeList.remove(tsFileNb);
+            queeVideoDownload[0]["downloadedList"] = [
+              ...(queeVideoDownload[0]["downloadedList"] as List<String>),
+              element
+            ];
           });
         } else {
           throw "no internet";
@@ -610,12 +630,15 @@ class Logic extends GetxController {
       }
     }
 
+    timer.cancel();
+
     final r = await checkTSfiles(myPath, downloadURL, () {
       if (cancel.isCancelled) {
         canceledLogic();
         return true;
       }
     });
+
     if (!r) return null;
     if (notificationEnabled) {
       await __notificationcontroller.updateNotificationEnd(
@@ -732,6 +755,7 @@ class Logic extends GetxController {
         if (!cancel.isCancelled) {
           cancel.cancel();
         }
+        rethrow;
       }
     }
 

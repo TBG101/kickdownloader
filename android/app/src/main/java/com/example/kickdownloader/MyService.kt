@@ -46,7 +46,9 @@ class MyService : Service() {
         // Release the wakelock when the service is destroyed
         releaseWakeLock()
         releaseWifiLock()
+
     }
+
 
 
     override fun onBind(intent: Intent): IBinder? {
@@ -87,8 +89,10 @@ class MyService : Service() {
     private var wifiLock: WifiManager.WifiLock? = null
 
     fun acquireWifiLock() {
-        val wifiManager = applicationContext.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-        wifiLock = wifiManager.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "YourWifiLockTag")
+        val wifiManager =
+            applicationContext.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+        wifiLock =
+            wifiManager.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "YourWifiLockTag")
         wifiLock?.acquire()
     }
 
