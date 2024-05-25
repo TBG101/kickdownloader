@@ -636,6 +636,7 @@ class Logic extends GetxController {
         canceledLogic();
         return true;
       }
+      return false;
     });
 
     if (!r) return null;

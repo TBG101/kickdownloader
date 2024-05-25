@@ -1,10 +1,12 @@
+import 'dart:html';
+
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 class AdState {
   late final Future<InitializationStatus> initialization;
 
   AdState(this.initialization);
-
+  bool hasMemberShip = false; // Debug Setting change to enable on deployment
   bool loaded = false;
   InterstitialAd? myAd;
 
@@ -20,11 +22,20 @@ class AdState {
   String get appOpenAd => "ca-app-pub-3940256099942544/9257395921";
   int timeSinceLastAdShow = 0;
 
+  void enableMemberShip() {
+    hasMemberShip = true;
+  }
+
+  void disableMemberShip() {
+    hasMemberShip = false;
+  }
+
   // open app ad
   Future<void> showAppOpenAd() async {
     if (myAppOpenAd == null ||
         loadedMyAppOpenAd == false ||
         timeSinceLastAdShow == 0 ||
+        hasMemberShip ||
         DateTime.timestamp().millisecondsSinceEpoch <
             timeSinceLastAdShow + 180000) return;
     // shows only if time passed since last ad is greater than 3 mintes == 180000 ms
@@ -48,6 +59,7 @@ class AdState {
 
   Future<void> loadAppOpenAd() async {
     initialization.then((value) {
+      if (hasMemberShip) return;
       AppOpenAd.load(
           adUnitId: appOpenAd,
           request: const AdRequest(),
@@ -66,6 +78,7 @@ class AdState {
 
   // adaptive banner
   Future<void> loadBannerAd() async {
+    if (hasMemberShip) return;
     initialization.then((value) async {
       if (myBanner != null) await myBanner!.dispose();
 
@@ -89,6 +102,7 @@ class AdState {
 
   // interstitual
   Future<void> loadInterAd() async {
+    if (hasMemberShip) return;
     initialization.then((value) {
       InterstitialAd.load(
           adUnitId: interstitialAdUnitId,
@@ -118,7 +132,7 @@ class AdState {
   }
 
   Future<void> showInterAd() async {
-    if (myAd == null || loaded == false) return;
+    if (myAd == null || loaded == false || hasMemberShip) return;
     initialization.then((value) async => await myAd!.show());
   }
 }
