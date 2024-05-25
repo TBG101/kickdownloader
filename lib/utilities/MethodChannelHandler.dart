@@ -7,7 +7,7 @@ class MethodChannelHandler {
     try {
       await platform.invokeMethod('startService');
     } catch (e) {
-      throw "Couldn't open file: $e";
+      throw "Couldn't open file error is: $e";
     }
   }
 

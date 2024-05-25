@@ -10,6 +10,9 @@ GENERAL:
   - add upgrade to premium
   - add crashltytics.
   - check kick sharing
+  - add delete when cancel on paused video
+  - add a bettter resume way, atm it's checking for the max downloaded file, but there could an expcetionw where a ts has been downloaded, so we can either 
+  make it so that it shows still downloading and not show the progress (better option tho can be upgraded) or chnage it from the bottom (even better)
  
 TimeSelector:
   

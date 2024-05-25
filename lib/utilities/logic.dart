@@ -442,23 +442,23 @@ class Logic extends GetxController {
         mySendPort.send([0.0, <String>[]]);
         return;
       }
-      double size = 0;
+      double maxNb = 0;
       for (final ts in downloadedTs) {
         final file = File("$path/$ts");
         if (file.existsSync()) {
-          size += (await file.stat()).size;
-          print(size);
+          final myCurrentNb =
+              double.tryParse(ts.substring(0, ts.length - 3)) ?? 0;
+          if (myCurrentNb > maxNb) {
+            maxNb = myCurrentNb;
+          }
         }
       }
 
-      mySendPort.send([
-        size,
-        downloadedTs,
-      ]);
+      mySendPort.send([maxNb, downloadedTs]);
     }, [receivePort.sendPort, path, downloadedList]);
     final result = (await receivePort.first) as List;
     print(result);
-    return [result[0] as double, result[1] as List<String>];
+    return [result[0], result[1]];
   }
 
   Future<String?> downloadVod(
@@ -471,7 +471,7 @@ class Logic extends GetxController {
       bool notificationEnabled) async {
     var lastNotificationUpdateTime = DateTime.now();
     late final int? nbOfTsFiles, overflowTime;
-    double percentage;
+    // double percentage;
     videoDownloadParts = 0;
     Future<void> canceledLogic() async {
       if (!cancel.isCancelled) {
@@ -495,7 +495,7 @@ class Logic extends GetxController {
           "Streamer ${queeVideoDownload[0]["username"]}");
     }
     await getDownloadedSizeAndFiles(myPath, downloadedList).then((value) {
-      print("in value " + value.toString());
+      print("in value $value");
       videoDownloadParts = value[0] as double;
       print(videoDownloadParts);
       downloadedList.addAll(value[1] as List<String>);
@@ -505,6 +505,11 @@ class Logic extends GetxController {
       if (videoDownloadParts == 0) {
         (overflowTime, nbOfTsFiles) =
             await writeGeneratedText(myPath, playlist, endTime, startTime);
+        queeVideoDownload[0]["nbOfTsFiles"] = nbOfTsFiles;
+        queeVideoDownload[0]["overflowTime"] = overflowTime;
+      } else {
+        nbOfTsFiles = queeVideoDownload[0]["nbOfTsFiles"];
+        overflowTime = queeVideoDownload[0]["overflowTime"];
       }
     } catch (e) {
       // IMPLEMENT ERROR GENERATING TEXT FILE
@@ -540,9 +545,6 @@ class Logic extends GetxController {
 
     print(downloadedList);
 
-    final timer = Timer.periodic(const Duration(seconds: 30), (timer) {
-      HiveLogic.setQueeVideos(queeVideoDownload);
-    });
     // LOOP ALL TS FILES
     for (final element in file) {
       // check if has been canceled
@@ -556,12 +558,11 @@ class Logic extends GetxController {
       if (downloadedList.contains(element)) {
         continue;
       }
-      downloadedList.clear();
 
       while (queeList.length > 3 && downloading.value && hasInternet) {
-        percentage = videoDownloadPercentage.value;
+        final percentage = videoDownloadPercentage.value;
         videoDownloadPercentage.value =
-            (videoDownloadParts / (file.length * 100)) * 100;
+            (videoDownloadParts / (file.length)) * 100;
 
         if (notificationEnabled && hasInternet) {
           final timeNow = DateTime.now();
@@ -618,7 +619,7 @@ class Logic extends GetxController {
       }
       final percentage = videoDownloadPercentage.value;
       videoDownloadPercentage.value =
-          (videoDownloadParts / (file.length * 100)) * 100;
+          (videoDownloadParts / (file.length)) * 100;
 
       if (notificationEnabled) {
         __notificationcontroller.updateNotification(
@@ -629,8 +630,6 @@ class Logic extends GetxController {
             videoDownloadPercentage.value);
       }
     }
-
-    timer.cancel();
 
     final r = await checkTSfiles(myPath, downloadURL, () {
       if (cancel.isCancelled) {
@@ -683,7 +682,6 @@ class Logic extends GetxController {
     videoDownloadParts = 0;
     notificationId++;
     downloading.value = true;
-    // ignore: no_leading_underscores_for_local_identifiers
     final String saveDir = queeVideoDownload[0]["savePath"];
     final slectedQuality = queeVideoDownload[0]["quality"];
     final int startTime = queeVideoDownload[0]["start"];
@@ -798,6 +796,9 @@ class Logic extends GetxController {
   Future<void> startQueeDownloadVOD() async {
     MethodChannelHandler.startService();
     downloading.value = true;
+    final timer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      HiveLogic.setQueeVideos(queeVideoDownload);
+    });
     while (queeVideoDownload.isNotEmpty && downloading.value && hasInternet) {
       try {
         await downloadFirstVODQueeList();
@@ -805,8 +806,10 @@ class Logic extends GetxController {
         downloading.value = false;
         break;
       }
+
       HiveLogic.setQueeVideos(queeVideoDownload);
     }
+    timer.cancel();
     MethodChannelHandler.stopService();
     downloading.value = false;
   }
@@ -988,7 +991,7 @@ class Logic extends GetxController {
         path + tsFileNB,
         "$selectedDirectory/$tsFileNB",
         onReceiveProgress: (count, total) {
-          videoDownloadParts += ((count - lastCount) / total) * 100;
+          videoDownloadParts += ((count - lastCount) / total);
           lastCount = count;
         },
         cancelToken: cancel,
