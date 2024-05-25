@@ -176,7 +176,9 @@ class DownloadPage extends GetView<Logic> {
                         title:
                             "${controller.completedVideos[i]["streamer"]} - ${controller.completedVideos[i]["title"]}",
                         image: controller.completedVideos[i]["image"],
-                        subtitle: "Downloaded",
+                        subtitle: 
+                        controller.completedVideos[i]["status"]=="notFound" ? 
+                         "Video Not Found" :"Downloaded" ,
                         download: false,
                         deleteVOD: () {
                           deleteVOD(

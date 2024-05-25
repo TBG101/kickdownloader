@@ -1,5 +1,3 @@
-import 'dart:html';
-
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 class AdState {

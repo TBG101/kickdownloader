@@ -1,0 +1,5 @@
+if video is not found
+completedVideos[index]["status"]="notFound";
+
+if video found 
+completedVideos[index]["status"]=null; // basically there is no value on that key

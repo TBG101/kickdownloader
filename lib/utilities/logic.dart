@@ -133,6 +133,27 @@ class Logic extends GetxController {
     });
   }
 
+  void checkCompletedFiles() {
+    for (var i = 0; i < completedVideos.length; i++) {
+      if (completedVideos[i]["status"] == "notFound") continue;
+      final directory = Directory(completedVideos[i]["path"]);
+      final List<FileSystemEntity> entities = directory.listSync();
+      var found = false;
+      // Iterate over the entities
+      for (FileSystemEntity entity in entities) {
+        // Check if the entity is a file and has an .mp4 extension
+        if (entity is File && entity.path.endsWith('.mp4')) {
+          found = true;
+          break;
+        }
+      }
+      if (found) {
+        continue;
+      }
+      completedVideos[i]["status"] = "notFound";
+    }
+  }
+
   @override
   void onReady() async {
     // TODO: implement onReady
