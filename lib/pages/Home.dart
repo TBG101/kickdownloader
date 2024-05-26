@@ -20,7 +20,6 @@ class Home extends GetView<Logic> {
     return [
       // STREAM THUMBNAIL.
       const StreamThumbnail(),
-
       // TEXT FOR STREAM FIELDS
       Padding(
           padding: const EdgeInsets.only(top: 10),
@@ -116,7 +115,7 @@ class Home extends GetView<Logic> {
                     controller.downloading.value = true;
                     controller.startQueeDownloadVOD();
                   } else {
-                    // Implement pause button 
+                    // Implement pause button
                     controller.downloading.value = false;
                   }
                 },

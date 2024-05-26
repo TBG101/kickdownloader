@@ -8,6 +8,7 @@ class VideoCard extends StatelessWidget {
   final String image;
   final String subtitle;
   final bool download;
+  final bool errorSubtitle;
   final void Function()? cancelDownload;
   final void Function()? deleteVOD;
   final void Function()? copyLink;
@@ -24,7 +25,8 @@ class VideoCard extends StatelessWidget {
       this.deleteVOD,
       this.copyLink,
       this.openPath,
-      this.vodData});
+      this.vodData,
+      this.errorSubtitle = false});
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +47,7 @@ class VideoCard extends StatelessWidget {
               Row(
                 children: [
                   AspectRatio(
-                    aspectRatio: 16/9,
+                    aspectRatio: 16 / 9,
                     child: CachedNetworkImage(
                       imageUrl: image,
                       fit: BoxFit.fitHeight,
@@ -70,8 +72,10 @@ class VideoCard extends StatelessWidget {
                             padding: const EdgeInsets.only(bottom: 2),
                             child: Text(
                               subtitle,
-                              style: const TextStyle(
-                                  color: MyColors.greenDownloadPage,
+                              style: TextStyle(
+                                  color: errorSubtitle
+                                      ? Colors.redAccent
+                                      : MyColors.greenDownloadPage,
                                   overflow: TextOverflow.ellipsis,
                                   fontWeight: FontWeight.w700,
                                   fontSize: 13),
@@ -84,11 +88,7 @@ class VideoCard extends StatelessWidget {
                   Padding(
                       padding: const EdgeInsets.only(right: 8.0),
                       child: download
-                          ? IconButton(
-                              onPressed: cancelDownload,
-                              icon: const Icon(Icons.close_rounded),
-                            )
-                          : PopupMenuButton(
+                           PopupMenuButton(
                               icon: const Icon(
                                 Icons.more_horiz_rounded,
                               ),
@@ -182,6 +182,8 @@ class VideoCard extends StatelessWidget {
                       ),
                 ],
               ),
+
+              // download slider
               download && subtitle[0].isNumericOnly
                   ? Align(
                       alignment: Alignment.bottomLeft,

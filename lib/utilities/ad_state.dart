@@ -4,7 +4,7 @@ class AdState {
   late final Future<InitializationStatus> initialization;
 
   AdState(this.initialization);
-  bool hasMemberShip = false; // Debug Setting change to enable on deployment
+  bool hasMemberShip = true; // Debug Setting change to disable on deployment
   bool loaded = false;
   InterstitialAd? myAd;
 

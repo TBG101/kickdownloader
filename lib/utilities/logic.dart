@@ -39,7 +39,7 @@ class Logic extends GetxController {
   String apiURL = "";
   String lastVideoLink = "";
   final RxBool foundVideo = false.obs;
-  var downloading = false.obs;
+  final downloading = false.obs;
   Map<String, dynamic>? videoData;
   final resolutions = <String>[].obs;
 
@@ -47,7 +47,7 @@ class Logic extends GetxController {
   var videoDownloadParts = 0.0;
   final RxInt videoDownloadSizeBytes = 0.obs;
 
-  var link = "".obs;
+  final link = "".obs;
   final RxInt pageSelector = 0.obs;
   final RxString streamer = "".obs;
   final RxString title = "".obs;
@@ -137,6 +137,10 @@ class Logic extends GetxController {
     for (var i = 0; i < completedVideos.length; i++) {
       if (completedVideos[i]["status"] == "notFound") continue;
       final directory = Directory(completedVideos[i]["path"]);
+      if (!directory.existsSync()) {
+        completedVideos[i]["status"] = "notFound";
+        continue;
+      }
       final List<FileSystemEntity> entities = directory.listSync();
       var found = false;
       // Iterate over the entities
@@ -152,6 +156,8 @@ class Logic extends GetxController {
       }
       completedVideos[i]["status"] = "notFound";
     }
+    completedVideos.refresh();
+    print(completedVideos[0]["status"]);
   }
 
   @override
@@ -164,13 +170,14 @@ class Logic extends GetxController {
       HiveLogic.getStoreCompletedVideos,
       HiveLogic.getStoreQueeVideos
     ]);
+
     settingsController.value.initSettings();
 
     appVersion = (myList[0] as PackageInfo).version;
     appName = (myList[0] as PackageInfo).appName;
     completedVideos.addAll(myList[1] as List<Map<dynamic, dynamic>>);
     queeVideoDownload.addAll(myList[2] as List<Map<dynamic, dynamic>>);
-
+    checkCompletedFiles();
     checkNetwork();
     __notificationcontroller.startListener();
     adState.loadInterAd();

@@ -6,11 +6,10 @@ Logic:
   - check if the disclaimer works for API 30 AND BELOW
 
 GENERAL:
-  - add a pause button
   - add upgrade to premium
   - add crashltytics.
   - check kick sharing
-  - add delete when cancel on paused video
+  - add menu when video is pause (maybe make the menu always available)
   - add a bettter resume way, atm it's checking for the max downloaded file, but there could an expcetionw where a ts has been downloaded, so we can either 
   make it so that it shows still downloading and not show the progress (better option tho can be upgraded) or chnage it from the bottom (even better)
  
@@ -21,6 +20,7 @@ downloadPage:
 clipDownloader: 
 
 Future update: 
+  - add a pause button
   - use Update( ID) for the banner ad
   - add a clip downloader page (or make it in the same page) (probabaly not gonna add it since i couldnt find a  way tot fethc the vod)
   - turn both into 1 widget

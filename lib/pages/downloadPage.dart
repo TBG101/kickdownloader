@@ -152,10 +152,6 @@ class DownloadPage extends GetView<Logic> {
                     cancelDownload: () {
                       cancelDownload(index);
                     },
-                    copyLink: null,
-                    vodData: null,
-                    deleteVOD: null,
-                    openPath: null,
                   );
                 });
               }
@@ -176,10 +172,15 @@ class DownloadPage extends GetView<Logic> {
                         title:
                             "${controller.completedVideos[i]["streamer"]} - ${controller.completedVideos[i]["title"]}",
                         image: controller.completedVideos[i]["image"],
-                        subtitle: 
-                        controller.completedVideos[i]["status"]=="notFound" ? 
-                         "Video Not Found" :"Downloaded" ,
+                        subtitle: controller.completedVideos[i]["status"] ==
+                                "notFound"
+                            ? "Video Not Found"
+                            : "Downloaded",
                         download: false,
+                        cancelDownload: null,
+                        errorSubtitle: controller.completedVideos[i]
+                                ["status"] ==
+                            "notFound",
                         deleteVOD: () {
                           deleteVOD(
                               i,
@@ -187,7 +188,6 @@ class DownloadPage extends GetView<Logic> {
                               controller.queeVideoDownload.length +
                                   controller.completedVideos.length);
                         },
-                        cancelDownload: null,
                         copyLink: () {
                           controller.copyLinkToClipboard(i, context);
                         },
