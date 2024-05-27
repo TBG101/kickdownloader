@@ -1,10 +1,11 @@
-package com.example.kickdownloader
+package com.alphadroid.myKickVodDownloader
 
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.annotation.NonNull
+import androidx.core.content.ContextCompat.getSystemService
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel

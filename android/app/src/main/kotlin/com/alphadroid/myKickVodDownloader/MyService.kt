@@ -1,12 +1,10 @@
-package com.example.kickdownloader
+package com.alphadroid.myKickVodDownloader
 
-import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
-import android.graphics.Color
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.IBinder
@@ -48,7 +46,6 @@ class MyService : Service() {
         releaseWifiLock()
 
     }
-
 
 
     override fun onBind(intent: Intent): IBinder? {
