@@ -124,11 +124,8 @@ class Logic extends GetxController {
     ReceiveSharingIntent.instance.getMediaStream().listen((value) {
       print(value.first.path);
       url.value.text = value.first.path.split(" ").last;
+  
       print(url.value.text);
-      ReceiveSharingIntent.instance.reset();
-    });
-    ReceiveSharingIntent.instance.getMediaStream().listen((value) {
-      print(value);
       ReceiveSharingIntent.instance.reset();
     });
   }
@@ -1121,9 +1118,15 @@ class Logic extends GetxController {
     ));
   }
 
-  void copyLinkToClipboard(int index, BuildContext context) {
-    Clipboard.setData(
-        ClipboardData(text: completedVideos[index]["link"] as String));
+  void copyLinkToClipboard(int index, BuildContext context,
+      {bool compltedVideo = true}) {
+    if (compltedVideo) {
+      Clipboard.setData(
+          ClipboardData(text: completedVideos[index]["link"] as String));
+    } else {
+      Clipboard.setData(
+          ClipboardData(text: queeVideoDownload[index]["link"] as String));
+    }
     showToast("Coppied URL", context, 140);
   }
 

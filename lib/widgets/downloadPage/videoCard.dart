@@ -87,72 +87,89 @@ class VideoCard extends StatelessWidget {
                   ),
                   Padding(
                       padding: const EdgeInsets.only(right: 8.0),
-                      child: download
-                           PopupMenuButton(
-                              icon: const Icon(
-                                Icons.more_horiz_rounded,
+                      child: PopupMenuButton(
+                        icon: const Icon(
+                          Icons.more_horiz_rounded,
+                        ),
+                        offset: const Offset(0, 35),
+                        shape: const RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.all(Radius.circular(10))),
+                        itemBuilder: (BuildContext context) {
+                          return [
+                            if (openPath != null)
+                              PopupMenuItem(
+                                onTap: openPath,
+                                value: "1",
+                                child: const Row(
+                                  children: [
+                                    Padding(
+                                      padding: EdgeInsets.only(right: 8.0),
+                                      child: Icon(Icons.open_in_new),
+                                    ),
+                                    Text("Open"),
+                                  ],
+                                ),
                               ),
-                              offset: const Offset(0, 35),
-                              shape: const RoundedRectangleBorder(
-                                  borderRadius:
-                                      BorderRadius.all(Radius.circular(10))),
-                              itemBuilder: (BuildContext context) {
-                                return [
-                                  PopupMenuItem(
-                                    onTap: openPath,
-                                    value: "1",
-                                    child: const Row(
-                                      children: [
-                                        Padding(
-                                          padding: EdgeInsets.only(right: 8.0),
-                                          child: Icon(Icons.open_in_new),
-                                        ),
-                                        Text("Open"),
-                                      ],
+                            if (copyLink != null)
+                              PopupMenuItem(
+                                onTap: copyLink,
+                                value: "2",
+                                child: const Row(
+                                  children: [
+                                    Padding(
+                                      padding: EdgeInsets.only(right: 8.0),
+                                      child: Icon(Icons.link),
                                     ),
-                                  ),
-                                  PopupMenuItem(
-                                    onTap: copyLink,
-                                    value: "2",
-                                    child: const Row(
-                                      children: [
-                                        Padding(
-                                          padding: EdgeInsets.only(right: 8.0),
-                                          child: Icon(Icons.link),
-                                        ),
-                                        Text("Stream URL"),
-                                      ],
+                                    Text("Stream URL"),
+                                  ],
+                                ),
+                              ),
+                            if (deleteVOD != null)
+                              PopupMenuItem(
+                                onTap: deleteVOD,
+                                value: "3",
+                                child: const Row(
+                                  children: [
+                                    Padding(
+                                      padding: EdgeInsets.only(right: 8.0),
+                                      child: Icon(Icons.delete),
                                     ),
-                                  ),
-                                  PopupMenuItem(
-                                    onTap: deleteVOD,
-                                    value: "3",
-                                    child: const Row(
-                                      children: [
-                                        Padding(
-                                          padding: EdgeInsets.only(right: 8.0),
-                                          child: Icon(Icons.delete),
-                                        ),
-                                        Text("Delete file"),
-                                      ],
+                                    Text("Delete file"),
+                                  ],
+                                ),
+                              ),
+                            if (cancelDownload != null)
+                              PopupMenuItem(
+                                onTap: cancelDownload,
+                                value: "3",
+                                child: const Row(
+                                  children: [
+                                    Padding(
+                                      padding: EdgeInsets.only(right: 8.0),
+                                      child: Icon(Icons.cancel_outlined),
                                     ),
-                                  ),
-                                  PopupMenuItem(
-                                    value: "4",
-                                    onTap: vodData,
-                                    child: const Row(
-                                      children: [
-                                        Padding(
-                                          padding: EdgeInsets.only(right: 8.0),
-                                          child: Icon(Icons.info),
-                                        ),
-                                        Text("File Info"),
-                                      ],
+                                    Text("Cancel Download"),
+                                  ],
+                                ),
+                              ),
+                            if (vodData != null)
+                              PopupMenuItem(
+                                value: "4",
+                                onTap: vodData,
+                                child: const Row(
+                                  children: [
+                                    Padding(
+                                      padding: EdgeInsets.only(right: 8.0),
+                                      child: Icon(Icons.info),
                                     ),
-                                  ),
-                                ];
-                              },
-                            )
+                                    Text("File Info"),
+                                  ],
+                                ),
+                              ),
+                          ];
+                        },
+                      )
                       //  DropdownButtonHideUnderline(
                       //   child: DropdownButton2(
                       //     onChanged: (value) {},

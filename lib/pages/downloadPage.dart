@@ -85,7 +85,9 @@ class DownloadPage extends GetView<Logic> {
     var sub = textSelector(index);
     var download = index == 0 ? true : false;
     controller.queeVideoDownload.removeAt(0);
-    controller.cancelDownload();
+    if (index == 0) {
+      controller.cancelDownload();
+    }
     controller.animatedListKey.currentState!.removeItem(
       index,
       duration: const Duration(milliseconds: 250),
@@ -144,15 +146,18 @@ class DownloadPage extends GetView<Logic> {
               if (index < controller.queeVideoDownload.length) {
                 return Obx(() {
                   return VideoCard(
-                    title:
-                        "${controller.queeVideoDownload[index]["username"]} - ${controller.queeVideoDownload[index]["title"]}",
-                    image: controller.queeVideoDownload[index]["image"],
-                    subtitle: textSelector(index),
-                    download: index == 0 ? true : false,
-                    cancelDownload: () {
-                      cancelDownload(index);
-                    },
-                  );
+                      title:
+                          "${controller.queeVideoDownload[index]["username"]} - ${controller.queeVideoDownload[index]["title"]}",
+                      image: controller.queeVideoDownload[index]["image"],
+                      subtitle: textSelector(index),
+                      download: index == 0 ? true : false,
+                      cancelDownload: () {
+                        cancelDownload(index);
+                      },
+                      copyLink: () {
+                        controller.copyLinkToClipboard(index, context,
+                            compltedVideo: false);
+                      });
                 });
               }
 
