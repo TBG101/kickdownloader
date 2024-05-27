@@ -1,9 +1,7 @@
 import 'dart:convert';
-import 'dart:ffi';
 import 'dart:io';
 import 'dart:isolate';
 import 'dart:math';
-import 'dart:ui';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:ffmpeg_kit_flutter_min/ffmpeg_kit.dart';
 import 'package:flutter/material.dart';
@@ -67,7 +65,7 @@ class Logic extends GetxController {
   final endMinute = TextEditingController().obs;
   final endSecond = TextEditingController().obs;
   final queeVideoDownload = <Map>[].obs;
-  int notificationId = 1;
+  int notificationId = 2;
   RxList<Map> completedVideos = <Map>[].obs;
   bool hasInternet = true;
 
@@ -123,14 +121,22 @@ class Logic extends GetxController {
   void _getIntent() {
     ReceiveSharingIntent.instance.getMediaStream().listen((value) {
       print(value.first.path);
-      url.value.text = value.first.path.split(" ").last;
-  
+      final stringSplit = value.first.path.split(" ");
+      for (final item in stringSplit) {
+        if (item.contains("kick.com")) {
+          url.value.text = item;
+        }
+      }
       print(url.value.text);
+      getVodData();
       ReceiveSharingIntent.instance.reset();
     });
   }
 
-  void checkCompletedFiles() {
+  void checkCompletedFiles() async {
+    if (await PermissionHandler.getStorageStatus() == false ||
+        completedVideos.isEmpty) return;
+
     for (var i = 0; i < completedVideos.length; i++) {
       if (completedVideos[i]["status"] == "notFound") continue;
       final directory = Directory(completedVideos[i]["path"]);
@@ -220,19 +226,19 @@ class Logic extends GetxController {
     return (((bytes / pow(1024, i))), suffixes[i]);
   }
 
-  void getVodData(BuildContext context) async {
+  void getVodData() async {
     if (!hasInternet) {
-      showToast("No internet Connection", context, 250);
+      Get.snackbar(
+          "No internet Connection", "Check your internet and try again",
+          barBlur: 100);
       return;
     }
-    if (url.value.text.isEmpty || url.value.text == lastVideoLink) {
-      showToast("Link not valid", context, 250);
-      return;
-    }
+
+    if (url.value.text == lastVideoLink || url.value.text.isEmpty) return;
 
     foundVideo.value = false;
 
-    final response = await getURL(context);
+    final response = await getURL();
 
     if (response != 200) {
       return; // early reaturn if the response is diffrenet than 200
@@ -261,11 +267,11 @@ class Logic extends GetxController {
     return validLinkPattern.hasMatch(url.value.text);
   }
 
-  Future<int> getURL(context) async {
+  Future<int> getURL() async {
     if (!validURL()) {
       resetAll();
       foundVideo.value = false;
-      showToast("URL is not valid", context, 300);
+      Get.snackbar("Couldn't fecth data", "Link is not valid", barBlur: 100);
     }
 
     String id = url.value.text.split('/').last;
@@ -280,7 +286,8 @@ class Logic extends GetxController {
     } catch (e) {
       foundVideo.value = false;
       resetAll();
-      showToast("Wrong URL", context, 300);
+
+      Get.snackbar("Couldn't fecth data", "Link is not valid", barBlur: 100);
       return 0;
     }
 
@@ -291,8 +298,7 @@ class Logic extends GetxController {
     } else {
       foundVideo.value = false;
       resetAll();
-      showToast("Error occured", context, 300);
-
+      Get.snackbar("Couldn't fecth data", "Link is not valid", barBlur: 100);
       // implement exception
       return response.statusCode ?? 0;
     }
@@ -840,10 +846,12 @@ class Logic extends GetxController {
     downloading.value = false;
   }
 
-  void downloadVodDataBtn(BuildContext context) async {
+  void downloadVodDataBtn() async {
     if (!hasInternet) {
       // IMPLEMENT NO INTERNET
-      showToast("No internet Connection", context, 50);
+      Get.snackbar(
+          "No internet Connection", "Check your internet and try again",
+          barBlur: 100);
       return;
     }
 

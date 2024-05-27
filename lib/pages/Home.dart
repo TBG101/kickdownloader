@@ -18,6 +18,10 @@ class Home extends GetView<Logic> {
 
   List<Widget> homeView(size, BuildContext context) {
     return [
+      TextButton(
+        onPressed: () => throw Exception(),
+        child: const Text("Throw Test Exception"),
+      ),
       // STREAM THUMBNAIL.
       const StreamThumbnail(),
       // TEXT FOR STREAM FIELDS
@@ -41,7 +45,7 @@ class Home extends GetView<Logic> {
             text: 'Get VOD data',
             onTap: () {
               FocusManager.instance.primaryFocus?.unfocus();
-              controller.getVodData(context);
+              controller.getVodData();
             },
             enabled: true,
           )),
@@ -62,7 +66,7 @@ class Home extends GetView<Logic> {
             () => MyButton(
               text: 'Download VOD',
               onTap: () {
-                controller.downloadVodDataBtn(context);
+                controller.downloadVodDataBtn();
               },
               enabled: controller.foundVideo.value &&
                   controller.lastVideoLink.isNotEmpty,
