@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "443036667015",
+    "project_id": "mykickvoddownloader",
+    "storage_bucket": "mykickvoddownloader.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:443036667015:android:5dc77ba76f6168c97dbc22",
+        "android_client_info": {
+          "package_name": "com.alphadroid.myKickVodDownloader"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA335YxzgGmVaoUW-H_y38LCMts8oTPceU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
