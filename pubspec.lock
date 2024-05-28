@@ -290,7 +290,7 @@ packages:
     source: hosted
     version: "1.0.0"
   dart_code_metrics:
-    dependency: "direct main"
+    dependency: "direct dev"
     description:
       name: dart_code_metrics
       sha256: "3a01766c3925b884a171a396f115f48977e367fe656de065ed7012f3d9540273"

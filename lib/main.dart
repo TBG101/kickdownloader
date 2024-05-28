@@ -25,7 +25,6 @@ void main() async {
     return true;
   };
 
-
   final initFuture = MobileAds.instance.initialize();
   await Hive.initFlutter();
   await Hive.openBox("video");
@@ -58,6 +57,7 @@ class MyApp extends StatelessWidget {
         brightness: Brightness.dark,
         scaffoldBackgroundColor: MyColors.background,
         primaryColor: MyColors.green,
+        focusColor: MyColors.green,
         textTheme:
             const TextTheme(titleLarge: TextStyle(fontFamily: "SpaceGrotesk")),
         elevatedButtonTheme: ElevatedButtonThemeData(
