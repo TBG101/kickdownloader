@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:kickdownloader/utilities/logic.dart';
+import 'package:kickdownloader/utilities/static_Functions.dart';
 import 'package:kickdownloader/widgets/downloadPage/videoCard.dart';
 
 class DownloadPage extends GetView<Logic> {
@@ -17,7 +18,7 @@ class DownloadPage extends GetView<Logic> {
         controller.videoDownloadPercentage.value < 100 &&
         controller.downloading.isTrue) {
       var (size, suffix) =
-          controller.formatBytes(controller.videoDownloadSizeBytes.value);
+          StaticFunctions.formatBytes(controller.videoDownloadSizeBytes.value);
       var videoDownloadSizeMb =
           "${(size * controller.videoDownloadPercentage.value / 100).toStringAsFixed(2)} /${size.toStringAsFixed(2)} $suffix";
 

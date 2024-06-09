@@ -25,6 +25,7 @@ class HiveLogic {
     __box.put("notificationFailure", value);
   }
 
+// Set notification Failute Notify
   static bool get getStoreNotificationFailure =>
       __box.get("notificationFailure", defaultValue: false);
 
@@ -36,11 +37,12 @@ class HiveLogic {
   static bool get getStoreAskDownloadAlways =>
       __box.get("askDownloadAlways", defaultValue: false);
 
-  // getSavePath
+  // Set Save path
   static void setStoreSavePath(String path) {
     __box.put("savePath", path);
   }
 
+  // getSavePath
   static String? get getSavePath => __box.get("savePath");
 
   // setStoreCompletedVideos
@@ -48,6 +50,7 @@ class HiveLogic {
     __box.put("video", videos);
   }
 
+  // Get all Stored Completed videos
   static Future<List<Map>> get getStoreCompletedVideos async {
     var videos = __box.get("video", defaultValue: <Map<dynamic, dynamic>>[]);
     var video = await Isolate.run(() {
@@ -61,10 +64,12 @@ class HiveLogic {
     return video;
   }
 
+  // Set Queevideos
   static void setQueeVideos(List<Map> videos) {
     __box.put("queeVideo", videos);
   }
 
+  // Get all queed videos
   static Future<List<Map>> get getStoreQueeVideos async {
     var videos =
         __box.get("queeVideo", defaultValue: <Map<dynamic, dynamic>>[]);
