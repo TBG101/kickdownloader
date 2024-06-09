@@ -25,28 +25,33 @@ class StreamThumbnail extends GetView<Logic> {
             ]),
         child: AspectRatio(
           aspectRatio: 16 / 9,
-          child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: !controller.foundVideo.value
-                  ? const Center(
-                      child: Text(
+          child: Obx(() {
+            return ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: () {
+                  if (controller.fetchingData.value == true) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (controller.foundVideo.isFalse) {
+                    return const Center(
+                        child: Text(
                       "No Video ",
                       style: TextStyle(fontSize: 20),
-                    ))
-                  : Obx(
-                      () {
-                        return CachedNetworkImage(
-                          imageUrl: controller.link.value,
-                          fit: BoxFit.fitWidth,
-                          placeholder: (context, url) => const Center(
-                            child: CircularProgressIndicator(),
-                          ),
-                          errorWidget: (context, url, error) {
-                            return const Icon(Icons.error);
-                          },
-                        );
-                      },
-                    )),
+                    ));
+                  }
+
+                  return CachedNetworkImage(
+                    imageUrl: controller.link.value,
+                    fit: BoxFit.fitWidth,
+                    placeholder: (context, url) => const Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                    errorWidget: (context, url, error) {
+                      return const Icon(Icons.error);
+                    },
+                  );
+                }());
+          }),
         ),
       ),
     );

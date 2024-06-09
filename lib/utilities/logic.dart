@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
-import 'dart:math';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:ffmpeg_kit_flutter_min/ffmpeg_kit.dart';
 import 'package:flutter/material.dart';
@@ -14,6 +13,7 @@ import 'package:kickdownloader/utilities/MethodChannelHandler.dart';
 import 'package:kickdownloader/utilities/NotificationController.dart';
 import 'package:kickdownloader/utilities/PermissionHandler.dart';
 import 'package:kickdownloader/utilities/settingsLogic.dart';
+import 'package:kickdownloader/utilities/static_Functions.dart';
 import 'package:kickdownloader/widgets/downloadPage/videoCard.dart';
 import 'package:media_scanner/media_scanner.dart';
 import 'package:get/get.dart' hide Response;
@@ -44,7 +44,7 @@ class Logic extends GetxController {
   final RxDouble videoDownloadPercentage = 0.0.obs;
   var videoDownloadParts = 0.0;
   final RxInt videoDownloadSizeBytes = 0.obs;
-
+  final RxBool fetchingData = false.obs;
   final link = "".obs;
   final RxInt pageSelector = 0.obs;
   final RxString streamer = "".obs;
@@ -97,10 +97,6 @@ class Logic extends GetxController {
     });
   }
 
-  void addVideoToHive() {
-    HiveLogic.setStoreCompletedVideos(completedVideos);
-  }
-
   void resetAll() {
     startHour.value.clear();
     startMinute.value.clear();
@@ -116,6 +112,7 @@ class Logic extends GetxController {
     streamLength.value = "";
     resolutions.clear();
     apiURL = "";
+    foundVideo.value = false;
   }
 
   void _getIntent() {
@@ -219,14 +216,7 @@ class Logic extends GetxController {
     MethodChannelHandler.stopService();
   }
 
-  (double, String) formatBytes(int bytes) {
-    if (bytes <= 0) return (0, "B");
-    const suffixes = ["B", "KB", "MB", "GB"];
-    final i = (log(bytes) / log(1024)).floor();
-    return (((bytes / pow(1024, i))), suffixes[i]);
-  }
-
-  void getVodData() async {
+  Future<void> getVodData() async {
     if (!hasInternet) {
       Get.snackbar(
           "No internet Connection", "Check your internet and try again",
@@ -256,19 +246,13 @@ class Logic extends GetxController {
     stramDate.value = videoData!["livestream"]["created_at"].split(" ")[0];
     streamLength.value = duration.toString().split('.')[0];
 
-    link.value = thumbnailLink();
+    link.value = StaticFunctions.thumbnailLink(videoData!["source"] as String);
     qualitySelector.value = resolutions.first;
     foundVideo.value = true;
   }
 
-  bool validURL() {
-    RegExp validLinkPattern =
-        RegExp(r'^(kick.com|https://kick.com)/video/[a-zA-Z0-9-]+$');
-    return validLinkPattern.hasMatch(url.value.text);
-  }
-
   Future<int> getURL() async {
-    if (!validURL()) {
+    if (!StaticFunctions.validURL(url.value.text)) {
       resetAll();
       foundVideo.value = false;
       Get.snackbar("Couldn't fecth data", "Link is not valid", barBlur: 100);
@@ -302,11 +286,6 @@ class Logic extends GetxController {
       // implement exception
       return response.statusCode ?? 0;
     }
-  }
-
-  String thumbnailLink() {
-    final x = (videoData!["source"] as String).split("\/");
-    return "https://images.kick.com/video_thumbnails/${x[6]}/${x[12]}/480.webp";
   }
 
   Future<void> getVidQuality() async {
@@ -448,17 +427,11 @@ class Logic extends GetxController {
     try {
       File file = File(path);
       int fileSizeInBytes = await file.length();
-      final (size, suffix) = formatBytes(fileSizeInBytes);
+      final (size, suffix) = StaticFunctions.formatBytes(fileSizeInBytes);
       return "${size.toStringAsFixed(2)} $suffix";
     } catch (e) {
       return "Couldn't get file size";
     }
-  }
-
-  Future<void> deleteDir(String path) async {
-    try {
-      await Directory(path).delete(recursive: true);
-    } catch (_) {}
   }
 
   Future<List> getDownloadedSizeAndFiles(
@@ -508,7 +481,7 @@ class Logic extends GetxController {
       if (!cancel.isCancelled) {
         cancel.cancel();
       }
-      deleteDir(myPath);
+      StaticFunctions.deleteDir(myPath);
     }
 
     final List<String> downloadedList =
@@ -567,7 +540,8 @@ class Logic extends GetxController {
 
     videoDownloadSizeBytes.value = (nbOfTsFiles * tsFileSize);
 
-    final (sizeVid, suffix) = formatBytes(videoDownloadSizeBytes.value);
+    final (sizeVid, suffix) =
+        StaticFunctions.formatBytes(videoDownloadSizeBytes.value);
     playlist.clear();
 
     final file = File("$myPath/generated.txt").readAsLinesSync();
@@ -609,7 +583,7 @@ class Logic extends GetxController {
           }
         }
 
-        await waitTimer();
+        await StaticFunctions.waitTimer();
         if (cancel.isCancelled) {
           canceledLogic();
           return null;
@@ -643,7 +617,7 @@ class Logic extends GetxController {
     }
 
     while (queeList.isNotEmpty) {
-      await waitTimer();
+      await StaticFunctions.waitTimer();
       if (cancel.isCancelled) {
         canceledLogic();
         return null;
@@ -751,7 +725,7 @@ class Logic extends GetxController {
         if (queeVideoDownload.length != 1) {
           animatedListKey.currentState!.insertItem(queeVideoDownload.length);
         }
-        addVideoToHive();
+        HiveLogic.setStoreCompletedVideos(completedVideos);
       } else {
         if (settingsController.value.notificationFailure) {
           __notificationcontroller.failedDownloadNotification(
@@ -781,7 +755,7 @@ class Logic extends GetxController {
         __notificationcontroller.failedDownloadNotification(
             notificationId, "Failed to download", "Unhandled exception");
         print("OUTER FUNCTION ERROR IS: $e");
-        deleteDir(saveDir);
+        StaticFunctions.deleteDir(saveDir);
         if (!cancel.isCancelled) {
           cancel.cancel();
         }
@@ -892,21 +866,29 @@ class Logic extends GetxController {
 
     if (startCondition() && endCondition()) {
       // turn all time to milliseconds
-      starttime = convertToMillisecond(int.parse(startHour.value.text),
-          int.parse(startMinute.value.text), int.parse(startSecond.value.text));
-      endtime = convertToMillisecond(int.parse(endHour.value.text),
-          int.parse(endMinute.value.text), int.parse(endSecond.value.text));
+      starttime = StaticFunctions.convertToMillisecond(
+          int.parse(startHour.value.text),
+          int.parse(startMinute.value.text),
+          int.parse(startSecond.value.text));
+      endtime = StaticFunctions.convertToMillisecond(
+          int.parse(endHour.value.text),
+          int.parse(endMinute.value.text),
+          int.parse(endSecond.value.text));
 
       if (starttime >= endtime) {
         //  Impelment error
         return;
       }
     } else if (startCondition()) {
-      starttime = convertToMillisecond(int.parse(startHour.value.text),
-          int.parse(startMinute.value.text), int.parse(startSecond.value.text));
+      starttime = StaticFunctions.convertToMillisecond(
+          int.parse(startHour.value.text),
+          int.parse(startMinute.value.text),
+          int.parse(startSecond.value.text));
     } else if (endCondition()) {
-      endtime = convertToMillisecond(int.parse(endHour.value.text),
-          int.parse(endMinute.value.text), int.parse(endSecond.value.text));
+      endtime = StaticFunctions.convertToMillisecond(
+          int.parse(endHour.value.text),
+          int.parse(endMinute.value.text),
+          int.parse(endSecond.value.text));
     }
     queeVideoDownload.add(
       {
@@ -931,10 +913,6 @@ class Logic extends GetxController {
         downloading.value == false) {
       startQueeDownloadVOD();
     }
-  }
-
-  int convertToMillisecond(int h, int m, int s) {
-    return (h * 60 * 60 + m * 60 + s) * 1000;
   }
 
   Future<String?> mergeToMp4(
@@ -1045,16 +1023,6 @@ class Logic extends GetxController {
     }
   }
 
-  Future<void> saveTS(
-      String savePath, List<int>? data, String tsFileName) async {
-    if (data == null) {
-      return;
-    }
-    File file = File(savePath + tsFileName);
-    final raf = file.openSync(mode: FileMode.write);
-    await raf.writeFrom(data);
-  }
-
   Future<List<String>> getPlaylist(String downloadURL) async {
     return (await _dio.get("${downloadURL}playlist.m3u8")).data.split("\n");
   }
@@ -1075,10 +1043,6 @@ class Logic extends GetxController {
     } catch (e) {
       // IMPLEMENT COULDNT DELETE
     }
-  }
-
-  Future waitTimer() async {
-    return await Future.delayed(const Duration(seconds: 1));
   }
 
   String formatMilliseconds(int milliseconds) {
@@ -1104,12 +1068,12 @@ class Logic extends GetxController {
 
   Future<void> deleteFileDropdown(int index) async {
     try {
-      await Directory(getDir(completedVideos[index]["path"]))
+      await Directory(StaticFunctions.getDir(completedVideos[index]["path"]))
           .delete(recursive: true);
     } catch (e) {}
     completedVideos.removeAt(index);
     completedVideos.refresh();
-    addVideoToHive();
+    HiveLogic.setStoreCompletedVideos(completedVideos);
   }
 
   void showToast(String msg, BuildContext context, double toastWidth) {
@@ -1140,12 +1104,6 @@ class Logic extends GetxController {
 
   void openDir(int index) {
     MethodChannelHandler.openDirectory(completedVideos[index]["path"]);
-  }
-
-  String getDir(String path) {
-    final x = path.split("/");
-    x.removeLast();
-    return "${x.join("/")}/";
   }
 
   void showFileInfoDialog(int index, BuildContext context) async {
