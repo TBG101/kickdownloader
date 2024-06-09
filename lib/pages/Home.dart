@@ -19,7 +19,30 @@ class Home extends GetView<Logic> {
   List<Widget> homeView(size, BuildContext context) {
     return [
       TextButton(
-        onPressed: () => throw Exception(),
+        onPressed: () {
+          Get.rawSnackbar(
+              title: "Counld't download",
+              message: "No internet connection",
+              barBlur: 0,
+              onTap: (snack) {
+                Get.closeCurrentSnackbar();
+              },
+              isDismissible: true,
+              borderRadius: 10,
+              overlayBlur: 0.5,
+              icon: const Icon(Icons.error),
+              margin: const EdgeInsets.symmetric(horizontal: 50, vertical: 50),
+              snackPosition: SnackPosition.TOP,
+              snackStyle: SnackStyle.FLOATING,
+              boxShadows: [
+                const BoxShadow(
+                    color: Color.fromARGB(121, 255, 55, 55),
+                    blurRadius: 10,
+                    spreadRadius: 2)
+              ],
+              backgroundGradient: MyColors.gradientOnError,
+              padding: const EdgeInsets.only(left: 20, top: 15, bottom: 15));
+        },
         child: const Text("Throw Test Exception"),
       ),
       // STREAM THUMBNAIL.
@@ -43,9 +66,20 @@ class Home extends GetView<Logic> {
           padding: const EdgeInsets.only(top: 10, bottom: 0),
           child: MyButton(
             text: 'Get VOD data',
-            onTap: () {
+            onTap: () async {
               FocusManager.instance.primaryFocus?.unfocus();
-              controller.getVodData();
+              controller.fetchingData.value = true;
+
+              try {
+                await controller.getVodData();
+              } catch (e) {
+                if (controller.hasInternet == false) {
+                  // IMPLEMENT NO INTERNET EXCEPTION HERE
+                } else {
+                  // IMPLEMENT UNHANDLED EXCEPTION
+                }
+              }
+              controller.fetchingData.value = false;
             },
             enabled: true,
           )),
@@ -78,7 +112,7 @@ class Home extends GetView<Logic> {
   AppBar myAppBar() {
     return AppBar(
       title: const Text(
-        "Kick Downloader VOD",
+        "Kick VOD Downloader",
         style: TextStyle(fontWeight: FontWeight.w700),
       ),
       flexibleSpace: Container(

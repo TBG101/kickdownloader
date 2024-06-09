@@ -34,4 +34,13 @@ abstract class MyColors {
         Color.fromRGBO(0, 119, 107, 0.6),
         Color.fromRGBO(23, 130, 98, 0.6),
       ]);
+
+  static const LinearGradient gradientOnError = LinearGradient(
+      begin: Alignment.centerLeft,
+      end: Alignment.centerRight,
+      colors: <Color>[
+        Color.fromARGB(240, 255, 48, 48),
+        Color.fromARGB(240, 239, 50, 50),
+        Color.fromARGB(240, 255, 48, 48)
+      ]);
 }
