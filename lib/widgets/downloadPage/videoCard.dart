@@ -1,7 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:kickdownloader/myColors.dart';
+import 'package:kickdownloader/my_colors.dart';
 
 class VideoCard extends StatelessWidget {
   final String title;

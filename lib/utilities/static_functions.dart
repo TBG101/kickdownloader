@@ -1,7 +1,35 @@
 import 'dart:io';
 import 'dart:math';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:kickdownloader/my_colors.dart';
 
 class StaticFunctions {
+  static void showSnackBar() {
+    Get.rawSnackbar(
+        title: "Counld't download",
+        message: "No internet connection",
+        barBlur: 0,
+        onTap: (snack) {
+          Get.closeCurrentSnackbar();
+        },
+        isDismissible: true,
+        borderRadius: 10,
+        overlayBlur: 0.5,
+        icon: const Icon(Icons.error),
+        margin: const EdgeInsets.symmetric(horizontal: 50, vertical: 50),
+        snackPosition: SnackPosition.TOP,
+        snackStyle: SnackStyle.FLOATING,
+        boxShadows: [
+          const BoxShadow(
+              color: Color.fromARGB(121, 255, 55, 55),
+              blurRadius: 10,
+              spreadRadius: 2)
+        ],
+        backgroundGradient: MyColors.gradientOnError,
+        padding: const EdgeInsets.only(left: 20, top: 15, bottom: 15));
+  }
+
   static (double, String) formatBytes(int bytes) {
     if (bytes <= 0) return (0, "B");
     const suffixes = ["B", "KB", "MB", "GB"];

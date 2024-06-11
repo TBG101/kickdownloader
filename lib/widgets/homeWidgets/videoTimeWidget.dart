@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:kickdownloader/myColors.dart';
+import 'package:kickdownloader/my_colors.dart';
 
 class VideoTimeWidget extends StatelessWidget {
   const VideoTimeWidget({

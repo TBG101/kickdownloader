@@ -1,5 +1,4 @@
 import 'package:awesome_notifications/awesome_notifications.dart';
-import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
@@ -8,8 +7,8 @@ import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:hive_flutter/adapters.dart';
 import 'package:kickdownloader/firebase_options.dart';
-import 'package:kickdownloader/myColors.dart';
-import 'package:kickdownloader/pages/Home.dart';
+import 'package:kickdownloader/my_colors.dart';
+import 'package:kickdownloader/pages/home.dart';
 import 'package:kickdownloader/utilities/logic.dart';
 
 void main() async {

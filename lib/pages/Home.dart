@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get/get_state_manager/get_state_manager.dart';
-import 'package:kickdownloader/myColors.dart';
-import 'package:kickdownloader/pages/downloadPage.dart';
+import 'package:kickdownloader/my_colors.dart';
+import 'package:kickdownloader/pages/download_page.dart';
 import 'package:kickdownloader/utilities/logic.dart';
 import 'package:kickdownloader/widgets/drawer.dart';
 import 'package:kickdownloader/widgets/homeWidgets/MyButton.dart';
@@ -18,33 +18,6 @@ class Home extends GetView<Logic> {
 
   List<Widget> homeView(size, BuildContext context) {
     return [
-      TextButton(
-        onPressed: () {
-          Get.rawSnackbar(
-              title: "Counld't download",
-              message: "No internet connection",
-              barBlur: 0,
-              onTap: (snack) {
-                Get.closeCurrentSnackbar();
-              },
-              isDismissible: true,
-              borderRadius: 10,
-              overlayBlur: 0.5,
-              icon: const Icon(Icons.error),
-              margin: const EdgeInsets.symmetric(horizontal: 50, vertical: 50),
-              snackPosition: SnackPosition.TOP,
-              snackStyle: SnackStyle.FLOATING,
-              boxShadows: [
-                const BoxShadow(
-                    color: Color.fromARGB(121, 255, 55, 55),
-                    blurRadius: 10,
-                    spreadRadius: 2)
-              ],
-              backgroundGradient: MyColors.gradientOnError,
-              padding: const EdgeInsets.only(left: 20, top: 15, bottom: 15));
-        },
-        child: const Text("Throw Test Exception"),
-      ),
       // STREAM THUMBNAIL.
       const StreamThumbnail(),
       // TEXT FOR STREAM FIELDS

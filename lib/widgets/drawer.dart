@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:kickdownloader/myColors.dart';
+import 'package:kickdownloader/my_colors.dart';
 import 'package:kickdownloader/pages/settings.dart';
 import 'package:kickdownloader/utilities/logic.dart';
 

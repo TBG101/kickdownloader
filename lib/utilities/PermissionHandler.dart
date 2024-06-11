@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:kickdownloader/myColors.dart';
+import 'package:kickdownloader/my_colors.dart';
 import 'package:kickdownloader/utilities/MethodChannelHandler.dart';
 import 'package:permission_handler/permission_handler.dart';
 

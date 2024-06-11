@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:kickdownloader/utilities/logic.dart';
-import 'package:kickdownloader/myColors.dart';
+import 'package:kickdownloader/my_colors.dart';
 
 class DropdownSelector extends GetView<Logic> {
   const DropdownSelector({super.key});
