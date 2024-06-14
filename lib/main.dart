@@ -59,8 +59,9 @@ class MyApp extends StatelessWidget {
         scaffoldBackgroundColor: MyColors.background,
         primaryColor: MyColors.green,
         focusColor: MyColors.green,
-        textTheme:
-            const TextTheme(titleLarge: TextStyle(fontFamily: "SpaceGrotesk")),
+        textTheme: const TextTheme(
+          titleLarge: TextStyle(fontFamily: "SpaceGrotesk"),
+        ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ButtonStyle(
             backgroundColor: MaterialStateProperty.all(MyColors.green),

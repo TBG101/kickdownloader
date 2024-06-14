@@ -210,7 +210,7 @@ class Logic extends GetxController {
   void dispose() {
     // TODO: implement dispose
     super.dispose();
-    print("Kic Vod Downloader exited ");
+    print("Kikc Vod Downloader exited ");
     __notificationcontroller.removeNotifications();
     HiveLogic.setQueeVideos(queeVideoDownload);
     MethodChannelHandler.stopService();
@@ -218,9 +218,9 @@ class Logic extends GetxController {
 
   Future<void> getVodData() async {
     if (!hasInternet) {
-      Get.snackbar(
-          "No internet Connection", "Check your internet and try again",
-          barBlur: 100);
+      StaticFunctions.showSnackBar(
+          title: "No internet Connection", "Check your internet and try again");
+
       return;
     }
 
@@ -255,7 +255,8 @@ class Logic extends GetxController {
     if (!StaticFunctions.validURL(url.value.text)) {
       resetAll();
       foundVideo.value = false;
-      Get.snackbar("Couldn't fecth data", "Link is not valid", barBlur: 100);
+      StaticFunctions.showSnackBar(
+          title: "Couldn't fecth data", "Link is not valid");
     }
 
     String id = url.value.text.split('/').last;
@@ -270,8 +271,8 @@ class Logic extends GetxController {
     } catch (e) {
       foundVideo.value = false;
       resetAll();
-
-      Get.snackbar("Couldn't fecth data", "Link is not valid", barBlur: 100);
+      StaticFunctions.showSnackBar(
+          title: "Couldn't fecth data", "Link is not valid");
       return 0;
     }
 
@@ -282,7 +283,8 @@ class Logic extends GetxController {
     } else {
       foundVideo.value = false;
       resetAll();
-      Get.snackbar("Couldn't fecth data", "Link is not valid", barBlur: 100);
+      StaticFunctions.showSnackBar(
+          title: "Couldn't fecth data", "Link is not valid");
       // implement exception
       return response.statusCode ?? 0;
     }
@@ -528,7 +530,8 @@ class Logic extends GetxController {
 
     // Implement error
     if (nbOfTsFiles == null) {
-      Get.snackbar("error", "Error occured");
+      StaticFunctions.showSnackBar(
+          title: "Unhandled Exception", "error occured: number of ts is Null");
       canceledLogic();
       throw "Number of ts files is null";
     }
@@ -823,9 +826,8 @@ class Logic extends GetxController {
   void downloadVodDataBtn() async {
     if (!hasInternet) {
       // IMPLEMENT NO INTERNET
-      Get.snackbar(
-          "No internet Connection", "Check your internet and try again",
-          barBlur: 100);
+      StaticFunctions.showSnackBar(
+          title: "No internet Connection", "Check your internet and try again");
       return;
     }
 
@@ -1076,20 +1078,6 @@ class Logic extends GetxController {
     HiveLogic.setStoreCompletedVideos(completedVideos);
   }
 
-  void showToast(String msg, BuildContext context, double toastWidth) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(
-        msg,
-        textAlign: TextAlign.center,
-        style: const TextStyle(fontSize: 16),
-      ),
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(180))),
-      behavior: SnackBarBehavior.floating,
-      width: toastWidth,
-    ));
-  }
-
   void copyLinkToClipboard(int index, BuildContext context,
       {bool compltedVideo = true}) {
     if (compltedVideo) {
@@ -1099,7 +1087,9 @@ class Logic extends GetxController {
       Clipboard.setData(
           ClipboardData(text: queeVideoDownload[index]["link"] as String));
     }
-    showToast("Coppied URL", context, 140);
+
+    // Coppied url here
+    StaticFunctions.showSnackBar("Coppied Url");
   }
 
   void openDir(int index) {

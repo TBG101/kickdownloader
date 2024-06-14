@@ -7,7 +7,7 @@ class NotificationController {
   final __notification = AwesomeNotifications();
   int lastUpdateTime = 0;
   final myNotifications = <int>{};
-  
+
   Future<void> createDownloadNotifcation(
       int id, String title, String body) async {
     myNotifications.add(id);

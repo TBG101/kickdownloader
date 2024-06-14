@@ -5,10 +5,10 @@ import 'package:get/get.dart';
 import 'package:kickdownloader/my_colors.dart';
 
 class StaticFunctions {
-  static void showSnackBar() {
+  static void showSnackBar(String message, {String? title}) {
     Get.rawSnackbar(
-        title: "Counld't download",
-        message: "No internet connection",
+        title: title,
+        message: message,
         barBlur: 0,
         onTap: (snack) {
           Get.closeCurrentSnackbar();
