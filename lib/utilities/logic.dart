@@ -285,7 +285,7 @@ class Logic extends GetxController {
       resetAll();
       StaticFunctions.showSnackBar(
           title: "Couldn't fecth data", "Link is not valid");
-      // implement exception
+
       return response.statusCode ?? 0;
     }
   }
@@ -528,7 +528,6 @@ class Logic extends GetxController {
       return null;
     }
 
-    // Implement error
     if (nbOfTsFiles == null) {
       StaticFunctions.showSnackBar(
           title: "Unhandled Exception", "error occured: number of ts is Null");

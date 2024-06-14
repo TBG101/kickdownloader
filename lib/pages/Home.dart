@@ -1,9 +1,11 @@
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get/get_state_manager/get_state_manager.dart';
 import 'package:kickdownloader/my_colors.dart';
 import 'package:kickdownloader/pages/download_page.dart';
 import 'package:kickdownloader/utilities/logic.dart';
+import 'package:kickdownloader/utilities/static_functions.dart';
 import 'package:kickdownloader/widgets/drawer.dart';
 import 'package:kickdownloader/widgets/homeWidgets/MyButton.dart';
 import 'package:kickdownloader/widgets/homeWidgets/dropdownSelector.dart';
@@ -47,9 +49,12 @@ class Home extends GetView<Logic> {
                 await controller.getVodData();
               } catch (e) {
                 if (controller.hasInternet == false) {
-                  // IMPLEMENT NO INTERNET EXCEPTION HERE
+                  StaticFunctions.showSnackBar(
+                      title: "No internet", "check your internet");
                 } else {
-                  // IMPLEMENT UNHANDLED EXCEPTION
+                  StaticFunctions.showSnackBar(
+                      title: "Error Occured", "Unhandled Exception");
+                  FirebaseCrashlytics.instance.log(e.toString());
                 }
               }
               controller.fetchingData.value = false;
