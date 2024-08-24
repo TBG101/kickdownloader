@@ -8,11 +8,5 @@
 import 'package:dio/dio.dart';
 
 void main() async {
-  var apiURL =
-      "https://kick.com/api/v1/video/cb428424-698f-485c-969b-587057150a63?${DateTime.now().millisecondsSinceEpoch}";
-  print("API URL: $apiURL");
-  Response response = await Dio().get(
-    apiURL,
-  );
-  print((response));
+
 }

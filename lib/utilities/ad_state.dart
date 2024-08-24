@@ -18,6 +18,7 @@ class AdState {
   String get bannerAdUnitId => "ca-app-pub-3940256099942544/6300978111";
   String get interstitialAdUnitId => "ca-app-pub-3940256099942544/8691691433";
   String get appOpenAd => "ca-app-pub-3940256099942544/9257395921";
+  
   int timeSinceLastAdShow = 0;
 
   void enableMemberShip() {
