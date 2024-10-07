@@ -1,10 +1,10 @@
 # kickdownloader
 
-A android only applciation to download kick.com VODS and Clips
+An android only applciation to download VODS from kick.com (clips comming soon)
 
 # Run the Flutter app
-- for dev mode: flutter run 
-- to build an apk: flutter build apk
+- For dev mode: flutter run 
+- To build an apk: flutter build apk
 ## TO DO
 
 add notification page (has the downloaded items)

@@ -49,6 +49,7 @@ class Home extends GetView<Logic> {
                 await controller.getVodData();
               } catch (e) {
                 if (controller.hasInternet == false) {
+                  
                   StaticFunctions.showSnackBar(
                       title: "No internet", "check your internet");
                 } else {
@@ -71,7 +72,7 @@ class Home extends GetView<Logic> {
       // END ROW FOR THE TIME SELECTOR
       const TimeSelectorRowEnd(),
 
-      // GET VOD DATA BUTTON
+      // DOWNLOAD BUTTON
       Padding(
           padding: const EdgeInsets.only(top: 0, bottom: 10),
           child: Obx(

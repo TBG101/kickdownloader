@@ -502,8 +502,11 @@ class Logic extends GetxController {
     }
     await getDownloadedSizeAndFiles(myPath, downloadedList).then((value) {
       print("in value $value");
+      // all downloadedParts in Mb (i think lol)
       videoDownloadParts = value[0] as double;
       print(videoDownloadParts);
+
+      // the downloaded  playlist
       downloadedList.addAll(value[1] as List<String>);
     });
 
